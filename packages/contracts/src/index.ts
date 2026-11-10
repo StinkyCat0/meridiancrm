@@ -6,7 +6,8 @@ export * from "./insights.js";
 export * from "./momentum.js";
 
 export interface HealthResponse {
-  status: "ok";
+  status: "ok" | "degraded";
   version: string;
   uptime: number;
+  database: "up" | "down";
 }

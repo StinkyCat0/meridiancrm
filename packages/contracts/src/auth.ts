@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ROLES } from "./enums.js";
-import { emailSchema } from "./common.js";
+import { emailSchema, optionalUrl } from "./common.js";
 import type { PublicUser, WorkspaceSummary } from "./entities.js";
 
 export const registerSchema = z.object({
@@ -28,7 +28,7 @@ export const acceptInviteSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
-  avatarUrl: z.string().trim().url().max(500).nullable().optional(),
+  avatarUrl: optionalUrl,
 });
 
 export const changePasswordSchema = z.object({

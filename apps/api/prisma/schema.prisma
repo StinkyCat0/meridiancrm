@@ -127,6 +127,7 @@ model Contact {
   @@index([workspaceId, archived])
   @@index([workspaceId, email])
   @@index([workspaceId, lastName])
+  @@index([workspaceId, companyId])
 }
 
 model Pipeline {
@@ -190,6 +191,9 @@ model Deal {
   @@index([workspaceId, stageId])
   @@index([workspaceId, closedAt])
   @@index([workspaceId, createdAt])
+  @@index([workspaceId, companyId])
+  @@index([workspaceId, contactId])
+  @@index([workspaceId, ownerId])
 }
 
 model StageHistory {
@@ -231,6 +235,8 @@ model Activity {
   @@index([workspaceId, completedAt, dueAt])
   @@index([workspaceId, createdAt])
   @@index([dealId])
+  @@index([workspaceId, contactId])
+  @@index([workspaceId, companyId])
 }
 
 model Invite {

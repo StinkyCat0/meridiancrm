@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="Meridian">
+  <defs>
+    <linearGradient id="meridian-gradient" x1="14" y1="52" x2="50" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22d3ee" />
+      <stop offset="1" stop-color="#8b5cf6" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#0a0a0a" />
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
+  <path d="M20 45V25.5C20 21.358 23.358 18 27.5 18H44" stroke="url(#meridian-gradient)" stroke-width="3.5" stroke-linecap="round" />
+  <path d="M20 39C20 34.858 23.358 31.5 27.5 31.5H38" stroke="url(#meridian-gradient)" stroke-width="3.5" stroke-linecap="round" opacity="0.55" />
+  <circle cx="44" cy="45" r="3" fill="#22d3ee" />
+</svg>

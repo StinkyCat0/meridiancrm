@@ -50,9 +50,24 @@ export const emptyToNull = (value: unknown): unknown =>
 export const optionalText = (max = 2000) =>
   z.preprocess(emptyToNull, z.string().trim().max(max).nullable().optional());
 
+const isHttpUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && url.username === "";
+  } catch {
+    return false;
+  }
+};
+
 export const optionalUrl = z.preprocess(
   emptyToNull,
-  z.string().trim().url().max(500).nullable().optional(),
+  z
+    .string()
+    .trim()
+    .max(500)
+    .refine(isHttpUrl, "Must be an http(s) URL without credentials")
+    .nullable()
+    .optional(),
 );
 
 export const optionalDate = z.preprocess(

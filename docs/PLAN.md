@@ -16,22 +16,22 @@ and consume the same capabilities over a documented REST API. Data persists. Rol
 
 ### Must-have checklist (all required for "done")
 
-- [ ] Monorepo, CI, Docker, one-command local run, seeded demo workspace.
-- [ ] Auth: register (creates workspace), login, refresh (httpOnly cookie), logout, me, password hashing.
-- [ ] Multi-tenant workspaces with OWNER/ADMIN/MEMBER roles enforced server-side.
-- [ ] CRUD + list/search/filter/pagination/sort for companies, contacts, deals, activities.
-- [ ] Pipelines & configurable stages; deal stage moves recorded in stage history.
-- [ ] Deal "momentum" score (deterministic, documented) — product differentiator.
-- [ ] Dashboard: pipeline value, won ARR/this month, win rate, avg deal size, stage distribution,
+- [x] Monorepo, CI, Docker, one-command local run, seeded demo workspace.
+- [x] Auth: register (creates workspace), login, refresh (httpOnly cookie), logout, me, password hashing.
+- [x] Multi-tenant workspaces with OWNER/ADMIN/MEMBER roles enforced server-side.
+- [x] CRUD + list/search/filter/pagination/sort for companies, contacts, deals, activities.
+- [x] Pipelines & configurable stages; deal stage moves recorded in stage history.
+- [x] Deal "momentum" score (deterministic, documented) — product differentiator.
+- [x] Dashboard: pipeline value, won ARR/this month, win rate, avg deal size, stage distribution,
       revenue trend, activity mix, recent deals.
-- [ ] Global search endpoint + ⌘K command palette.
-- [ ] Team management: members, invites (token, expiry), role changes, remove.
-- [ ] Audit log for privileged/mutating actions (admin view).
-- [ ] REST API documented (OpenAPI + interactive docs), consistent errors, rate limits, validation.
-- [ ] Responsive, accessible, keyboard-first dark UX with loading/empty/error states.
-- [ ] PWA installable; architecture doc for Expo/React Native port; shared contracts + typed client.
-- [ ] Tests: API integration (auth, tenancy, CRUD, pipeline), contract/unit tests; all green.
-- [ ] README screenshots-ready quickstart; SECURITY, CHANGELOG, LICENSE (proprietary).
+- [x] Global search endpoint + ⌘K command palette.
+- [x] Team management: members, invites (token, expiry), role changes, remove.
+- [x] Audit log for privileged/mutating actions (admin view).
+- [x] REST API documented (OpenAPI + interactive docs), consistent errors, rate limits, validation.
+- [x] Responsive, accessible, keyboard-first dark UX with loading/empty/error states.
+- [x] PWA installable; architecture doc for Expo/React Native port; shared contracts + typed client.
+- [x] Tests: API integration (auth, tenancy, CRUD, pipeline), contract/unit tests; all green.
+- [x] README screenshots-ready quickstart; SECURITY, CHANGELOG, LICENSE (proprietary).
 
 ### Explicit non-goals (documented as roadmap)
 
@@ -78,3 +78,22 @@ file uploads, reporting exports. These are v1.1+ and must not silently creep int
 - Deletion: companies/contacts/deals support archive (soft) + restore; hard delete admin-only.
 - Momentum score: 0–100 from activity recency, stage age vs typical, close-date pressure. Shown as
   a "signal" bar, not a black box: breakdown exposed in API.
+
+## Verification log (2026-11-10)
+
+Executed on the release tree:
+
+- `npx tsc -p apps/api` / `apps/web` / `packages/contracts`: clean.
+- `npm run test -w @meridian/contracts`: 6 passed.
+- `npm run test -w @meridian/api`: 14 passed (auth, tenancy, RBAC, refresh rotation/reuse,
+  invites, CRUD, pipeline transitions, stage integrity, dashboard, search).
+- `npm run build -w @meridian/api` and `-w @meridian/web`: success; web precache 25 entries.
+- Live browser (Chromium): login, dashboard, contacts (created a record), companies, deals board +
+  deep link `?deal=`, activities, settings, ⌘K search, 390px layout — zero console errors.
+- Production single-container mode (`SERVE_WEB=1`): SPA fallback 200, hashed assets immutable,
+  missing asset 404, CSP present, auth `Cache-Control: no-store`, refresh cookie HttpOnly/Lax.
+- Security review findings fixed: trust proxy, fail-closed JWT secret, atomic refresh rotation,
+  per-route auth limits, http(s)-only URLs, CSP, last-owner transactions, stage-delete/history guard.
+
+Not executed: Docker image build (no Docker daemon in this environment) and Cloudflare Worker
+deployment (no Cloudflare credentials). Both configs are committed and documented.

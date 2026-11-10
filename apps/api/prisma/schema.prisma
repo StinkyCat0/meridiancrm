@@ -1,0 +1,268 @@
+// Meridian CRM data model. SQLite today; switching provider to postgres needs no app rewrite.
+// SQLite has no native enums: role/kind/type are validated at the API boundary via Zod.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships    Membership[]
+  refreshTokens  RefreshToken[]
+  ownedCompanies Company[]      @relation("CompanyOwner")
+  ownedContacts  Contact[]      @relation("ContactOwner")
+  ownedDeals     Deal[]         @relation("DealOwner")
+  ownedActivities Activity[]    @relation("ActivityOwner")
+  auditEntries   AuditLog[]     @relation("AuditActor")
+  invitesSent    Invite[]       @relation("InviteSender")
+  stageChanges   StageHistory[] @relation("StageChanger")
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  currency  String   @default("USD")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  companies   Company[]
+  contacts    Contact[]
+  pipelines   Pipeline[]
+  deals       Deal[]
+  activities  Activity[]
+  invites     Invite[]
+  auditLogs   AuditLog[]
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        String   @default("MEMBER")
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  domain      String?
+  industry    String?
+  size        String?
+  phone       String?
+  website     String?
+  address     String?
+  notes       String?
+  tags        String   @default("[]")
+  archived    Boolean  @default(false)
+  ownerId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner      User?      @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  contacts   Contact[]
+  deals      Deal[]
+  activities Activity[]
+
+  @@index([workspaceId, archived])
+  @@index([workspaceId, name])
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  workspaceId String
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  title       String?
+  companyId   String?
+  ownerId     String?
+  tags        String   @default("[]")
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company    Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner      User?      @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  deals      Deal[]
+  activities Activity[]
+
+  @@index([workspaceId, archived])
+  @@index([workspaceId, email])
+  @@index([workspaceId, lastName])
+}
+
+model Pipeline {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stages    Stage[]
+  deals     Deal[]
+
+  @@index([workspaceId])
+}
+
+model Stage {
+  id          String @id @default(cuid())
+  pipelineId  String
+  name        String
+  order       Int
+  probability Int    @default(20)
+  kind        String @default("OPEN")
+  targetDays  Int    @default(30)
+
+  pipeline Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  deals    Deal[]
+  history  StageHistory[]
+
+  @@unique([pipelineId, order])
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  pipelineId        String
+  stageId           String
+  title             String
+  value             Int
+  currency          String    @default("USD")
+  contactId         String?
+  companyId         String?
+  ownerId           String?
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  description       String?
+  tags              String    @default("[]")
+  stageChangedAt    DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  workspace  Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pipeline   Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage      Stage          @relation(fields: [stageId], references: [id])
+  contact    Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company    Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner      User?          @relation("DealOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  activities Activity[]
+  history    StageHistory[]
+
+  @@index([workspaceId, stageId])
+  @@index([workspaceId, closedAt])
+  @@index([workspaceId, createdAt])
+}
+
+model StageHistory {
+  id          String   @id @default(cuid())
+  dealId      String
+  stageId     String
+  fromStageId String?
+  changedById String?
+  changedAt   DateTime @default(now())
+
+  deal      Deal  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  stage     Stage @relation(fields: [stageId], references: [id])
+  changedBy User? @relation("StageChanger", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([dealId, changedAt])
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  workspaceId String
+  type        String    @default("NOTE")
+  title       String
+  body        String?
+  dueAt       DateTime?
+  completedAt DateTime?
+  contactId   String?
+  companyId   String?
+  dealId      String?
+  ownerId     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company   Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  deal      Deal?     @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  owner     User?     @relation("ActivityOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, completedAt, dueAt])
+  @@index([workspaceId, createdAt])
+  @@index([dealId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  role        String    @default("MEMBER")
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User?     @relation("InviteSender", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  actorId     String?
+  action      String
+  entityType  String
+  entityId    String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+}

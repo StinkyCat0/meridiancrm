@@ -1,0 +1,61 @@
+import { z } from "zod";
+
+export const idSchema = z.string().min(1).max(64);
+export const emailSchema = z.string().trim().toLowerCase().email().max(254);
+
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  q: z.string().trim().max(200).optional(),
+  sort: z.string().trim().max(40).optional(),
+  order: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type PaginationQuery = z.infer<typeof paginationSchema>;
+
+export interface PageMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface Page<T> {
+  data: T[];
+  meta: PageMeta;
+}
+
+export interface ApiErrorBody {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+}
+
+export const ERROR_CODES = {
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  NOT_FOUND: "NOT_FOUND",
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  CONFLICT: "CONFLICT",
+  RATE_LIMITED: "RATE_LIMITED",
+  INTERNAL: "INTERNAL",
+  BAD_REQUEST: "BAD_REQUEST",
+} as const;
+
+export const emptyToNull = (value: unknown): unknown =>
+  typeof value === "string" && value.trim() === "" ? null : value;
+
+export const optionalText = (max = 2000) =>
+  z.preprocess(emptyToNull, z.string().trim().max(max).nullable().optional());
+
+export const optionalUrl = z.preprocess(
+  emptyToNull,
+  z.string().trim().url().max(500).nullable().optional(),
+);
+
+export const optionalDate = z.preprocess(
+  emptyToNull,
+  z.coerce.date().nullable().optional(),
+);

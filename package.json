@@ -1,0 +1,31 @@
+{
+  "name": "meridian-crm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Meridian CRM — a precision CRM for boutique teams.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w @meridian/api",
+    "dev:web": "npm run dev -w @meridian/web",
+    "build": "npm run build -w @meridian/api && npm run build -w @meridian/web",
+    "start": "npm run start -w @meridian/api",
+    "test": "npm run test -w @meridian/api",
+    "db:setup": "npm run db:setup -w @meridian/api",
+    "seed": "npm run seed -w @meridian/api",
+    "verify": "npm run test && npm run build",
+    "typecheck": "npm run typecheck -w @meridian/api && npm run typecheck -w @meridian/web",
+    "format": "prettier --write \"**/*.{ts,tsx,css,md,json}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  }
+}

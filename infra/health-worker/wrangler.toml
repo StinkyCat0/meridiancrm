@@ -1,0 +1,6 @@
+name = "meridian-health"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+[vars]
+TARGET_URL = "https://crm.example.com"

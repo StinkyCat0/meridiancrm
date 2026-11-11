@@ -7,7 +7,7 @@ import { openCommandPalette } from "../command/events";
 import { Avatar } from "../ui/Avatar";
 import { IconButton } from "../ui/IconButton";
 import { LogoLockup } from "./Logo";
-import { NAV_ITEMS } from "./nav";
+import { MOBILE_NAV_ITEMS, NAV_ITEMS } from "./nav";
 import { TopBar } from "./TopBar";
 import { UserMenu } from "./UserMenu";
 
@@ -131,7 +131,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
       >
         <div className="grid grid-cols-5">
-          {NAV_ITEMS.map((item) => (
+          {MOBILE_NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

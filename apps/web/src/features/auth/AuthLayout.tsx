@@ -21,8 +21,8 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </main>
 
         <footer className="flex items-center justify-between gap-4 text-[10px] text-muted">
-          <span>Meridian Studios</span>
-          <span className="label-micro">Precision, by design</span>
+          <span>Meridian CRM</span>
+          <span className="label-micro">Service operations, in order</span>
         </footer>
       </div>
 
@@ -37,13 +37,13 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="relative max-w-md">
-          <p className="label-micro">The studio statement</p>
+          <p className="label-micro">Built for the field</p>
           <blockquote className="mt-5 text-[28px] font-light leading-[1.25] tracking-tight text-fg">
-            Boutique experiences for brands that value precision, aesthetics, and performance.
+            Run the whole service day — first call to final invoice — from one calm surface.
           </blockquote>
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted">
-            This is the CRM we use to run the studio: signal instead of noise, an exact pipeline,
-            and every relationship kept in view.
+            For window cleaners, HVAC crews, utilities, salons and nail studios: customers,
+            service locations, the price book, and every job kept in view.
           </p>
           <div className="mt-8 h-px w-24 bg-gradient-to-r from-accent to-accent-2" />
         </div>
@@ -51,11 +51,11 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="relative grid grid-cols-3 gap-4 border-t border-border pt-6">
           <div>
             <p className="num text-lg font-light text-fg">01</p>
-            <p className="label-micro mt-1">Exact pipeline</p>
+            <p className="label-micro mt-1">Dispatch ready</p>
           </div>
           <div>
             <p className="num text-lg font-light text-fg">02</p>
-            <p className="label-micro mt-1">Momentum signal</p>
+            <p className="label-micro mt-1">Live invoicing</p>
           </div>
           <div>
             <p className="num text-lg font-light text-fg">03</p>

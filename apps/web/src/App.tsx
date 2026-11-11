@@ -16,6 +16,10 @@ const ContactsPage = lazy(() => import("./features/contacts"));
 const CompaniesPage = lazy(() => import("./features/companies"));
 const DealsPage = lazy(() => import("./features/deals"));
 const ActivitiesPage = lazy(() => import("./features/activities"));
+const SchedulePage = lazy(() => import("./features/schedule"));
+const EstimatesPage = lazy(() => import("./features/estimates"));
+const InvoicesPage = lazy(() => import("./features/invoices"));
+const ServicesPage = lazy(() => import("./features/services"));
 const SettingsPage = lazy(() => import("./features/settings"));
 
 function RouteFallback() {
@@ -104,6 +108,38 @@ export default function App() {
                 element={
                   <LazyRoute>
                     <DealsPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="schedule"
+                element={
+                  <LazyRoute>
+                    <SchedulePage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="estimates"
+                element={
+                  <LazyRoute>
+                    <EstimatesPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="invoices"
+                element={
+                  <LazyRoute>
+                    <InvoicesPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="services"
+                element={
+                  <LazyRoute>
+                    <ServicesPage />
                   </LazyRoute>
                 }
               />

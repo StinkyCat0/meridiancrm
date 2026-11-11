@@ -31,13 +31,32 @@ export function relativeTime(value: DateInput): string {
   return formatDistanceToNow(date, { addSuffix: true });
 }
 
-/** Money inputs are entered in major units; API values are integer cents. */
+/**
+ * Money inputs are entered in major units and may use "." or "," as the decimal separator
+ * ("24,99", "1.234,56", "1,234.56"); API values are integer cents.
+ */
 export function toCents(value: string | number | null | undefined): number {
   if (value === null || value === undefined || value === "") return 0;
-  const numeric =
-    typeof value === "number" ? value : Number(value.replace(/[^0-9.-]/g, ""));
+  const numeric = typeof value === "number" ? value : parseMajorUnits(value);
   if (!Number.isFinite(numeric)) return 0;
   return Math.round(numeric * 100);
+}
+
+/** The rightmost separator is decimal; the other one groups thousands. */
+function parseMajorUnits(input: string): number {
+  const cleaned = input.trim().replace(/[^0-9.,-]/g, "");
+  const lastComma = cleaned.lastIndexOf(",");
+  const lastDot = cleaned.lastIndexOf(".");
+  let normalized = cleaned;
+  if (lastComma !== -1 && lastDot !== -1) {
+    const decimal = lastComma > lastDot ? "," : ".";
+    const group = decimal === "," ? "." : ",";
+    normalized = cleaned.split(group).join("").replace(decimal, ".");
+  } else if (lastComma !== -1) {
+    const decimals = cleaned.length - lastComma - 1;
+    normalized = decimals === 3 ? cleaned.split(",").join("") : cleaned.replace(",", ".");
+  }
+  return Number(normalized);
 }
 
 export function fromCents(cents: number | null | undefined): string {

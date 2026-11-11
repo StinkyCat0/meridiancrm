@@ -77,7 +77,7 @@ export default function LoginPage() {
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@studio.com"
+            placeholder="you@company.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             invalid={Boolean(error)}

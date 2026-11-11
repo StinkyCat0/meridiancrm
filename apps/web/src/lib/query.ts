@@ -48,6 +48,34 @@ export const queryKeys = {
     all: ["activities"] as const,
     list: (query?: unknown) => ["activities", "list", query ?? null] as const,
   },
+  locations: {
+    all: ["locations"] as const,
+    list: (query?: unknown) => ["locations", "list", query ?? null] as const,
+    detail: (id: string) => ["locations", "detail", id] as const,
+  },
+  services: {
+    all: ["services"] as const,
+    list: (query?: unknown) => ["services", "list", query ?? null] as const,
+    detail: (id: string) => ["services", "detail", id] as const,
+  },
+  jobs: {
+    all: ["jobs"] as const,
+    list: (query?: unknown) => ["jobs", "list", query ?? null] as const,
+    detail: (id: string) => ["jobs", "detail", id] as const,
+  },
+  estimates: {
+    all: ["estimates"] as const,
+    list: (query?: unknown) => ["estimates", "list", query ?? null] as const,
+    detail: (id: string) => ["estimates", "detail", id] as const,
+  },
+  invoices: {
+    all: ["invoices"] as const,
+    list: (query?: unknown) => ["invoices", "list", query ?? null] as const,
+    detail: (id: string) => ["invoices", "detail", id] as const,
+  },
+  ops: {
+    summary: (date?: string) => ["ops", "summary", date ?? "today"] as const,
+  },
   insights: {
     dashboard: (months?: number) => ["insights", "dashboard", months ?? null] as const,
     search: (q: string) => ["insights", "search", q] as const,

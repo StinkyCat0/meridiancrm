@@ -66,9 +66,9 @@ export default function RegisterPage() {
     <AuthLayout>
       <div className="mb-8">
         <p className="label-micro">New workspace</p>
-        <h1 className="mt-2 text-3xl font-light tracking-tight text-fg">Create your studio</h1>
+        <h1 className="mt-2 text-3xl font-light tracking-tight text-fg">Create your workspace</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          One workspace, built for the way boutique teams work.
+          One workspace for the way service teams work.
         </p>
       </div>
 
@@ -91,7 +91,7 @@ export default function RegisterPage() {
             id="register-workspace"
             name="workspaceName"
             autoComplete="organization"
-            placeholder="Meridian Studio"
+            placeholder="Meridian Services"
             value={values.workspaceName}
             onChange={(event) => update("workspaceName", event.target.value)}
             invalid={Boolean(errors.workspaceName)}
@@ -105,7 +105,7 @@ export default function RegisterPage() {
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@studio.com"
+            placeholder="you@company.com"
             value={values.email}
             onChange={(event) => update("email", event.target.value)}
             invalid={Boolean(errors.email)}

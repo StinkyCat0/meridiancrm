@@ -30,6 +30,9 @@ and the project adheres to semantic versioning for public contracts.
 - Estimate-to-job conversion is atomic: concurrent converts can no longer create two jobs for one
   estimate, and the losing request gets a 409.
 - Location search hits link to the company detail route instead of a removed `/app/customers` path.
+- Money fields accept comma decimal separators (`24,99` → $24.99, `1.234,56` → $1,234.56) instead of
+  silently multiplying European-style input by 100.
+- The job cancellation reason input has an accessible name.
 - Fresh installs no longer leave `@prisma/client` ungenerated: `db:setup`, `dev`, and `build`
   generate it, so the documented quickstart can sign in with the demo account.
 - Non-JSON API responses (for example, a Vite proxy error while the API is down) now report that

@@ -12,6 +12,12 @@ import { IconButton } from "./IconButton";
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/**
+ * Modals can stack (for example, a customer sheet that opens a location form).
+ * Only the topmost panel should respond to Escape and trap Tab.
+ */
+const openModals: HTMLElement[] = [];
+
 export type ModalSize = "sm" | "md" | "lg";
 
 const sizeClasses: Record<ModalSize, string> = {
@@ -67,7 +73,11 @@ export function Modal({
       target.focus();
     });
 
+    const panel = panelRef.current;
+    if (panel) openModals.push(panel);
+
     function handleKeyDown(event: KeyboardEvent) {
+      if (panelRef.current !== openModals[openModals.length - 1]) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();
@@ -104,6 +114,8 @@ export function Modal({
     return () => {
       window.cancelAnimationFrame(frame);
       document.removeEventListener("keydown", handleKeyDown);
+      const index = panel ? openModals.indexOf(panel) : -1;
+      if (index !== -1) openModals.splice(index, 1);
       document.body.style.overflow = previousOverflow;
       previouslyFocused.current?.focus();
     };

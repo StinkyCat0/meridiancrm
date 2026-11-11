@@ -8,6 +8,7 @@ import {
   CornerDownLeft,
   FileText,
   MapPin,
+  MessageSquare,
   Plus,
   Receipt,
   Search,
@@ -104,6 +105,7 @@ const HIT_GROUPS: Record<SearchHit["type"], string> = {
   job: "Jobs",
   estimate: "Estimates",
   invoice: "Invoices",
+  communication: "Communications",
 };
 
 const HIT_ICONS: Record<SearchHit["type"], LucideIcon> = {
@@ -114,6 +116,7 @@ const HIT_ICONS: Record<SearchHit["type"], LucideIcon> = {
   job: Wrench,
   estimate: FileText,
   invoice: Receipt,
+  communication: MessageSquare,
 };
 
 interface CommandItem {

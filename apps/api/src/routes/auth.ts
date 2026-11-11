@@ -41,6 +41,11 @@ type WorkspaceRecord = {
   name: string;
   slug: string;
   currency: string;
+  businessType: string;
+  timezone: string;
+  serviceArea: string | null;
+  depotLatitude: number | null;
+  depotLongitude: number | null;
   createdAt: Date;
 };
 
@@ -63,6 +68,11 @@ function toWorkspaceSummary(workspace: WorkspaceRecord): WorkspaceSummary {
     name: workspace.name,
     slug: workspace.slug,
     currency: workspace.currency,
+    businessType: workspace.businessType as WorkspaceSummary["businessType"],
+    timezone: workspace.timezone,
+    serviceArea: workspace.serviceArea,
+    depotLatitude: workspace.depotLatitude,
+    depotLongitude: workspace.depotLongitude,
     createdAt: workspace.createdAt.toISOString(),
   };
 }

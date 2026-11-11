@@ -35,6 +35,11 @@ type WorkspaceRecord = {
   name: string;
   slug: string;
   currency: string;
+  businessType: string;
+  timezone: string;
+  serviceArea: string | null;
+  depotLatitude: number | null;
+  depotLongitude: number | null;
   createdAt: Date;
 };
 type MembershipRecord = { id: string; role: string; createdAt: Date; user: UserRecord };
@@ -60,6 +65,11 @@ function toWorkspaceSummary(workspace: WorkspaceRecord): WorkspaceSummary {
     name: workspace.name,
     slug: workspace.slug,
     currency: workspace.currency,
+    businessType: workspace.businessType as WorkspaceSummary["businessType"],
+    timezone: workspace.timezone,
+    serviceArea: workspace.serviceArea,
+    depotLatitude: workspace.depotLatitude,
+    depotLongitude: workspace.depotLongitude,
     createdAt: workspace.createdAt.toISOString(),
   };
 }
@@ -124,6 +134,11 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
         data: {
           ...(body.name !== undefined ? { name: body.name } : {}),
           ...(body.currency !== undefined ? { currency: body.currency } : {}),
+          ...(body.businessType !== undefined ? { businessType: body.businessType } : {}),
+          ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
+          ...(body.serviceArea !== undefined ? { serviceArea: body.serviceArea ?? null } : {}),
+          ...(body.depotLatitude !== undefined ? { depotLatitude: body.depotLatitude } : {}),
+          ...(body.depotLongitude !== undefined ? { depotLongitude: body.depotLongitude } : {}),
         },
       });
 

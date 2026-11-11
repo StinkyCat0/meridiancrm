@@ -38,6 +38,7 @@ function toService(row: ServiceRow): ServiceItem {
     unit: row.unit as ServiceUnit,
     durationMinutes: row.durationMinutes,
     price: row.price,
+    cost: row.cost,
     taxable: row.taxable,
     archived: row.archived,
     usageCount: row._count.jobLines + row._count.estimateLines,

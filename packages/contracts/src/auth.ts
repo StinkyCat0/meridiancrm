@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ROLES } from "./enums.js";
-import { emailSchema, optionalUrl } from "./common.js";
+import { BUSINESS_TYPES, ROLES } from "./enums.js";
+import { emailSchema, optionalText, optionalUrl } from "./common.js";
 import type { PublicUser, WorkspaceSummary } from "./entities.js";
 
 export const registerSchema = z.object({
@@ -39,6 +39,11 @@ export const changePasswordSchema = z.object({
 export const workspaceUpdateSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
   currency: z.enum(["USD", "EUR", "GBP", "CAD", "AUD", "JPY"]).optional(),
+  businessType: z.enum(BUSINESS_TYPES).optional(),
+  timezone: z.string().trim().min(1).max(64).optional(),
+  serviceArea: optionalText(160),
+  depotLatitude: z.coerce.number().min(-90).max(90).nullable().optional(),
+  depotLongitude: z.coerce.number().min(-180).max(180).nullable().optional(),
 });
 
 export interface AuthSession {

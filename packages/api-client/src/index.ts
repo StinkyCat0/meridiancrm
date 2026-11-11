@@ -1,17 +1,42 @@
 import {
   type Activity,
   type ActivityType,
+  type AssistantBrief,
   type AuditEntry,
   type AuthSession,
+  type AutomationAction,
+  type AutomationConditions,
+  type AutomationRun,
+  type AutomationRule,
+  type AutomationRunStatus,
+  type AutomationTrigger,
+  type BusinessType,
+  type Communication,
+  type CommunicationChannel,
+  type CommunicationDirection,
+  type CommunicationDraft,
+  type CommunicationIntent,
+  type CommunicationSentiment,
+  type CommunicationStats,
+  type CommunicationStatus,
+  type CommunicationThread,
   type Company,
   type Contact,
   type Currency,
+  type CustomerTimeline,
   type CustomerType,
   type DashboardSummary,
   type Deal,
+  type DispatchBoard,
+  type DispatchMap,
+  type DispatchRoute,
   type Estimate,
   type EstimateStatus,
+  type Expense,
+  type ExpenseCategory,
+  type FinanceSummary,
   type Industry,
+  type IntelligenceSummary,
   type Invite,
   type Invoice,
   type InvoiceStatus,
@@ -23,7 +48,11 @@ import {
   type Member,
   type OpsSummary,
   type Page,
+  type Payment,
+  type PaymentMethod,
   type Pipeline,
+  type Recommendation,
+  type RecommendationKind,
   type RecurrenceFrequency,
   type ServiceItem,
   type ServiceUnit,
@@ -33,6 +62,8 @@ import {
   type Stage,
   type StageHistoryEntry,
   type StageKind,
+  type TeamPerformance,
+  type TeamWorkload,
   type WorkspaceSummary,
 } from "@meridian/contracts";
 
@@ -372,6 +403,8 @@ export interface CreateLocationInput {
   gateCode?: string | null;
   contactName?: string | null;
   contactPhone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   isPrimary?: boolean;
   archived?: boolean;
 }
@@ -385,6 +418,7 @@ export interface CreateServiceInput {
   unit?: ServiceUnit;
   durationMinutes?: number;
   price?: number;
+  cost?: number;
   taxable?: boolean;
   archived?: boolean;
 }
@@ -396,6 +430,7 @@ export interface LineItemInput {
   name: string;
   quantity: number;
   unitPrice: number;
+  unitCost?: number;
 }
 
 export interface CreateJobInput {
@@ -418,7 +453,11 @@ export interface CreateJobInput {
   lineItems?: LineItemInput[];
 }
 
-export type UpdateJobInput = Partial<CreateJobInput>;
+export type UpdateJobInput = Partial<CreateJobInput> & {
+  rating?: number | null;
+  ratingNote?: string | null;
+  cancelReason?: string | null;
+};
 
 export interface CreateEstimateInput {
   title: string;
@@ -457,6 +496,66 @@ export type UpdateInvoiceInput = {
   paidAt?: string | null;
   notes?: string | null;
 };
+
+export interface CreateCommunicationInput {
+  channel: CommunicationChannel;
+  direction?: CommunicationDirection;
+  status?: CommunicationStatus;
+  intent?: CommunicationIntent;
+  sentiment?: CommunicationSentiment;
+  subject?: string | null;
+  body?: string | null;
+  customerId?: string | null;
+  contactId?: string | null;
+  jobId?: string | null;
+  occurredAt?: string | null;
+  aiGenerated?: boolean;
+  aiRationale?: string | null;
+}
+
+export interface UpdateCommunicationInput {
+  readAt?: string | null;
+  sentiment?: CommunicationSentiment;
+}
+
+export interface DraftCommunicationInput {
+  customerId: string;
+  channel?: CommunicationChannel;
+  intent?: CommunicationIntent;
+  jobId?: string | null;
+  tone?: "WARM" | "PROFESSIONAL" | "BRIEF";
+}
+
+export interface CreateExpenseInput {
+  category?: ExpenseCategory;
+  vendor?: string | null;
+  description: string;
+  amount: number;
+  incurredAt?: string | null;
+  jobId?: string | null;
+  userId?: string | null;
+  receiptUrl?: string | null;
+}
+
+export type UpdateExpenseInput = Partial<CreateExpenseInput>;
+
+export interface CreatePaymentInput {
+  amount: number;
+  method?: PaymentMethod;
+  reference?: string | null;
+  receivedAt?: string | null;
+}
+
+export type CreateAutomationInput = {
+  name: string;
+  description?: string | null;
+  trigger: AutomationTrigger;
+  conditions?: AutomationConditions;
+  actions: AutomationAction[];
+  enabled?: boolean;
+};
+
+export type UpdateAutomationInput = Partial<CreateAutomationInput>;
 
 /* List query shapes — every value is optional and omitted when empty. */
 export interface ListParams {
@@ -540,6 +639,55 @@ export interface InvoiceListQuery extends ListParams {
   customerId?: string;
   jobId?: string;
   overdue?: "true" | "false";
+}
+
+export interface CommunicationListQuery extends ListParams {
+  channel?: CommunicationChannel;
+  direction?: CommunicationDirection;
+  customerId?: string;
+  contactId?: string;
+  jobId?: string;
+  unread?: "true" | "false";
+}
+
+export interface DispatchQuery {
+  date?: string;
+  assigneeId?: string;
+}
+
+export interface FinanceQuery {
+  from?: string;
+  to?: string;
+}
+
+export interface ExpenseListQuery extends ListParams {
+  category?: ExpenseCategory;
+  jobId?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface PaymentListQuery extends ListParams {
+  from?: string;
+  to?: string;
+  customerId?: string;
+  invoiceId?: string;
+}
+
+export interface AutomationListQuery extends ListParams {
+  trigger?: AutomationTrigger;
+  enabled?: "true" | "false";
+}
+
+export interface AutomationRunListQuery extends ListParams {
+  trigger?: AutomationTrigger;
+  status?: AutomationRunStatus;
+  ruleId?: string;
+}
+
+export interface RecommendationListQuery {
+  kind?: RecommendationKind;
+  limit?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -632,7 +780,15 @@ const auth = {
 
 const workspace = {
   get: (): Promise<WorkspaceSummary> => execute<WorkspaceSummary>("/workspace"),
-  update: (input: { name?: string; currency?: Currency }): Promise<WorkspaceSummary> =>
+  update: (input: {
+    name?: string;
+    currency?: Currency;
+    businessType?: BusinessType;
+    timezone?: string;
+    serviceArea?: string | null;
+    depotLatitude?: number | null;
+    depotLongitude?: number | null;
+  }): Promise<WorkspaceSummary> =>
     execute<WorkspaceSummary>("/workspace", { method: "PATCH", body: input }),
   members: (): Promise<Member[]> => execute<Member[]>("/workspace/members"),
   updateMember: (id: string, input: { role: "ADMIN" | "MEMBER" }): Promise<Member> =>
@@ -672,6 +828,10 @@ const companies = {
     execute<void>(`/companies/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restore: (id: string): Promise<Company> =>
     execute<Company>(`/companies/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+  timeline: (id: string, limit = 80): Promise<CustomerTimeline> =>
+    execute<CustomerTimeline>(`/companies/${encodeURIComponent(id)}/timeline`, {
+      query: { limit },
+    }),
 };
 
 const contacts = {
@@ -822,11 +982,18 @@ const invoices = {
     execute<Invoice>(`/invoices/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateInvoiceInput): Promise<Invoice> =>
     execute<Invoice>(`/invoices/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
-  recordPayment: (id: string, amountPaid: number): Promise<Invoice> =>
+  recordPayment: (id: string, amountPaid: number, method?: PaymentMethod): Promise<Invoice> =>
     execute<Invoice>(`/invoices/${encodeURIComponent(id)}/payment`, {
       method: "PATCH",
-      body: { amountPaid },
+      body: { amountPaid, method },
     }),
+  addPayment: (id: string, input: CreatePaymentInput): Promise<Invoice> =>
+    execute<Invoice>(`/invoices/${encodeURIComponent(id)}/payments`, {
+      method: "POST",
+      body: input,
+    }),
+  payments: (id: string): Promise<Payment[]> =>
+    execute<Payment[]>(`/invoices/${encodeURIComponent(id)}/payments`),
   delete: (id: string): Promise<void> =>
     execute<void>(`/invoices/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
@@ -834,6 +1001,93 @@ const invoices = {
 const ops = {
   summary: (date?: string): Promise<OpsSummary> =>
     execute<OpsSummary>("/ops/summary", { query: { date } }),
+};
+
+const communications = {
+  list: (query?: CommunicationListQuery): Promise<Page<Communication>> =>
+    execute<Page<Communication>>("/communications", { query }),
+  threads: (query?: { q?: string; limit?: number }): Promise<CommunicationThread[]> =>
+    execute<CommunicationThread[]>("/communications/threads", { query }),
+  stats: (): Promise<CommunicationStats> => execute<CommunicationStats>("/communications/stats"),
+  get: (id: string): Promise<Communication> =>
+    execute<Communication>(`/communications/${encodeURIComponent(id)}`),
+  create: (input: CreateCommunicationInput): Promise<Communication> =>
+    execute<Communication>("/communications", { method: "POST", body: input }),
+  update: (id: string, input: UpdateCommunicationInput): Promise<Communication> =>
+    execute<Communication>(`/communications/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
+  draft: (input: DraftCommunicationInput): Promise<CommunicationDraft> =>
+    execute<CommunicationDraft>("/communications/draft", { method: "POST", body: input }),
+  delete: (id: string): Promise<void> =>
+    execute<void>(`/communications/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+const dispatch = {
+  board: (query?: DispatchQuery): Promise<DispatchBoard> =>
+    execute<DispatchBoard>("/dispatch/board", { query }),
+  map: (query?: DispatchQuery): Promise<DispatchMap> =>
+    execute<DispatchMap>("/dispatch/map", { query }),
+  route: (query?: DispatchQuery & { assigneeId: string }): Promise<DispatchRoute> =>
+    execute<DispatchRoute>("/dispatch/route", { query }),
+  assign: (jobIds: string[], assigneeId: string | null): Promise<{ updated: number }> =>
+    execute<{ updated: number }>("/dispatch/assign", {
+      method: "POST",
+      body: { jobIds, assigneeId },
+    }),
+};
+
+const finance = {
+  summary: (query?: FinanceQuery): Promise<FinanceSummary> =>
+    execute<FinanceSummary>("/finance/summary", { query }),
+  payments: (query?: PaymentListQuery): Promise<Page<Payment>> =>
+    execute<Page<Payment>>("/finance/payments", { query }),
+  expenses: (query?: ExpenseListQuery): Promise<Page<Expense>> =>
+    execute<Page<Expense>>("/finance/expenses", { query }),
+  createExpense: (input: CreateExpenseInput): Promise<Expense> =>
+    execute<Expense>("/finance/expenses", { method: "POST", body: input }),
+  updateExpense: (id: string, input: UpdateExpenseInput): Promise<Expense> =>
+    execute<Expense>(`/finance/expenses/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
+  deleteExpense: (id: string): Promise<void> =>
+    execute<void>(`/finance/expenses/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+const automations = {
+  list: (query?: AutomationListQuery): Promise<Page<AutomationRule>> =>
+    execute<Page<AutomationRule>>("/automations", { query }),
+  get: (id: string): Promise<AutomationRule> =>
+    execute<AutomationRule>(`/automations/${encodeURIComponent(id)}`),
+  create: (input: CreateAutomationInput): Promise<AutomationRule> =>
+    execute<AutomationRule>("/automations", { method: "POST", body: input }),
+  update: (id: string, input: UpdateAutomationInput): Promise<AutomationRule> =>
+    execute<AutomationRule>(`/automations/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
+  delete: (id: string): Promise<void> =>
+    execute<void>(`/automations/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  runs: (query?: AutomationRunListQuery): Promise<Page<AutomationRun>> =>
+    execute<Page<AutomationRun>>("/automations/runs", { query }),
+  runDue: (): Promise<{ evaluated: number; run: number }> =>
+    execute<{ evaluated: number; run: number }>("/automations/run-due", { method: "POST" }),
+};
+
+const intelligence = {
+  summary: (): Promise<IntelligenceSummary> => execute<IntelligenceSummary>("/intelligence/summary"),
+  recommendations: (query?: RecommendationListQuery): Promise<Recommendation[]> =>
+    execute<Recommendation[]>("/intelligence/recommendations", { query }),
+  brief: (): Promise<AssistantBrief> => execute<AssistantBrief>("/intelligence/brief"),
+};
+
+const team = {
+  performance: (query?: FinanceQuery): Promise<TeamPerformance> =>
+    execute<TeamPerformance>("/team/performance", { query }),
+  workload: (date?: string): Promise<TeamWorkload> =>
+    execute<TeamWorkload>("/team/workload", { query: { date } }),
 };
 
 /* -------------------------------------------------------------------------- */
@@ -874,6 +1128,12 @@ export const api = {
   estimates,
   invoices,
   ops,
+  communications,
+  dispatch,
+  finance,
+  automations,
+  intelligence,
+  team,
   activities,
   insights,
 };
@@ -883,17 +1143,40 @@ export type Api = typeof api;
 export type {
   Activity,
   ActivityType,
+  AssistantBrief,
   AuditEntry,
   AuthSession,
+  AutomationAction,
+  AutomationConditions,
+  AutomationRun,
+  AutomationRule,
+  BusinessType,
+  Communication,
+  CommunicationChannel,
+  CommunicationDirection,
+  CommunicationDraft,
+  CommunicationIntent,
+  CommunicationSentiment,
+  CommunicationStats,
+  CommunicationStatus,
+  CommunicationThread,
   Company,
   Contact,
   Currency,
+  CustomerTimeline,
   CustomerType,
   DashboardSummary,
   Deal,
+  DispatchBoard,
+  DispatchMap,
+  DispatchRoute,
   Estimate,
   EstimateStatus,
+  Expense,
+  ExpenseCategory,
+  FinanceSummary,
   Industry,
+  IntelligenceSummary,
   Invite,
   Invoice,
   InvoiceStatus,
@@ -905,8 +1188,12 @@ export type {
   Member,
   OpsSummary,
   Page,
+  Payment,
+  PaymentMethod,
   Pipeline,
   PublicUser,
+  Recommendation,
+  RecommendationKind,
   RecurrenceFrequency,
   Role,
   SearchResponse,
@@ -915,5 +1202,7 @@ export type {
   Stage,
   StageHistoryEntry,
   StageKind,
+  TeamPerformance,
+  TeamWorkload,
   WorkspaceSummary,
 };

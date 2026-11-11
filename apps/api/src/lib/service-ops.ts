@@ -81,6 +81,7 @@ export function toLineItem(row: {
   name: string;
   quantity: number;
   unitPrice: number;
+  unitCost?: number;
   total: number;
 }): LineItem {
   return {
@@ -89,6 +90,7 @@ export function toLineItem(row: {
     name: row.name,
     quantity: row.quantity,
     unitPrice: row.unitPrice,
+    unitCost: row.unitCost ?? 0,
     total: row.total,
   };
 }
@@ -107,12 +109,19 @@ export interface PricedLine {
   name: string;
   quantity: number;
   unitPrice: number;
+  unitCost: number;
   total: number;
   position: number;
 }
 
 export function priceLineItems(
-  items: Array<{ serviceId?: string | null; name: string; quantity: number; unitPrice: number }>,
+  items: Array<{
+    serviceId?: string | null;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    unitCost?: number;
+  }>,
 ): { lines: PricedLine[]; subtotal: number } {
   let subtotal = 0;
   const lines = items.map((item, index) => {
@@ -123,11 +132,38 @@ export function priceLineItems(
       name: item.name,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      unitCost: item.unitCost ?? 0,
       total,
       position: index,
     };
   });
   return { lines, subtotal };
+}
+
+/**
+ * Nested Prisma creates take a relation connect, not the scalar foreign key.
+ * Every line item write path goes through this so price-book links survive.
+ */
+export function toLineItemCreate(
+  lines: readonly PricedLine[],
+): Array<{
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  unitCost: number;
+  total: number;
+  position: number;
+  service?: { connect: { id: string } };
+}> {
+  return lines.map((line) => ({
+    name: line.name,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    unitCost: line.unitCost,
+    total: line.total,
+    position: line.position,
+    ...(line.serviceId ? { service: { connect: { id: line.serviceId } } } : {}),
+  }));
 }
 
 export function totalsFor(subtotal: number, taxRateBps: number) {

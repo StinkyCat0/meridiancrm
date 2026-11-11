@@ -57,6 +57,8 @@ function toLocation(row: LocationRow): Location {
     gateCode: row.gateCode,
     contactName: row.contactName,
     contactPhone: row.contactPhone,
+    latitude: row.latitude,
+    longitude: row.longitude,
     isPrimary: row.isPrimary,
     archived: row.archived,
     openJobCount: row._count.jobs,

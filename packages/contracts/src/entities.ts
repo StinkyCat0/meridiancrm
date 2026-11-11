@@ -6,6 +6,7 @@ import {
   INDUSTRIES,
   ROLES,
   STAGE_KINDS,
+  type BusinessType,
   type CustomerType,
 } from "./enums.js";
 import { emailSchema, idSchema, optionalDate, optionalText, optionalUrl } from "./common.js";
@@ -24,6 +25,11 @@ export interface WorkspaceSummary {
   name: string;
   slug: string;
   currency: string;
+  businessType: BusinessType;
+  timezone: string;
+  serviceArea: string | null;
+  depotLatitude: number | null;
+  depotLongitude: number | null;
   createdAt: string;
 }
 

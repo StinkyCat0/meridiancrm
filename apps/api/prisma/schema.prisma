@@ -19,40 +19,54 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships    Membership[]
-  refreshTokens  RefreshToken[]
-  ownedCompanies Company[]      @relation("CompanyOwner")
-  ownedContacts  Contact[]      @relation("ContactOwner")
-  ownedDeals     Deal[]         @relation("DealOwner")
-  ownedActivities Activity[]    @relation("ActivityOwner")
-  auditEntries   AuditLog[]     @relation("AuditActor")
-  invitesSent    Invite[]       @relation("InviteSender")
-  stageChanges   StageHistory[] @relation("StageChanger")
-  assignedJobs   Job[]          @relation("JobAssignee")
-  ownedEstimates Estimate[]     @relation("EstimateOwner")
+  memberships      Membership[]
+  refreshTokens    RefreshToken[]
+  ownedCompanies   Company[]       @relation("CompanyOwner")
+  ownedContacts    Contact[]       @relation("ContactOwner")
+  ownedDeals       Deal[]          @relation("DealOwner")
+  ownedActivities  Activity[]      @relation("ActivityOwner")
+  auditEntries     AuditLog[]      @relation("AuditActor")
+  invitesSent      Invite[]        @relation("InviteSender")
+  stageChanges     StageHistory[]  @relation("StageChanger")
+  assignedJobs     Job[]           @relation("JobAssignee")
+  ownedEstimates   Estimate[]      @relation("EstimateOwner")
+  communications   Communication[] @relation("CommunicationAuthor")
+  expenses         Expense[]       @relation("ExpenseOwner")
+  paymentsRecorded Payment[]       @relation("PaymentRecorder")
 }
 
 model Workspace {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  currency  String   @default("USD")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  currency       String   @default("USD")
+  businessType   String   @default("GENERAL")
+  timezone       String   @default("America/Chicago")
+  serviceArea    String?
+  depotLatitude  Float?
+  depotLongitude Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  memberships Membership[]
-  companies   Company[]
-  contacts    Contact[]
-  pipelines   Pipeline[]
-  deals       Deal[]
-  activities  Activity[]
-  invites     Invite[]
-  auditLogs   AuditLog[]
-  locations   Location[]
-  services    ServiceItem[]
-  jobs        Job[]
-  estimates   Estimate[]
-  invoices    Invoice[]
+  memberships      Membership[]
+  companies        Company[]
+  contacts         Contact[]
+  pipelines        Pipeline[]
+  deals            Deal[]
+  activities       Activity[]
+  invites          Invite[]
+  auditLogs        AuditLog[]
+  locations        Location[]
+  services         ServiceItem[]
+  jobs             Job[]
+  estimates        Estimate[]
+  invoices         Invoice[]
+  payments         Payment[]
+  expenses         Expense[]
+  communications   Communication[]
+  automationRules  AutomationRule[]
+  automationRuns   AutomationRun[]
+  documentCounters DocumentCounter[]
 }
 
 model Membership {
@@ -102,15 +116,16 @@ model Company {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  owner      User?      @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  contacts   Contact[]
-  deals      Deal[]
-  activities Activity[]
-  locations  Location[]
-  jobs       Job[]
-  estimates  Estimate[]
-  invoices   Invoice[]
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner          User?           @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  contacts       Contact[]
+  deals          Deal[]
+  activities     Activity[]
+  locations      Location[]
+  jobs           Job[]
+  estimates      Estimate[]
+  invoices       Invoice[]
+  communications Communication[]
 
   @@index([workspaceId, archived])
   @@index([workspaceId, name])
@@ -132,13 +147,14 @@ model Contact {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  company    Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  owner      User?      @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  deals      Deal[]
-  activities Activity[]
-  jobs       Job[]
-  estimates  Estimate[]
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company        Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner          User?           @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  deals          Deal[]
+  activities     Activity[]
+  jobs           Job[]
+  estimates      Estimate[]
+  communications Communication[]
 
   @@index([workspaceId, archived])
   @@index([workspaceId, email])
@@ -289,9 +305,15 @@ model AuditLog {
   @@index([workspaceId, createdAt])
 }
 
-/* -------------------------------------------------------------------------- */
-/* Service operations                                                          */
-/* -------------------------------------------------------------------------- */
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Service operations
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
 
 model Location {
   id           String   @id @default(cuid())
@@ -308,13 +330,15 @@ model Location {
   gateCode     String?
   contactName  String?
   contactPhone String?
+  latitude     Float?
+  longitude    Float?
   isPrimary    Boolean  @default(false)
   archived     Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  customer  Company   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company    @relation(fields: [customerId], references: [id], onDelete: Cascade)
   jobs      Job[]
   estimates Estimate[]
   invoices  Invoice[]
@@ -332,6 +356,7 @@ model ServiceItem {
   unit            String   @default("VISIT")
   durationMinutes Int      @default(60)
   price           Int      @default(0)
+  cost            Int      @default(0)
   taxable         Boolean  @default(true)
   archived        Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -368,19 +393,24 @@ model Job {
   total           Int       @default(0)
   deposit         Int       @default(0)
   notes           String?
+  cancelReason    String?
+  rating          Int?
+  ratingNote      String?
   recurrence      String?
   recurrenceUntil DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  customer  Company          @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  location  Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  contact   Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  assignee  User?            @relation("JobAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  lineItems JobLineItem[]
-  invoices  Invoice[]
-  estimates Estimate[]
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer       Company         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location       Location        @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  contact        Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignee       User?           @relation("JobAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  lineItems      JobLineItem[]
+  invoices       Invoice[]
+  estimates      Estimate[]
+  communications Communication[]
+  expenses       Expense[]
 
   @@unique([workspaceId, number])
   @@index([workspaceId, status])
@@ -396,6 +426,7 @@ model JobLineItem {
   name      String
   quantity  Float   @default(1)
   unitPrice Int
+  unitCost  Int     @default(0)
   total     Int
   position  Int     @default(0)
 
@@ -407,32 +438,32 @@ model JobLineItem {
 }
 
 model Estimate {
-  id         String    @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
-  number     String
-  title      String
-  status     String    @default("DRAFT")
-  customerId String
-  locationId String
-  contactId  String?
-  ownerId    String?
-  jobId      String?
-  issuedAt   DateTime?
-  expiresAt  DateTime?
-  taxRate    Int       @default(0)
-  subtotal   Int       @default(0)
-  tax        Int       @default(0)
-  total      Int       @default(0)
-  notes      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  number      String
+  title       String
+  status      String    @default("DRAFT")
+  customerId  String
+  locationId  String
+  contactId   String?
+  ownerId     String?
+  jobId       String?
+  issuedAt    DateTime?
+  expiresAt   DateTime?
+  taxRate     Int       @default(0)
+  subtotal    Int       @default(0)
+  tax         Int       @default(0)
+  total       Int       @default(0)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  customer  Company              @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  location  Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  contact   Contact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  owner     User?                @relation("EstimateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  job       Job?                 @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location  Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  contact   Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  owner     User?              @relation("EstimateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  job       Job?               @relation(fields: [jobId], references: [id], onDelete: SetNull)
   lineItems EstimateLineItem[]
 
   @@unique([workspaceId, number])
@@ -448,6 +479,7 @@ model EstimateLineItem {
   name       String
   quantity   Float   @default(1)
   unitPrice  Int
+  unitCost   Int     @default(0)
   total      Int
   position   Int     @default(0)
 
@@ -480,9 +512,148 @@ model Invoice {
   customer  Company   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   location  Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
   job       Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  payments  Payment[]
 
   @@unique([workspaceId, number])
   @@index([workspaceId, status])
   @@index([workspaceId, customerId])
   @@index([workspaceId, dueAt])
+}
+
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Service-provider operations
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
+
+model DocumentCounter {
+  workspaceId String
+  prefix      String
+  value       Int    @default(0)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, prefix])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  invoiceId    String
+  amount       Int
+  method       String   @default("CARD")
+  reference    String?
+  receivedAt   DateTime @default(now())
+  recordedById String?
+  createdAt    DateTime @default(now())
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invoice    Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recordedBy User?     @relation("PaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, receivedAt])
+  @@index([invoiceId])
+  @@index([workspaceId, invoiceId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  workspaceId String
+  category    String   @default("OTHER")
+  vendor      String?
+  description String
+  amount      Int
+  incurredAt  DateTime @default(now())
+  jobId       String?
+  userId      String?
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  job       Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  user      User?     @relation("ExpenseOwner", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, incurredAt])
+  @@index([workspaceId, category])
+  @@index([jobId])
+}
+
+model Communication {
+  id          String    @id @default(cuid())
+  workspaceId String
+  channel     String    @default("SMS")
+  direction   String    @default("OUTBOUND")
+  status      String    @default("SENT")
+  intent      String    @default("GENERAL")
+  sentiment   String    @default("NEUTRAL")
+  subject     String?
+  body        String?
+  customerId  String?
+  contactId   String?
+  jobId       String?
+  userId      String?
+  provider    String    @default("log")
+  externalId  String?
+  aiGenerated Boolean   @default(false)
+  aiRationale String?
+  readAt      DateTime?
+  occurredAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  job       Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  user      User?     @relation("CommunicationAuthor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, occurredAt])
+  @@index([workspaceId, customerId, occurredAt])
+  @@index([workspaceId, channel])
+  @@index([workspaceId, readAt])
+  @@index([jobId])
+}
+
+model AutomationRule {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  trigger     String
+  conditions  String    @default("{}")
+  actions     String    @default("[]")
+  enabled     Boolean   @default(true)
+  runCount    Int       @default(0)
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs      AutomationRun[]
+
+  @@index([workspaceId, enabled])
+  @@index([workspaceId, trigger])
+}
+
+model AutomationRun {
+  id          String   @id @default(cuid())
+  workspaceId String
+  ruleId      String
+  trigger     String
+  status      String   @default("SUCCESS")
+  entityType  String
+  entityId    String?
+  detail      String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rule      AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([ruleId, createdAt])
 }

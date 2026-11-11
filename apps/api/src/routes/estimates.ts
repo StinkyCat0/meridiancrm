@@ -35,6 +35,7 @@ import {
   toContactSummary,
   toCustomerSummary,
   toLineItem,
+  toLineItemCreate,
   toLocationSummary,
   totalsFor,
   validateAssociation,
@@ -191,7 +192,7 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
           tax: totals.tax,
           total: totals.total,
           notes: input.notes ?? null,
-          lineItems: { create: lines },
+          lineItems: { create: toLineItemCreate(lines) },
         },
         include: estimateInclude,
       });

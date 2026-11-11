@@ -417,6 +417,40 @@ describe("estimates", () => {
     expect(again.statusCode).toBe(409);
   });
 
+  it("creates exactly one job when two converts race", async () => {
+    const customer = await createCustomer();
+    const location = await createLocation(customer.id);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/estimates",
+      headers: asAccount(),
+      payload: {
+        title: "Race",
+        customerId: customer.id,
+        locationId: location.id,
+        status: "SENT",
+        lineItems: [{ name: "Visit", quantity: 1, unitPrice: 10000 }],
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const estimate = created.json();
+
+    const responses = await Promise.all(
+      [0, 1].map(() =>
+        app.inject({
+          method: "POST",
+          url: `/api/v1/estimates/${estimate.id}/convert`,
+          headers: asAccount(),
+          payload: {},
+        }),
+      ),
+    );
+    expect(responses.map((response) => response.statusCode).sort()).toEqual([201, 409]);
+
+    const jobs = await prisma.job.count({ where: { workspaceId: account.workspaceId } });
+    expect(jobs).toBe(1);
+  });
+
   it("filters open estimates", async () => {
     const customer = await createCustomer();
     const location = await createLocation(customer.id);

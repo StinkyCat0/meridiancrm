@@ -15,7 +15,7 @@ import { Tabs } from "../../components/ui/Tabs";
 import type { JobScope } from "@meridian/api-client";
 import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
-import { cn, formatDate, formatMoney, useDebouncedValue } from "../../lib/utils";
+import { formatDate, formatMoney, useDebouncedValue } from "../../lib/utils";
 import { apiErrorMessage } from "../companies/lib";
 import { JobStatusBadge } from "../operations/shared";
 import { JobDetailModal } from "./JobDetailModal";

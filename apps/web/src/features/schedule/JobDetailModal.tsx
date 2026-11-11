@@ -315,6 +315,7 @@ export function JobDetailModal({
                   value={cancelReason}
                   onChange={(event) => setCancelReason(event.target.value)}
                   maxLength={240}
+                  aria-label="Cancellation reason (optional)"
                   placeholder="Customer rescheduled"
                   className="mt-3 h-9 w-full rounded-input border border-border bg-surface px-3 text-sm text-fg outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 />

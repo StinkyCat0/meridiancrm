@@ -113,7 +113,8 @@ export function CompanyDetailSheet({
       void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
       setConfirmArchive(false);
-      toast.success("Company archived");    },
+      toast.success("Company archived");
+    },
     onError: (error) => {
       toast.error(apiErrorMessage(error));
     },

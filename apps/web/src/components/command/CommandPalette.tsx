@@ -4,8 +4,6 @@ import type { SearchHit } from "@meridian/contracts";
 import {
   ArrowRight,
   Building2,
-  CalendarClock,
-  CalendarDays,
   CircleDollarSign,
   CornerDownLeft,
   FileText,

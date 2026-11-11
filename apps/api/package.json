@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "prisma generate",
     "dev": "tsx watch src/server.ts",
+    "prebuild": "prisma generate",
     "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:setup": "prisma migrate deploy && prisma db seed",
+    "db:setup": "prisma generate && prisma migrate deploy && prisma db seed",
     "seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -5,6 +5,13 @@ and the project adheres to semantic versioning for public contracts.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fresh installs no longer leave `@prisma/client` ungenerated: `db:setup`, `dev`, and `build`
+  generate it, so the documented quickstart can sign in with the demo account.
+- Non-JSON API responses (for example, a Vite proxy error while the API is down) now report that
+  the API may be unreachable instead of surfacing a bare `Internal Server Error`.
+
 ## [0.1.0] - 2026-11-10
 
 First MVP release.

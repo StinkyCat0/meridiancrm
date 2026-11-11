@@ -14,7 +14,7 @@ npm run dev
 ```
 
 Web on http://localhost:5173, API on http://localhost:4000, docs on http://localhost:4000/docs.
-Migrations and the demo seed run through `npm run db:setup`.
+Prisma client generation, migrations, and the demo seed run through `npm run db:setup`.
 
 ## Production: single machine with Compose
 

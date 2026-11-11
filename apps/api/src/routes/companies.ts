@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
+  CUSTOMER_TYPES,
   INDUSTRIES,
   companyInputSchema,
   idSchema,
   paginationSchema,
   type Company,
+  type CustomerType,
   type PublicUser,
 } from "@meridian/contracts";
 import type { Prisma } from "@prisma/client";
@@ -23,7 +25,14 @@ const userSelect = {
 
 const companyInclude = {
   owner: { select: userSelect },
-  _count: { select: { contacts: { where: { archived: false } }, deals: true } },
+  _count: {
+    select: {
+      contacts: { where: { archived: false } },
+      deals: true,
+      locations: { where: { archived: false } },
+      jobs: { where: { status: { in: ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"] } } },
+    },
+  },
 } satisfies Prisma.CompanyInclude;
 
 type CompanyRow = Prisma.CompanyGetPayload<{ include: typeof companyInclude }>;
@@ -31,6 +40,7 @@ type CompanyRow = Prisma.CompanyGetPayload<{ include: typeof companyInclude }>;
 const listQuerySchema = paginationSchema.extend({
   archive: z.enum(["active", "archived", "all"]).default("active"),
   industry: z.enum(INDUSTRIES).optional(),
+  customerType: z.enum(CUSTOMER_TYPES).optional(),
 });
 
 const idParamsSchema = z.object({ id: idSchema });
@@ -48,10 +58,12 @@ function toCompany(row: CompanyRow, openPipelineValue: number): Company {
   return {
     id: row.id,
     name: row.name,
+    customerType: row.customerType as CustomerType,
     domain: row.domain,
     industry: row.industry,
     size: row.size,
     phone: row.phone,
+    email: row.email,
     website: row.website,
     address: row.address,
     notes: row.notes,
@@ -59,6 +71,8 @@ function toCompany(row: CompanyRow, openPipelineValue: number): Company {
     archived: row.archived,
     owner: toPublicUser(row.owner),
     contactCount: row._count.contacts,
+    locationCount: row._count.locations,
+    openJobCount: row._count.jobs,
     dealCount: row._count.deals,
     openPipelineValue,
     createdAt: row.createdAt.toISOString(),
@@ -148,11 +162,14 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
         workspaceId: auth.workspaceId,
         ...archiveFilter(query.archive),
         ...(query.industry ? { industry: query.industry } : {}),
+        ...(query.customerType ? { customerType: query.customerType } : {}),
         ...(query.q
           ? {
               OR: [
                 { name: { contains: likeTerm(query.q) } },
                 { domain: { contains: likeTerm(query.q) } },
+                { phone: { contains: likeTerm(query.q) } },
+                { email: { contains: likeTerm(query.q) } },
               ],
             }
           : {}),
@@ -196,10 +213,12 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
         data: {
           workspaceId: auth.workspaceId,
           name: input.name,
+          customerType: input.customerType,
           domain: input.domain ?? null,
           industry: input.industry ?? null,
           size: input.size ?? null,
           phone: input.phone ?? null,
+          email: input.email ?? null,
           website: input.website ?? null,
           address: input.address ?? null,
           notes: input.notes ?? null,
@@ -259,10 +278,12 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
 
       const data: Prisma.CompanyUncheckedUpdateInput = {};
       if (input.name !== undefined) data.name = input.name;
+      if (input.customerType !== undefined) data.customerType = input.customerType;
       if (input.domain !== undefined) data.domain = input.domain ?? null;
       if (input.industry !== undefined) data.industry = input.industry ?? null;
       if (input.size !== undefined) data.size = input.size ?? null;
       if (input.phone !== undefined) data.phone = input.phone ?? null;
+      if (input.email !== undefined) data.email = input.email ?? null;
       if (input.website !== undefined) data.website = input.website ?? null;
       if (input.address !== undefined) data.address = input.address ?? null;
       if (input.notes !== undefined) data.notes = input.notes ?? null;

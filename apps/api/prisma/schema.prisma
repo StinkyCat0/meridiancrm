@@ -28,6 +28,8 @@ model User {
   auditEntries   AuditLog[]     @relation("AuditActor")
   invitesSent    Invite[]       @relation("InviteSender")
   stageChanges   StageHistory[] @relation("StageChanger")
+  assignedJobs   Job[]          @relation("JobAssignee")
+  ownedEstimates Estimate[]     @relation("EstimateOwner")
 }
 
 model Workspace {
@@ -46,6 +48,11 @@ model Workspace {
   activities  Activity[]
   invites     Invite[]
   auditLogs   AuditLog[]
+  locations   Location[]
+  services    ServiceItem[]
+  jobs        Job[]
+  estimates   Estimate[]
+  invoices    Invoice[]
 }
 
 model Membership {
@@ -77,30 +84,37 @@ model RefreshToken {
 }
 
 model Company {
-  id          String   @id @default(cuid())
-  workspaceId String
-  name        String
-  domain      String?
-  industry    String?
-  size        String?
-  phone       String?
-  website     String?
-  address     String?
-  notes       String?
-  tags        String   @default("[]")
-  archived    Boolean  @default(false)
-  ownerId     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  workspaceId  String
+  name         String
+  customerType String   @default("COMMERCIAL")
+  domain       String?
+  industry     String?
+  size         String?
+  phone        String?
+  email        String?
+  website      String?
+  address      String?
+  notes        String?
+  tags         String   @default("[]")
+  archived     Boolean  @default(false)
+  ownerId      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   owner      User?      @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   contacts   Contact[]
   deals      Deal[]
   activities Activity[]
+  locations  Location[]
+  jobs       Job[]
+  estimates  Estimate[]
+  invoices   Invoice[]
 
   @@index([workspaceId, archived])
   @@index([workspaceId, name])
+  @@index([workspaceId, customerType])
 }
 
 model Contact {
@@ -123,6 +137,8 @@ model Contact {
   owner      User?      @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   deals      Deal[]
   activities Activity[]
+  jobs       Job[]
+  estimates  Estimate[]
 
   @@index([workspaceId, archived])
   @@index([workspaceId, email])
@@ -271,4 +287,202 @@ model AuditLog {
   actor     User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Service operations                                                          */
+/* -------------------------------------------------------------------------- */
+
+model Location {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  customerId   String
+  label        String   @default("Main")
+  line1        String
+  line2        String?
+  city         String
+  state        String?
+  postalCode   String?
+  country      String?
+  accessNotes  String?
+  gateCode     String?
+  contactName  String?
+  contactPhone String?
+  isPrimary    Boolean  @default(false)
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  jobs      Job[]
+  estimates Estimate[]
+  invoices  Invoice[]
+
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, archived])
+}
+
+model ServiceItem {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  name            String
+  category        String?
+  description     String?
+  unit            String   @default("VISIT")
+  durationMinutes Int      @default(60)
+  price           Int      @default(0)
+  taxable         Boolean  @default(true)
+  archived        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace     Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  jobLines      JobLineItem[]
+  estimateLines EstimateLineItem[]
+
+  @@index([workspaceId, archived])
+  @@index([workspaceId, name])
+}
+
+model Job {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  number          String
+  title           String
+  status          String    @default("UNSCHEDULED")
+  priority        String    @default("NORMAL")
+  source          String?
+  customerId      String
+  locationId      String
+  contactId       String?
+  assigneeId      String?
+  scheduledStart  DateTime?
+  scheduledEnd    DateTime?
+  arrivedAt       DateTime?
+  completedAt     DateTime?
+  durationMinutes Int       @default(60)
+  taxRate         Int       @default(0)
+  subtotal        Int       @default(0)
+  tax             Int       @default(0)
+  total           Int       @default(0)
+  deposit         Int       @default(0)
+  notes           String?
+  recurrence      String?
+  recurrenceUntil DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location  Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  contact   Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignee  User?            @relation("JobAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  lineItems JobLineItem[]
+  invoices  Invoice[]
+  estimates Estimate[]
+
+  @@unique([workspaceId, number])
+  @@index([workspaceId, status])
+  @@index([workspaceId, scheduledStart])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, assigneeId])
+}
+
+model JobLineItem {
+  id        String  @id @default(cuid())
+  jobId     String
+  serviceId String?
+  name      String
+  quantity  Float   @default(1)
+  unitPrice Int
+  total     Int
+  position  Int     @default(0)
+
+  job     Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  service ServiceItem? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([jobId])
+  @@index([serviceId])
+}
+
+model Estimate {
+  id         String    @id @default(cuid())
+  workspaceId String
+  number     String
+  title      String
+  status     String    @default("DRAFT")
+  customerId String
+  locationId String
+  contactId  String?
+  ownerId    String?
+  jobId      String?
+  issuedAt   DateTime?
+  expiresAt  DateTime?
+  taxRate    Int       @default(0)
+  subtotal   Int       @default(0)
+  tax        Int       @default(0)
+  total      Int       @default(0)
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location  Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  contact   Contact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  owner     User?                @relation("EstimateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  job       Job?                 @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  lineItems EstimateLineItem[]
+
+  @@unique([workspaceId, number])
+  @@index([workspaceId, status])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, createdAt])
+}
+
+model EstimateLineItem {
+  id         String  @id @default(cuid())
+  estimateId String
+  serviceId  String?
+  name       String
+  quantity   Float   @default(1)
+  unitPrice  Int
+  total      Int
+  position   Int     @default(0)
+
+  estimate Estimate     @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  service  ServiceItem? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([estimateId])
+  @@index([serviceId])
+}
+
+model Invoice {
+  id          String    @id @default(cuid())
+  workspaceId String
+  number      String
+  title       String
+  status      String    @default("DRAFT")
+  customerId  String
+  locationId  String?
+  jobId       String?
+  amount      Int       @default(0)
+  amountPaid  Int       @default(0)
+  issuedAt    DateTime?
+  dueAt       DateTime?
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Company   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  location  Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  job       Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, number])
+  @@index([workspaceId, status])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, dueAt])
 }

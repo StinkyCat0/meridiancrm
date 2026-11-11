@@ -1,8 +1,4 @@
-import {
-  ACTIVITY_TYPES,
-  type ActivityType,
-  type Industry,
-} from "@meridian/contracts";
+import { type CustomerType, type Industry, type JobStatus } from "@meridian/contracts";
 import { hashPassword } from "../src/lib/auth.js";
 import { prisma } from "../src/lib/db.js";
 
@@ -16,207 +12,342 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number) => new Date(now.getTime() - days * DAY_MS);
 const daysFromNow = (days: number) => new Date(now.getTime() + days * DAY_MS);
 
-/** Closed dates are pinned to UTC month boundaries to match dashboard grouping. */
-function closedDate(spec: CloseDate): Date {
-  if (spec.kind === "thisMonth") {
-    const day = Math.max(1, now.getUTCDate() - spec.daysBack);
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day));
-  }
-  const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + spec.offset, 1));
-  const daysInMonth = new Date(
-    Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  return new Date(
-    Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(spec.day, daysInMonth)),
-  );
+function atHour(dayOffset: number, hour: number, minute = 0): Date {
+  const date = new Date(now.getTime() + dayOffset * DAY_MS);
+  date.setUTCHours(hour, minute, 0, 0);
+  return date;
 }
 
-interface CompanySeed {
+interface CustomerSeed {
   name: string;
-  domain: string;
+  customerType: CustomerType;
   industry: Industry;
-  size: string;
   phone: string;
-  website: string;
-  address: string;
+  email: string;
   notes: string;
   tags: string[];
+  locations: Array<{
+    label: string;
+    line1: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    accessNotes?: string;
+    gateCode?: string;
+    isPrimary?: boolean;
+  }>;
+  contacts: Array<{ firstName: string; lastName: string; email: string; phone: string; title: string }>;
 }
 
-const companySeeds: CompanySeed[] = [
+const customerSeeds: CustomerSeed[] = [
   {
-    name: "Northwind Atelier",
-    domain: "northwindatelier.com",
-    industry: "Agency",
-    size: "11-50",
-    phone: "+1 415 555 0113",
-    website: "https://northwindatelier.com",
-    address: "48 Clement St, San Francisco, CA",
-    notes: "Boutique brand studio; annual retainer renews at the end of the quarter.",
-    tags: ["design", "retainer"],
+    name: "Harborview Property Group",
+    customerType: "PROPERTY_MANAGER",
+    industry: "Property Management",
+    phone: "+1 512 555 0110",
+    email: "ops@harborviewgroup.com",
+    notes: "Six-building portfolio. Window and common-area contract renews each spring.",
+    tags: ["portfolio", "recurring", "key-account"],
+    locations: [
+      {
+        label: "Harborview Tower",
+        line1: "401 Congress Ave",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78701",
+        accessNotes: "Loading dock on 4th. Sign in with security, ask for building engineer.",
+        gateCode: "4412",
+        isPrimary: true,
+      },
+      {
+        label: "Harborview East",
+        line1: "1201 E 6th St",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78702",
+        accessNotes: "Roof access code changes monthly; call the site lead.",
+      },
+    ],
+    contacts: [
+      { firstName: "Dana", lastName: "Whitfield", email: "dana@harborviewgroup.com", phone: "+1 512 555 0111", title: "Property Manager" },
+      { firstName: "Luis", lastName: "Ortega", email: "luis@harborviewgroup.com", phone: "+1 512 555 0112", title: "Facilities Lead" },
+    ],
   },
   {
-    name: "Cobalt & Co",
-    domain: "cobaltandco.com",
-    industry: "E-commerce",
-    size: "51-200",
-    phone: "+1 212 555 0188",
-    website: "https://cobaltandco.com",
-    address: "310 Bowery, New York, NY",
-    notes: "Direct-to-consumer apparel label preparing a Shopify migration.",
-    tags: ["dtc", "shopify"],
+    name: "Dr. Ellis Chen",
+    customerType: "RESIDENTIAL",
+    industry: "Healthcare",
+    phone: "+1 512 555 0120",
+    email: "ellis.chen@fastmail.com",
+    notes: "Prefers text before arrival. Two dogs in the back yard.",
+    tags: ["residential", "referral"],
+    locations: [
+      {
+        label: "Home",
+        line1: "908 W 22nd St",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78705",
+        accessNotes: "Back gate is unlocked; do not let the dogs out.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Ellis", lastName: "Chen", email: "ellis.chen@fastmail.com", phone: "+1 512 555 0121", title: "Homeowner" },
+    ],
   },
   {
-    name: "Fable House",
-    domain: "fablehouse.studio",
-    industry: "Media",
-    size: "11-50",
-    phone: "+44 20 7946 0321",
-    website: "https://fablehouse.studio",
-    address: "12 Hoxton Sq, London",
-    notes: "Film and content studio; commissions work in quarterly campaigns.",
-    tags: ["film", "content"],
+    name: "Northgate Dental",
+    customerType: "COMMERCIAL",
+    industry: "Healthcare",
+    phone: "+1 512 555 0130",
+    email: "office@northgatedental.com",
+    notes: "Clean after 6pm only. Invoice to the practice manager.",
+    tags: ["commercial", "after-hours"],
+    locations: [
+      {
+        label: "Northgate office",
+        line1: "5600 Burnet Rd",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78756",
+        accessNotes: "Key in lockbox. Alarm code provided by text each visit.",
+        gateCode: "9081",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Priya", lastName: "Shah", email: "priya@northgatedental.com", phone: "+1 512 555 0131", title: "Practice Manager" },
+    ],
   },
   {
-    name: "Atlas Provisions",
-    domain: "atlasprovisions.com",
+    name: "Lumen Nail Bar",
+    customerType: "COMMERCIAL",
+    industry: "Salon & Spa",
+    phone: "+1 512 555 0140",
+    email: "hello@lumennailbar.com",
+    notes: "Six stations, two pedicure rooms. Deep clean every other Monday.",
+    tags: ["salon", "recurring"],
+    locations: [
+      {
+        label: "Lumen South",
+        line1: "1500 S Lamar Blvd",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78704",
+        accessNotes: "Mop closet is behind the break room. Use the eco line only.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Mina", lastName: "Tran", email: "mina@lumennailbar.com", phone: "+1 512 555 0141", title: "Owner" },
+    ],
+  },
+  {
+    name: "Cedar & Co. Salon",
+    customerType: "COMMERCIAL",
+    industry: "Salon & Spa",
+    phone: "+1 512 555 0150",
+    email: "frontdesk@cedarandco.com",
+    notes: "Tuesdays are closed; schedule early morning.",
+    tags: ["salon", "weekly"],
+    locations: [
+      {
+        label: "Cedar & Co.",
+        line1: "2110 E Cesar Chavez St",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78702",
+        accessNotes: "Street parking only after 8am.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Rowan", lastName: "Bell", email: "rowan@cedarandco.com", phone: "+1 512 555 0151", title: "Studio Manager" },
+    ],
+  },
+  {
+    name: "Parkside HOA",
+    customerType: "PROPERTY_MANAGER",
+    industry: "Property Management",
+    phone: "+1 512 555 0160",
+    email: "board@parksidehoa.org",
+    notes: "Quarterly pressure washing for 42 units. Board approves expenses over $500.",
+    tags: ["hoa", "quarterly"],
+    locations: [
+      {
+        label: "Parkside community",
+        line1: "7400 Shoal Creek Blvd",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78757",
+        accessNotes: "Use visitor lot by the clubhouse. Water spigot at the north fence.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Greta", lastName: "Lund", email: "greta@parksidehoa.org", phone: "+1 512 555 0161", title: "Board Treasurer" },
+    ],
+  },
+  {
+    name: "Marisol Vega",
+    customerType: "RESIDENTIAL",
+    industry: "Home Services",
+    phone: "+1 512 555 0170",
+    email: "marisol.vega@gmail.com",
+    notes: "Gutters twice a year. Pays by card on completion.",
+    tags: ["residential", "repeat"],
+    locations: [
+      {
+        label: "Home",
+        line1: "3305 Cherry Ln",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78703",
+        accessNotes: "Side gate sticks; lift and pull.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Marisol", lastName: "Vega", email: "marisol.vega@gmail.com", phone: "+1 512 555 0171", title: "Homeowner" },
+    ],
+  },
+  {
+    name: "Ridgeline Utilities",
+    customerType: "COMMERCIAL",
+    industry: "Utilities",
+    phone: "+1 512 555 0180",
+    email: "facilities@ridgelineutilities.com",
+    notes: "Requires certificate of insurance on file. Two substations.",
+    tags: ["utilities", "compliance"],
+    locations: [
+      {
+        label: "Substation A",
+        line1: "9800 Research Blvd",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78759",
+        accessNotes: "Escort required. Badge pickup at the north gate.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Wes", lastName: "Hollis", email: "wes@ridgelineutilities.com", phone: "+1 512 555 0181", title: "Facilities Supervisor" },
+    ],
+  },
+  {
+    name: "The Glass House",
+    customerType: "COMMERCIAL",
     industry: "Hospitality",
-    size: "201-500",
-    phone: "+1 503 555 0164",
-    website: "https://atlasprovisions.com",
-    address: "88 SE Division St, Portland, OR",
-    notes: "Restaurant group rolling out a new menu system across twelve sites.",
-    tags: ["hospitality", "menu"],
+    phone: "+1 512 555 0190",
+    email: "events@glasshouseatx.com",
+    notes: "Event venue. Post-event turnover clean, often same night.",
+    tags: ["events", "priority"],
+    locations: [
+      {
+        label: "Glass House venue",
+        line1: "1100 E 5th St",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78702",
+        accessNotes: "Load-in through the alley. Event manager signs off on completion.",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Simone", lastName: "Park", email: "simone@glasshouseatx.com", phone: "+1 512 555 0191", title: "Event Director" },
+    ],
   },
   {
-    name: "Studio Noor",
-    domain: "studionoor.design",
-    industry: "Agency",
-    size: "2-10",
-    phone: "+31 20 555 0132",
-    website: "https://studionoor.design",
-    address: "Prinsengracht 412, Amsterdam",
-    notes: "Identity studio that subcontracts overflow brand work to us.",
-    tags: ["branding", "identity"],
-  },
-  {
-    name: "Lark & Ledger",
-    domain: "larkandledger.com",
-    industry: "Financial Services",
-    size: "51-200",
-    phone: "+1 617 555 0140",
-    website: "https://larkandledger.com",
-    address: "75 State St, Boston, MA",
-    notes: "Finance platform evaluating a reporting and analytics engagement.",
-    tags: ["fintech", "reporting"],
-  },
-  {
-    name: "Vantage Labs",
-    domain: "vantagelabs.io",
-    industry: "SaaS",
-    size: "51-200",
-    phone: "+1 206 555 0127",
-    website: "https://vantagelabs.io",
-    address: "1201 Western Ave, Seattle, WA",
-    notes: "SaaS analytics vendor building out a revenue operations function.",
-    tags: ["saas", "revops"],
-  },
-  {
-    name: "Halcyon Goods",
-    domain: "halcyongoods.com",
-    industry: "E-commerce",
-    size: "11-50",
-    phone: "+1 312 555 0192",
-    website: "https://halcyongoods.com",
-    address: "401 N Morgan St, Chicago, IL",
-    notes: "Homeware brand planning new packaging for the seasonal catalogue.",
-    tags: ["packaging", "retail"],
+    name: "Summit HVAC Partners",
+    customerType: "COMMERCIAL",
+    industry: "HVAC",
+    phone: "+1 512 555 0200",
+    email: "dispatch@summithvac.com",
+    notes: "Subcontract overflow installs. Net 30.",
+    tags: ["subcontractor", "net-30"],
+    locations: [
+      {
+        label: "Summit yard",
+        line1: "6401 Burnet Rd",
+        city: "Austin",
+        state: "TX",
+        postalCode: "78757",
+        isPrimary: true,
+      },
+    ],
+    contacts: [
+      { firstName: "Tobias", lastName: "Reed", email: "tobias@summithvac.com", phone: "+1 512 555 0201", title: "Dispatch" },
+    ],
   },
 ];
 
-interface ContactSeed {
-  company: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  title: string;
-  tags: string[];
-}
-
-const contactSeeds: ContactSeed[] = [
-  { company: 0, firstName: "Elena", lastName: "Marsh", email: "elena@northwindatelier.com", phone: "+1 415 555 0114", title: "Founder", tags: ["champion"] },
-  { company: 0, firstName: "Theo", lastName: "Brandt", email: "theo@northwindatelier.com", phone: "+1 415 555 0115", title: "Creative Director", tags: ["design"] },
-  { company: 1, firstName: "Priya", lastName: "Raman", email: "priya@cobaltandco.com", phone: "+1 212 555 0189", title: "VP Growth", tags: ["decision-maker"] },
-  { company: 1, firstName: "Marcus", lastName: "Webb", email: "marcus@cobaltandco.com", phone: "+1 212 555 0190", title: "Head of Operations", tags: ["operations"] },
-  { company: 2, firstName: "Sofia", lastName: "Lindberg", email: "sofia@fablehouse.studio", phone: "+44 20 7946 0322", title: "Executive Producer", tags: ["champion"] },
-  { company: 2, firstName: "Daniel", lastName: "Okoye", email: "daniel@fablehouse.studio", phone: "+44 20 7946 0323", title: "Marketing Lead", tags: ["marketing"] },
-  { company: 3, firstName: "Hannah", lastName: "Pike", email: "hannah@atlasprovisions.com", phone: "+1 503 555 0165", title: "Owner", tags: ["decision-maker"] },
-  { company: 3, firstName: "Victor", lastName: "Salas", email: "victor@atlasprovisions.com", phone: "+1 503 555 0166", title: "General Manager", tags: ["operations"] },
-  { company: 4, firstName: "Noor", lastName: "Haddad", email: "noor@studionoor.design", phone: "+31 20 555 0133", title: "Principal", tags: ["partner"] },
-  { company: 4, firstName: "Amara", lastName: "Sousa", email: "amara@studionoor.design", phone: "+31 20 555 0134", title: "Studio Manager", tags: ["design"] },
-  { company: 5, firstName: "Julian", lastName: "Crane", email: "julian@larkandledger.com", phone: "+1 617 555 0141", title: "CFO", tags: ["budget"] },
-  { company: 5, firstName: "Renee", lastName: "Alvarez", email: "renee@larkandledger.com", phone: "+1 617 555 0142", title: "Head of Partnerships", tags: ["champion"] },
-  { company: 6, firstName: "Kaito", lastName: "Mori", email: "kaito@vantagelabs.io", phone: "+1 206 555 0128", title: "CEO", tags: ["decision-maker"] },
-  { company: 6, firstName: "Lena", lastName: "Fischer", email: "lena@vantagelabs.io", phone: "+1 206 555 0129", title: "Product Lead", tags: ["product"] },
-  { company: 7, firstName: "Owen", lastName: "Blake", email: "owen@halcyongoods.com", phone: "+1 312 555 0193", title: "Head of Brand", tags: ["brand"] },
-  { company: 7, firstName: "Greta", lastName: "Vollmer", email: "greta@halcyongoods.com", phone: "+1 312 555 0194", title: "E-commerce Manager", tags: ["ecommerce"] },
-  { company: 1, firstName: "Sam", lastName: "Rivera", email: "sam@cobaltandco.com", phone: "+1 212 555 0191", title: "Merchandising Lead", tags: ["merch"] },
-  { company: 6, firstName: "Iris", lastName: "Chen", email: "iris@vantagelabs.io", phone: "+1 206 555 0130", title: "RevOps Manager", tags: ["revops"] },
-];
-
-type CloseDate =
-  | { kind: "thisMonth"; daysBack: number }
-  | { kind: "month"; offset: number; day: number };
-
-interface DealSeed {
-  title: string;
-  company: number;
-  contact: number;
-  stage: number;
-  value: number;
-  expectedInDays: number | null;
-  closed: CloseDate | null;
-  createdDaysAgo: number;
-  stageChangedDaysAgo?: number;
+interface ServiceSeed {
+  name: string;
+  category: string;
   description: string;
-  tags: string[];
+  unit: "VISIT" | "HOUR" | "SQFT" | "ROOM" | "UNIT" | "ITEM";
+  durationMinutes: number;
+  price: number;
+  taxable: boolean;
 }
 
-const dealSeeds: DealSeed[] = [
-  { title: "Brand system refresh", company: 0, contact: 0, stage: 0, value: 2_400_000, expectedInDays: 30, closed: null, createdDaysAgo: 40, stageChangedDaysAgo: 12, description: "Full visual identity refresh ahead of the spring launch.", tags: ["branding"] },
-  { title: "E-commerce replatform", company: 1, contact: 2, stage: 0, value: 8_500_000, expectedInDays: 45, closed: null, createdDaysAgo: 35, stageChangedDaysAgo: 9, description: "Shopify migration plus a new checkout experience.", tags: ["ecommerce", "shopify"] },
-  { title: "Campaign film series", company: 2, contact: 4, stage: 1, value: 5_200_000, expectedInDays: 21, closed: null, createdDaysAgo: 52, stageChangedDaysAgo: 18, description: "Three short films for the autumn brand campaign.", tags: ["video"] },
-  { title: "Menu system rollout", company: 3, contact: 6, stage: 1, value: 1_850_000, expectedInDays: 18, closed: null, createdDaysAgo: 47, stageChangedDaysAgo: 15, description: "Menu design system across twelve restaurant sites.", tags: ["hospitality"] },
-  { title: "Identity sprint", company: 4, contact: 8, stage: 2, value: 3_600_000, expectedInDays: 14, closed: null, createdDaysAgo: 60, stageChangedDaysAgo: 8, description: "Two-week identity sprint for a boutique hotel group.", tags: ["identity"] },
-  { title: "Reporting dashboard", company: 5, contact: 10, stage: 2, value: 7_400_000, expectedInDays: 28, closed: null, createdDaysAgo: 55, stageChangedDaysAgo: 6, description: "Client reporting dashboard with exportable board packs.", tags: ["reporting"] },
-  { title: "RevOps retainer", company: 6, contact: 12, stage: 3, value: 9_600_000, expectedInDays: 10, closed: null, createdDaysAgo: 72, stageChangedDaysAgo: 5, description: "Ongoing revenue operations support for the go-to-market team.", tags: ["retainer", "revops"] },
-  { title: "Packaging refresh", company: 7, contact: 14, stage: 3, value: 4_800_000, expectedInDays: 7, closed: null, createdDaysAgo: 66, stageChangedDaysAgo: 3, description: "New packaging system for the seasonal homeware range.", tags: ["packaging"] },
-  { title: "Website rebuild", company: 0, contact: 1, stage: 4, value: 6_000_000, expectedInDays: null, closed: { kind: "thisMonth", daysBack: 2 }, createdDaysAgo: 95, description: "Marketing site rebuild on a new design system.", tags: ["web"] },
-  { title: "Growth retainer", company: 1, contact: 2, stage: 4, value: 12_000_000, expectedInDays: null, closed: { kind: "thisMonth", daysBack: 6 }, createdDaysAgo: 140, description: "Twelve-month growth retainer covering paid and lifecycle.", tags: ["retainer"] },
-  { title: "Launch campaign", company: 2, contact: 5, stage: 4, value: 2_800_000, expectedInDays: null, closed: { kind: "month", offset: -1, day: 14 }, createdDaysAgo: 165, description: "Integrated launch campaign for a new documentary slate.", tags: ["campaign"] },
-  { title: "Hospitality audit", company: 3, contact: 7, stage: 4, value: 1_200_000, expectedInDays: null, closed: { kind: "month", offset: -2, day: 9 }, createdDaysAgo: 190, description: "Brand and guest experience audit across the group.", tags: ["research"] },
-  { title: "Brand film", company: 4, contact: 9, stage: 5, value: 3_200_000, expectedInDays: null, closed: { kind: "thisMonth", daysBack: 4 }, createdDaysAgo: 80, description: "Brand film for a design week installation.", tags: ["video"] },
-  { title: "Platform redesign", company: 5, contact: 11, stage: 5, value: 5_500_000, expectedInDays: null, closed: { kind: "month", offset: -1, day: 20 }, createdDaysAgo: 120, description: "Redesign of the client-facing investment platform.", tags: ["product"] },
-  { title: "Product microsite", company: 6, contact: 13, stage: 0, value: 2_100_000, expectedInDays: 60, closed: null, createdDaysAgo: 10, stageChangedDaysAgo: 10, description: "Launch microsite for the new analytics product line.", tags: ["web"] },
-  { title: "Seasonal catalogue", company: 7, contact: 15, stage: 5, value: 1_600_000, expectedInDays: null, closed: { kind: "month", offset: -2, day: 22 }, createdDaysAgo: 175, description: "Print and digital catalogue for the holiday season.", tags: ["print"] },
+const serviceSeeds: ServiceSeed[] = [
+  { name: "Window cleaning — exterior", category: "Windows", description: "Exterior glass, frames and sills up to two storeys.", unit: "VISIT", durationMinutes: 120, price: 18_000, taxable: true },
+  { name: "Window cleaning — interior", category: "Windows", description: "Interior glass, tracks and screens.", unit: "VISIT", durationMinutes: 90, price: 12_000, taxable: true },
+  { name: "Gutter clearing", category: "Exterior", description: "Clear gutters and downspouts, bag and remove debris.", unit: "VISIT", durationMinutes: 120, price: 24_000, taxable: true },
+  { name: "Pressure washing", category: "Exterior", description: "Driveways, walkways and siding with surface cleaner.", unit: "SQFT", durationMinutes: 180, price: 45, taxable: true },
+  { name: "HVAC tune-up", category: "HVAC", description: "Seasonal inspection, filter change and coil check.", unit: "UNIT", durationMinutes: 90, price: 14_900, taxable: true },
+  { name: "AC diagnostic", category: "HVAC", description: "Full diagnostic with refrigerant pressure test.", unit: "VISIT", durationMinutes: 60, price: 8_900, taxable: true },
+  { name: "Duct cleaning", category: "HVAC", description: "Negative-pressure duct cleaning up to 12 vents.", unit: "VISIT", durationMinutes: 240, price: 42_000, taxable: true },
+  { name: "Salon deep clean", category: "Salon", description: "Stations, floors, mirrors, wash basins and break room.", unit: "VISIT", durationMinutes: 150, price: 35_000, taxable: true },
+  { name: "Nail station sanitising", category: "Salon", description: "Hospital-grade sanitising of stations, tools and pedicure chairs.", unit: "VISIT", durationMinutes: 75, price: 9_500, taxable: true },
+  { name: "Office cleaning", category: "Commercial", description: "Trash, surfaces, floors and restrooms. Billed hourly per cleaner.", unit: "HOUR", durationMinutes: 120, price: 6_500, taxable: true },
+  { name: "Post-event turnover", category: "Commercial", description: "Full venue reset after events, including restrooms.", unit: "VISIT", durationMinutes: 180, price: 28_000, taxable: true },
+  { name: "Handyman hour", category: "General", description: "Small repairs and punch-list work. Parts billed separately.", unit: "HOUR", durationMinutes: 60, price: 9_500, taxable: true },
 ];
 
-const activityTitles: Record<ActivityType, (dealTitle: string, companyName: string) => string> = {
-  NOTE: (dealTitle) => `Call notes: ${dealTitle}`,
-  CALL: (_dealTitle, companyName) => `Discovery call with ${companyName}`,
-  EMAIL: (_dealTitle, companyName) => `Follow-up email to ${companyName}`,
-  MEETING: (_dealTitle, companyName) => `Working session with ${companyName}`,
-  TASK: (dealTitle, _companyName) => `Send revised estimate — ${dealTitle}`,
-};
+interface JobSeed {
+  title: string;
+  customer: number;
+  location: number;
+  contact: number;
+  status: JobStatus;
+  priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  start: Date | null;
+  assignee: "demo" | "member" | null;
+  source: string;
+  lines: Array<{ service: number; quantity: number }>;
+  notes?: string;
+  recurrence?: "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY" | "SEMIANNUAL" | "ANNUAL";
+}
 
-const activityBodies: Record<ActivityType, string> = {
-  NOTE: "Walked through priorities for the quarter and agreed the next steps.",
-  CALL: "Discussed budget range, decision process and timelines.",
-  EMAIL: "Shared the updated scope, timeline and commercial summary.",
-  MEETING: "Reviewed work in progress and unblocked the approval chain.",
-  TASK: "Owner assigned and due date agreed with the client.",
-};
+const jobSeeds: JobSeed[] = [
+  { title: "Harborview Tower windows", customer: 0, location: 0, contact: 0, status: "COMPLETED", priority: "NORMAL", start: atHour(0, 8), assignee: "demo", source: "Recurring contract", lines: [{ service: 0, quantity: 1 }, { service: 1, quantity: 1 }], recurrence: "MONTHLY", notes: "Tower lobby and east stairwell. Security signed off at 9:40." },
+  { title: "Chen seasonal HVAC tune-up", customer: 1, location: 0, contact: 0, status: "SCHEDULED", priority: "NORMAL", start: atHour(0, 10, 30), assignee: "member", source: "Phone", lines: [{ service: 4, quantity: 1 }, { service: 5, quantity: 1 }], notes: "Text before arrival. Two dogs." },
+  { title: "Lumen Nail Bar deep clean", customer: 3, location: 0, contact: 0, status: "IN_PROGRESS", priority: "HIGH", start: atHour(0, 13), assignee: "demo", source: "Recurring contract", lines: [{ service: 7, quantity: 1 }, { service: 8, quantity: 1 }], recurrence: "BIWEEKLY" },
+  { title: "Northgate after-hours clean", customer: 2, location: 0, contact: 0, status: "SCHEDULED", priority: "NORMAL", start: atHour(0, 18), assignee: "member", source: "Referral", lines: [{ service: 9, quantity: 2 }], recurrence: "WEEKLY", notes: "Alarm code is texted the morning of the visit." },
+  { title: "Cedar & Co. station reset", customer: 4, location: 0, contact: 0, status: "DISPATCHED", priority: "NORMAL", start: atHour(0, 17), assignee: "demo", source: "Recurring contract", lines: [{ service: 8, quantity: 1 }], recurrence: "WEEKLY" },
+  { title: "Parkside clubhouse pressure wash", customer: 5, location: 0, contact: 0, status: "SCHEDULED", priority: "NORMAL", start: atHour(1, 9), assignee: "member", source: "Board approval", lines: [{ service: 3, quantity: 900 }], recurrence: "QUARTERLY", notes: "Board wants before/after photos." },
+  { title: "Vega gutter clearing", customer: 6, location: 0, contact: 0, status: "COMPLETED", priority: "NORMAL", start: atHour(-1, 9), assignee: "demo", source: "Repeat customer", lines: [{ service: 2, quantity: 1 }], recurrence: "SEMIANNUAL" },
+  { title: "Ridgeline substation wash", customer: 7, location: 0, contact: 0, status: "UNSCHEDULED", priority: "HIGH", start: null, assignee: null, source: "Phone", lines: [{ service: 3, quantity: 2200 }], notes: "Waiting on escort clearance and COI." },
+  { title: "Glass House post-event reset", customer: 8, location: 0, contact: 0, status: "UNSCHEDULED", priority: "URGENT", start: null, assignee: null, source: "Event pipeline", lines: [{ service: 10, quantity: 1 }, { service: 11, quantity: 2 }], notes: "Confirm event end time; same-night turnover." },
+  { title: "Summit overflow install support", customer: 9, location: 0, contact: 0, status: "COMPLETED", priority: "NORMAL", start: atHour(-3, 7, 30), assignee: "member", source: "Subcontract", lines: [{ service: 11, quantity: 6 }], notes: "Net 30." },
+  { title: "Harborview East common areas", customer: 0, location: 1, contact: 1, status: "SCHEDULED", priority: "NORMAL", start: atHour(3, 8), assignee: "demo", source: "Recurring contract", lines: [{ service: 0, quantity: 1 }, { service: 1, quantity: 1 }], recurrence: "MONTHLY" },
+  { title: "Lumen quarterly window detail", customer: 3, location: 0, contact: 0, status: "SCHEDULED", priority: "LOW", start: atHour(6, 9), assignee: "member", source: "Upsell", lines: [{ service: 1, quantity: 1 }], recurrence: "QUARTERLY" },
+];
+
+const TAX_BPS = 825;
+
+function lineTotal(serviceIndex: number, quantity: number): number {
+  return Math.round(serviceSeeds[serviceIndex]!.price * quantity);
+}
+
+function jobTotals(lines: JobSeed["lines"]) {
+  const subtotal = lines.reduce((sum, line) => sum + lineTotal(line.service, line.quantity), 0);
+  const tax = Math.round((subtotal * TAX_BPS) / 10_000);
+  return { subtotal, tax, total: subtotal + tax };
+}
 
 async function main(): Promise<void> {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
@@ -235,95 +366,316 @@ async function main(): Promise<void> {
   });
 
   const workspace = await prisma.workspace.create({
-    data: {
-      name: "Meridian Studio",
-      slug: WORKSPACE_SLUG,
-      currency: "USD",
-      createdAt: daysAgo(120),
-    },
+    data: { name: "Meridian Home Services", slug: WORKSPACE_SLUG, currency: "USD", createdAt: daysAgo(180) },
   });
 
   await prisma.membership.createMany({
     data: [
-      { userId: demo.id, workspaceId: workspace.id, role: "OWNER", createdAt: daysAgo(120) },
-      { userId: member.id, workspaceId: workspace.id, role: "MEMBER", createdAt: daysAgo(58) },
+      { userId: demo.id, workspaceId: workspace.id, role: "OWNER", createdAt: daysAgo(180) },
+      { userId: member.id, workspaceId: workspace.id, role: "MEMBER", createdAt: daysAgo(90) },
     ],
   });
 
   const pipeline = await prisma.pipeline.create({
     data: {
       workspaceId: workspace.id,
-      name: "Growth",
+      name: "Service sales",
       isDefault: true,
       stages: {
         create: [
-          { name: "Discovery", order: 0, probability: 10, kind: "OPEN", targetDays: 14 },
-          { name: "Qualified", order: 1, probability: 25, kind: "OPEN", targetDays: 21 },
-          { name: "Proposal", order: 2, probability: 50, kind: "OPEN", targetDays: 14 },
-          { name: "Negotiation", order: 3, probability: 75, kind: "OPEN", targetDays: 10 },
-          { name: "Won", order: 4, probability: 100, kind: "WON", targetDays: 30 },
-          { name: "Lost", order: 5, probability: 0, kind: "LOST", targetDays: 30 },
+          { name: "New lead", order: 0, probability: 10, kind: "OPEN", targetDays: 7 },
+          { name: "Site visit", order: 1, probability: 30, kind: "OPEN", targetDays: 10 },
+          { name: "Quote sent", order: 2, probability: 55, kind: "OPEN", targetDays: 7 },
+          { name: "Won", order: 3, probability: 100, kind: "WON", targetDays: 30 },
+          { name: "Lost", order: 4, probability: 0, kind: "LOST", targetDays: 30 },
         ],
       },
     },
     include: { stages: { orderBy: { order: "asc" } } },
   });
 
-  const companyIds: string[] = [];
-  for (const seed of companySeeds) {
-    const company = await prisma.company.create({
+  const customerIds: string[] = [];
+  const locationIds: string[][] = [];
+  const contactIds: string[][] = [];
+
+  for (const seed of customerSeeds) {
+    const customer = await prisma.company.create({
       data: {
         workspaceId: workspace.id,
         name: seed.name,
-        domain: seed.domain,
+        customerType: seed.customerType,
         industry: seed.industry,
-        size: seed.size,
         phone: seed.phone,
-        website: seed.website,
-        address: seed.address,
+        email: seed.email,
+        address: `${seed.locations[0]!.line1}, ${seed.locations[0]!.city}, ${seed.locations[0]!.state}`,
         notes: seed.notes,
         tags: JSON.stringify(seed.tags),
         ownerId: demo.id,
-        createdAt: daysAgo(110),
-        updatedAt: daysAgo(5),
+        createdAt: daysAgo(150),
+        updatedAt: daysAgo(1),
       },
     });
-    companyIds.push(company.id);
+    customerIds.push(customer.id);
+
+    const locs: string[] = [];
+    for (const location of seed.locations) {
+      const created = await prisma.location.create({
+        data: {
+          workspaceId: workspace.id,
+          customerId: customer.id,
+          label: location.label,
+          line1: location.line1,
+          city: location.city,
+          state: location.state,
+          postalCode: location.postalCode,
+          country: "US",
+          accessNotes: location.accessNotes ?? null,
+          gateCode: location.gateCode ?? null,
+          isPrimary: location.isPrimary ?? false,
+          createdAt: daysAgo(150),
+        },
+      });
+      locs.push(created.id);
+    }
+    locationIds.push(locs);
+
+    const contacts: string[] = [];
+    for (const contact of seed.contacts) {
+      const created = await prisma.contact.create({
+        data: {
+          workspaceId: workspace.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email,
+          phone: contact.phone,
+          title: contact.title,
+          companyId: customer.id,
+          ownerId: demo.id,
+          tags: JSON.stringify(["customer"]),
+          createdAt: daysAgo(140),
+        },
+      });
+      contacts.push(created.id);
+    }
+    contactIds.push(contacts);
   }
 
-  const contactIds: string[] = [];
-  for (const seed of contactSeeds) {
-    const contact = await prisma.contact.create({
+  const serviceIds: string[] = [];
+  for (const service of serviceSeeds) {
+    const created = await prisma.serviceItem.create({
+      data: { workspaceId: workspace.id, ...service },
+    });
+    serviceIds.push(created.id);
+  }
+
+  let jobCounter = 1000;
+  const jobRefs: Array<{ id: string; number: string; title: string; customerId: string; contactId: string; status: string }> = [];
+
+  for (const seed of jobSeeds) {
+    jobCounter += 1;
+    const number = `JOB-${jobCounter}`;
+    const totals = jobTotals(seed.lines);
+    const duration = seed.lines.reduce(
+      (sum, line) => sum + serviceSeeds[line.service]!.durationMinutes,
+      0,
+    );
+    const start = seed.start;
+    const end = start ? new Date(start.getTime() + Math.max(30, duration) * 60_000) : null;
+
+    const job = await prisma.job.create({
       data: {
         workspaceId: workspace.id,
-        firstName: seed.firstName,
-        lastName: seed.lastName,
-        email: seed.email,
-        phone: seed.phone,
+        number,
         title: seed.title,
-        companyId: companyIds[seed.company]!,
-        ownerId: demo.id,
-        tags: JSON.stringify(seed.tags),
-        createdAt: daysAgo(100),
-        updatedAt: daysAgo(2),
+        status: seed.status,
+        priority: seed.priority,
+        source: seed.source,
+        customerId: customerIds[seed.customer]!,
+        locationId: locationIds[seed.customer]![seed.location]!,
+        contactId: contactIds[seed.customer]![seed.contact]!,
+        assigneeId:
+          seed.assignee === "demo" ? demo.id : seed.assignee === "member" ? member.id : null,
+        scheduledStart: start,
+        scheduledEnd: end,
+        arrivedAt:
+          seed.status === "IN_PROGRESS" || seed.status === "COMPLETED"
+            ? start ?? daysAgo(1)
+            : null,
+        completedAt: seed.status === "COMPLETED" ? (end ?? daysAgo(1)) : null,
+        durationMinutes: Math.max(30, duration),
+        taxRate: TAX_BPS,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total,
+        deposit: 0,
+        notes: seed.notes ?? null,
+        recurrence: seed.recurrence ?? null,
+        createdAt: start ? new Date(start.getTime() - 5 * DAY_MS) : daysAgo(2),
+        lineItems: {
+          create: seed.lines.map((line, index) => ({
+            serviceId: serviceIds[line.service]!,
+            name: serviceSeeds[line.service]!.name,
+            quantity: line.quantity,
+            unitPrice: serviceSeeds[line.service]!.price,
+            total: lineTotal(line.service, line.quantity),
+            position: index,
+          })),
+        },
       },
     });
-    contactIds.push(contact.id);
+    jobRefs.push({
+      id: job.id,
+      number: job.number,
+      title: job.title,
+      customerId: job.customerId,
+      contactId: job.contactId ?? "",
+      status: job.status,
+    });
   }
 
-  interface DealRef {
-    id: string;
-    title: string;
-    companyId: string;
-    contactId: string;
-    companyName: string;
-    closedAt: Date | null;
+  // Estimates -------------------------------------------------------------
+
+  const estimateSeeds = [
+    {
+      title: "Harborview annual window contract",
+      customer: 0,
+      location: 0,
+      contact: 0,
+      status: "SENT",
+      expiresInDays: 14,
+      taxRate: TAX_BPS,
+      notes: "Covers six buildings, monthly cadence, priority scheduling.",
+      lines: [
+        { service: 0, quantity: 6 },
+        { service: 1, quantity: 6 },
+      ],
+    },
+    {
+      title: "Lumen quarterly window detail",
+      customer: 3,
+      location: 0,
+      contact: 0,
+      status: "DRAFT",
+      expiresInDays: 30,
+      taxRate: TAX_BPS,
+      notes: "Interior detail across twelve panes.",
+      lines: [{ service: 1, quantity: 1 }],
+    },
+    {
+      title: "Chen duct cleaning + tune-up",
+      customer: 1,
+      location: 0,
+      contact: 0,
+      status: "APPROVED",
+      expiresInDays: 21,
+      taxRate: TAX_BPS,
+      notes: "Approved by text; schedule with the customer.",
+      lines: [
+        { service: 6, quantity: 1 },
+        { service: 4, quantity: 1 },
+      ],
+    },
+    {
+      title: "Cedar & Co. full refresh",
+      customer: 4,
+      location: 0,
+      contact: 0,
+      status: "DECLINED",
+      expiresInDays: -10,
+      taxRate: TAX_BPS,
+      notes: "Declined — budget moved to Q3.",
+      lines: [{ service: 7, quantity: 1 }],
+    },
+  ] as const;
+
+  let estimateCounter = 1000;
+  for (const seed of estimateSeeds) {
+    estimateCounter += 1;
+    const lines = seed.lines.map((line, index) => ({
+      serviceId: serviceIds[line.service]!,
+      name: serviceSeeds[line.service]!.name,
+      quantity: line.quantity,
+      unitPrice: serviceSeeds[line.service]!.price,
+      total: lineTotal(line.service, line.quantity),
+      position: index,
+    }));
+    const subtotal = lines.reduce((sum, line) => sum + line.total, 0);
+    const tax = Math.round((subtotal * seed.taxRate) / 10_000);
+
+    await prisma.estimate.create({
+      data: {
+        workspaceId: workspace.id,
+        number: `EST-${estimateCounter}`,
+        title: seed.title,
+        status: seed.status,
+        customerId: customerIds[seed.customer]!,
+        locationId: locationIds[seed.customer]![seed.location]!,
+        contactId: contactIds[seed.customer]![seed.contact]!,
+        ownerId: demo.id,
+        issuedAt: seed.status === "DRAFT" ? null : daysAgo(4),
+        expiresAt: daysFromNow(seed.expiresInDays),
+        taxRate: seed.taxRate,
+        subtotal,
+        tax,
+        total: subtotal + tax,
+        notes: seed.notes,
+        createdAt: daysAgo(6),
+        lineItems: { create: lines },
+      },
+    });
   }
-  const dealRefs: DealRef[] = [];
+
+  // Invoices --------------------------------------------------------------
+
+  const completedToday = jobRefs.find((job) => job.status === "COMPLETED" && job.number === "JOB-1001")!;
+  const completedYesterday = jobRefs.find((job) => job.number === "JOB-1007")!;
+  const completedInstall = jobRefs.find((job) => job.number === "JOB-1010")!;
+
+  const invoiceSeeds = [
+    { title: "Harborview Tower windows — May", job: completedToday, status: "SENT", amount: 33_750, paid: 0, issued: 0, due: 14 },
+    { title: "Vega gutter clearing", job: completedYesterday, status: "PAID", amount: 25_980, paid: 25_980, issued: -1, due: 13 },
+    { title: "Summit overflow install", job: completedInstall, status: "PARTIAL", amount: 61_830, paid: 30_000, issued: -3, due: 27 },
+    { title: "Parkside quarterly pressure wash", job: null, status: "SENT", amount: 43_060, paid: 0, issued: -10, due: -5 },
+    { title: "Northgate weekly clean", job: null, status: "DRAFT", amount: 14_040, paid: 0, issued: 0, due: 30 },
+  ];
+
+  let invoiceCounter = 1000;
+  for (const seed of invoiceSeeds) {
+    invoiceCounter += 1;
+    await prisma.invoice.create({
+      data: {
+        workspaceId: workspace.id,
+        number: `INV-${invoiceCounter}`,
+        title: seed.title,
+        status: seed.status,
+        customerId: seed.job ? seed.job.customerId : customerIds[seed.title.startsWith("Parkside") ? 5 : 2]!,
+        locationId: seed.job ? undefined : locationIds[seed.title.startsWith("Parkside") ? 5 : 2]![0],
+        jobId: seed.job?.id ?? null,
+        amount: seed.amount,
+        amountPaid: seed.paid,
+        issuedAt: seed.issued === 0 ? daysAgo(0) : daysAgo(Math.abs(seed.issued)),
+        dueAt: daysFromNow(seed.due),
+        paidAt: seed.status === "PAID" ? daysAgo(1) : null,
+        notes: null,
+        createdAt: daysAgo(Math.abs(seed.issued) + 1),
+      },
+    });
+  }
+
+  // Pipeline deals --------------------------------------------------------
+
+  const dealSeeds = [
+    { title: "Annual window contract — Harborview", customer: 0, contact: 0, stage: 2, value: 480_000, inDays: 14, created: 12, description: "Six buildings, monthly service. Awaiting board signature." },
+    { title: "HVAC maintenance agreement — Northgate", customer: 2, contact: 0, stage: 1, value: 216_000, inDays: 21, created: 9, description: "Quarterly tune-ups across two rooftop units." },
+    { title: "Salon group cleaning — Lumen + Cedar", customer: 3, contact: 0, stage: 0, value: 168_000, inDays: 30, created: 4, description: "Multi-site recurring clean bundled across both salons." },
+    { title: "Utility substation program", customer: 7, contact: 0, stage: 1, value: 900_000, inDays: 45, created: 20, description: "Quarterly wash program with compliance documentation." },
+    { title: "HOA common-area contract", customer: 5, contact: 0, stage: 2, value: 132_000, inDays: 10, created: 15, description: "Year-round maintenance for 42 units." },
+    { title: "Event venue retainer", customer: 8, contact: 0, stage: 3, value: 240_000, inDays: null, created: 60, description: "Scheduled turnover crew for the season." },
+  ];
 
   for (const seed of dealSeeds) {
-    const closedAt = seed.closed ? closedDate(seed.closed) : null;
-    const deal = await prisma.deal.create({
+    const closed = seed.inDays === null;
+    await prisma.deal.create({
       data: {
         workspaceId: workspace.id,
         pipelineId: pipeline.id,
@@ -331,61 +683,69 @@ async function main(): Promise<void> {
         title: seed.title,
         value: seed.value,
         currency: "USD",
-        contactId: contactIds[seed.contact]!,
-        companyId: companyIds[seed.company]!,
+        contactId: contactIds[seed.customer]![seed.contact]!,
+        companyId: customerIds[seed.customer]!,
         ownerId: demo.id,
-        expectedCloseDate: seed.expectedInDays === null ? null : daysFromNow(seed.expectedInDays),
-        closedAt,
+        expectedCloseDate: closed ? null : daysFromNow(seed.inDays),
+        closedAt: closed ? daysAgo(3) : null,
         description: seed.description,
-        tags: JSON.stringify(seed.tags),
-        stageChangedAt: closedAt ?? daysAgo(seed.stageChangedDaysAgo ?? 0),
-        createdAt: daysAgo(seed.createdDaysAgo),
-        updatedAt: closedAt ?? daysAgo(Math.min(seed.stageChangedDaysAgo ?? 4, 4)),
+        tags: JSON.stringify(["service"]),
+        stageChangedAt: closed ? daysAgo(3) : daysAgo(2),
+        createdAt: daysAgo(seed.created),
+        updatedAt: daysAgo(2),
       },
-      include: { company: true },
-    });
-    dealRefs.push({
-      id: deal.id,
-      title: deal.title,
-      companyId: companyIds[seed.company]!,
-      contactId: contactIds[seed.contact]!,
-      companyName: deal.company?.name ?? "the client",
-      closedAt,
     });
   }
 
-  for (let i = 0; i < 45; i += 1) {
-    const type: ActivityType = ACTIVITY_TYPES[i % ACTIVITY_TYPES.length]!;
-    const deal = dealRefs[i % dealRefs.length]!;
-    const createdAt = daysAgo(i % 45);
+  // Customer timeline -----------------------------------------------------
 
-    let dueAt: Date | null = null;
-    let completedAt: Date | null = null;
-    if (type === "TASK") {
-      if (i % 4 === 0) {
-        dueAt = daysAgo(2 + (i % 5));
-        completedAt = daysAgo(1 + (i % 5));
-      } else {
-        dueAt = daysFromNow((i % 7) - 3);
-      }
-    } else if (i % 3 !== 0) {
-      completedAt = createdAt;
-    }
+  const activitySeeds = [
+    { customer: 0, contact: 0, title: "Walkthrough with Dana at Harborview Tower", body: "Confirmed loading dock access and monthly cadence." },
+    { customer: 1, contact: 0, title: "Texted arrival window for HVAC tune-up", body: "Customer confirmed 10:30 and asked us to avoid the back yard." },
+    { customer: 3, contact: 0, title: "Mina approved biweekly deep clean", body: "Keep the eco line in the mop closet stocked." },
+    { customer: 5, contact: 0, title: "Board requested before/after photos", body: "Send to Greta after the pressure wash." },
+    { customer: 2, contact: 0, title: "Alarm code updated", body: "New code texted the morning of each visit." },
+    { customer: 8, contact: 0, title: "Event calendar shared", body: "Six events in the next month; confirm same-night turnover." },
+  ];
 
+  for (let index = 0; index < activitySeeds.length; index += 1) {
+    const seed = activitySeeds[index]!;
+    const createdAt = daysAgo(index + 1);
     await prisma.activity.create({
       data: {
         workspaceId: workspace.id,
-        type,
-        title: activityTitles[type](deal.title, deal.companyName),
-        body: activityBodies[type],
-        dueAt,
-        completedAt,
-        contactId: deal.contactId,
-        companyId: deal.companyId,
-        dealId: deal.id,
+        type: "NOTE",
+        title: seed.title,
+        body: seed.body,
+        completedAt: createdAt,
+        companyId: customerIds[seed.customer]!,
+        contactId: contactIds[seed.customer]![seed.contact]!,
         ownerId: demo.id,
         createdAt,
         updatedAt: createdAt,
+      },
+    });
+  }
+
+  const taskSeeds = [
+    { customer: 7, contact: 0, title: "Collect certificate of insurance — Ridgeline", dueAt: daysAgo(1) },
+    { customer: 8, contact: 0, title: "Confirm event end time for turnover crew", dueAt: daysFromNow(1) },
+    { customer: 0, contact: 0, title: "Send revised window contract to board", dueAt: daysFromNow(3) },
+    { customer: 5, contact: 0, title: "Order pressure-wash fuel for Parkside", dueAt: daysFromNow(5) },
+  ];
+
+  for (const seed of taskSeeds) {
+    await prisma.activity.create({
+      data: {
+        workspaceId: workspace.id,
+        type: "TASK",
+        title: seed.title,
+        dueAt: seed.dueAt,
+        companyId: customerIds[seed.customer]!,
+        contactId: contactIds[seed.customer]![seed.contact]!,
+        ownerId: member.id,
+        createdAt: daysAgo(2),
+        updatedAt: daysAgo(2),
       },
     });
   }
@@ -399,32 +759,33 @@ async function main(): Promise<void> {
         entityType: "workspace",
         entityId: workspace.id,
         metadata: JSON.stringify({ name: workspace.name, slug: workspace.slug }),
-        createdAt: daysAgo(120),
+        createdAt: daysAgo(180),
       },
       {
         workspaceId: workspace.id,
         actorId: demo.id,
-        action: "invite.created",
-        entityType: "invite",
+        action: "job.completed",
+        entityType: "job",
+        entityId: completedToday.id,
+        metadata: JSON.stringify({ number: completedToday.number }),
+        createdAt: daysAgo(0),
+      },
+      {
+        workspaceId: workspace.id,
+        actorId: demo.id,
+        action: "invoice.payment",
+        entityType: "invoice",
         entityId: null,
-        metadata: JSON.stringify({ email: MEMBER_EMAIL, role: "MEMBER" }),
-        createdAt: daysAgo(58),
-      },
-      {
-        workspaceId: workspace.id,
-        actorId: demo.id,
-        action: "deal.stage_changed",
-        entityType: "deal",
-        entityId: dealRefs[8]!.id,
-        metadata: JSON.stringify({ stage: "Won", previousStage: "Negotiation" }),
-        createdAt: dealRefs[8]!.closedAt ?? daysAgo(12),
+        metadata: JSON.stringify({ number: "INV-1002", amountPaid: 25_980 }),
+        createdAt: daysAgo(1),
       },
     ],
   });
 
+  const jobCount = await prisma.job.count({ where: { workspaceId: workspace.id } });
   console.log(
-    `Seeded ${workspace.name}: ${companyIds.length} companies, ${contactIds.length} contacts, ` +
-      `${dealRefs.length} deals, 45 activities, 3 audit entries.`,
+    `Seeded ${workspace.name}: ${customerIds.length} customers, ${serviceIds.length} services, ` +
+      `${jobCount} jobs, ${estimateSeeds.length} estimates, ${invoiceSeeds.length} invoices, ${dealSeeds.length} deals.`,
   );
   console.log(`Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 }

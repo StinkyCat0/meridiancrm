@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { ACTIVITY_TYPES, CURRENCIES, INDUSTRIES, ROLES, STAGE_KINDS } from "./enums.js";
+import {
+  ACTIVITY_TYPES,
+  CURRENCIES,
+  CUSTOMER_TYPES,
+  INDUSTRIES,
+  ROLES,
+  STAGE_KINDS,
+  type CustomerType,
+} from "./enums.js";
 import { emailSchema, idSchema, optionalDate, optionalText, optionalUrl } from "./common.js";
 
 const tagsSchema = z.array(z.string().trim().min(1).max(30)).max(12).default([]);
@@ -35,10 +43,12 @@ export interface ContactSummary {
 export interface Company {
   id: string;
   name: string;
+  customerType: CustomerType;
   domain: string | null;
   industry: string | null;
   size: string | null;
   phone: string | null;
+  email: string | null;
   website: string | null;
   address: string | null;
   notes: string | null;
@@ -46,6 +56,8 @@ export interface Company {
   archived: boolean;
   owner: PublicUser | null;
   contactCount: number;
+  locationCount: number;
+  openJobCount: number;
   dealCount: number;
   openPipelineValue: number;
   createdAt: string;
@@ -182,6 +194,8 @@ const baseFields = {
 
 export const companyInputSchema = z.object({
   name: z.string().trim().min(1).max(160),
+  customerType: z.enum(CUSTOMER_TYPES).default("COMMERCIAL"),
+  email: z.preprocess((v) => (v === "" ? null : v), emailSchema.nullable().optional()),
   domain: optionalText(200),
   industry: z.preprocess(
     (v) => (v === "" ? null : v),

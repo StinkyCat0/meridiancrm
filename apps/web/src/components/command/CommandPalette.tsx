@@ -6,9 +6,13 @@ import {
   Building2,
   CircleDollarSign,
   CornerDownLeft,
+  FileText,
+  MapPin,
   Plus,
+  Receipt,
   Search,
   Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -73,12 +77,20 @@ const HIT_GROUPS: Record<SearchHit["type"], string> = {
   contact: "Contacts",
   company: "Companies",
   deal: "Deals",
+  location: "Locations",
+  job: "Jobs",
+  estimate: "Estimates",
+  invoice: "Invoices",
 };
 
 const HIT_ICONS: Record<SearchHit["type"], LucideIcon> = {
   contact: Users,
   company: Building2,
   deal: CircleDollarSign,
+  location: MapPin,
+  job: Wrench,
+  estimate: FileText,
+  invoice: Receipt,
 };
 
 interface CommandItem {
@@ -223,7 +235,15 @@ export function CommandPalette() {
       else buckets.set(group, [item]);
     }
 
-    for (const label of ["Contacts", "Companies", "Deals"] as const) {
+    for (const label of [
+      "Contacts",
+      "Companies",
+      "Locations",
+      "Jobs",
+      "Estimates",
+      "Invoices",
+      "Deals",
+    ] as const) {
       const items = buckets.get(label);
       if (items && items.length > 0) built.push({ label, items });
     }

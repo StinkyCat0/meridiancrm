@@ -120,13 +120,16 @@ Every non-2xx JSON response uses one envelope:
 | DELETE | `/workspace/invites/:id`| admin  | Revoke an invite (204).                                              |
 | GET    | `/workspace/audit`      | admin  | Paginated audit entries, newest first; `q` matches action/entity.    |
 
-### Companies
+### Customers (companies)
+
+In the UI and the service model a company is a **customer**. Accounts can be `RESIDENTIAL`,
+`COMMERCIAL`, or `PROPERTY_MANAGER`.
 
 | Method | Path                  | Role   | Purpose                                                        |
 | ------ | --------------------- | ------ | -------------------------------------------------------------- |
-| GET    | `/companies`          | member | Paginated list. Filters: `archive=active\|archived\|all`, `industry`. Sort: `name`, `updatedAt`, `createdAt`. |
-| POST   | `/companies`          | member | Create (201). Owner defaults to the caller.                    |
-| GET    | `/companies/:id`      | member | One company with counts and open pipeline value.               |
+| GET    | `/companies`          | member | Paginated list. Filters: `archive=active\|archived\|all`, `industry`, `customerType`; `q` matches name, domain, phone or email. Sort: `name`, `updatedAt`, `createdAt`. |
+| POST   | `/companies`          | member | Create (201). Accepts `customerType` and `email`. Owner defaults to the caller. |
+| GET    | `/companies/:id`      | member | One customer with contact, location and open-job counts, and open pipeline value. |
 | PATCH  | `/companies/:id`      | member | Partial update, including archive flag and owner.              |
 | POST   | `/companies/:id/restore` | member | Unarchive.                                                  |
 | DELETE | `/companies/:id`      | member | Archive (204). `?permanent=true` requires ADMIN and hard-deletes. |
@@ -183,12 +186,95 @@ pipeline delete endpoint; create additional pipelines instead of deleting.
 
 `due=overdue|today|week` implies incomplete activities only.
 
+### Service locations
+
+| Method | Path                        | Role   | Purpose                                                     |
+| ------ | --------------------------- | ------ | ----------------------------------------------------------- |
+| GET    | `/locations`                | member | Paginated list. Filters: `archive=active\|archived\|all`, `customerId`; sort `label` or `updatedAt`. |
+| POST   | `/locations`                | member | Add a location to a customer (201).                          |
+| GET    | `/locations/:id`            | member | One location with customer and open-job count.               |
+| PATCH  | `/locations/:id`            | member | Partial update, including `isPrimary` and `archived`.        |
+| POST   | `/locations/:id/restore`    | member | Unarchive.                                                   |
+| DELETE | `/locations/:id`            | member | Archive (204). `?permanent=true` requires ADMIN and is rejected while jobs, estimates or invoices reference the location. |
+
+Setting `isPrimary` clears the flag on the customer's other locations. Access notes, gate codes and
+on-site contact details are returned to members only.
+
+### Service price book
+
+| Method | Path                     | Role   | Purpose                                                      |
+| ------ | ------------------------ | ------ | ------------------------------------------------------------ |
+| GET    | `/services`              | member | Paginated list. Filters: `archive`, `category`, `unit`; sort `name`, `price`, `category`. |
+| POST   | `/services`              | member | Add a service (201). Price is integer cents.                 |
+| GET    | `/services/:id`          | member | One service with job/estimate usage counts.                  |
+| PATCH  | `/services/:id`          | member | Partial update.                                              |
+| POST   | `/services/:id/restore`  | member | Unarchive.                                                   |
+| DELETE | `/services/:id`          | member | Archive (204). `?permanent=true` requires ADMIN; line items keep their snapshotted name and price. |
+
+Units are `VISIT`, `HOUR`, `SQFT`, `ROOM`, `UNIT`, or `ITEM`.
+
+### Jobs
+
+| Method | Path                     | Role   | Purpose                                                      |
+| ------ | ------------------------ | ------ | ------------------------------------------------------------ |
+| GET    | `/jobs`                  | member | Paginated list. Filters: `status`, `scope=all\|open\|today\|week\|unscheduled\|upcoming`, `customerId`, `locationId`, `assigneeId`, `from`, `to`, `q`. Sort `scheduledStart`, `total`, `updatedAt`. |
+| POST   | `/jobs`                  | member | Create a job (201). Numbers start at `JOB-1001`.             |
+| GET    | `/jobs/:id`              | member | One job with customer, location, contact, assignee and line items. |
+| PATCH  | `/jobs/:id`              | member | Partial update; replacing `lineItems` recalculates totals.   |
+| PATCH  | `/jobs/:id/status`       | member | Move status; `cancelReason` appends to notes on cancel.      |
+| POST   | `/jobs/:id/duplicate`    | member | Copy a job, optionally at a new `scheduledStart` (201).      |
+| DELETE | `/jobs/:id`              | admin  | Permanently delete (204).                                    |
+
+Statuses are `UNSCHEDULED → SCHEDULED → DISPATCHED → IN_PROGRESS → COMPLETED`, plus `CANCELED`.
+Moving to `IN_PROGRESS` stamps `arrivedAt`; `COMPLETED` stamps `completedAt` and logs a note
+activity. Supplying `scheduledStart` without `scheduledEnd` derives the end from `durationMinutes`.
+`recurrence` is one of `WEEKLY`, `BIWEEKLY`, `MONTHLY`, `QUARTERLY`, `SEMIANNUAL`, `ANNUAL`.
+
+### Estimates
+
+| Method | Path                        | Role   | Purpose                                                   |
+| ------ | --------------------------- | ------ | --------------------------------------------------------- |
+| GET    | `/estimates`                | member | Paginated list. Filters: `status`, `customerId`, `open=true`. Numbers start at `EST-1001`. |
+| POST   | `/estimates`                | member | Create (201).                                             |
+| GET    | `/estimates/:id`            | member | One estimate with line items and linked job.              |
+| PATCH  | `/estimates/:id`            | member | Partial update; rejected once converted to a job.         |
+| PATCH  | `/estimates/:id/status`     | member | `DRAFT`, `SENT`, `APPROVED`, `DECLINED`, `EXPIRED`.       |
+| POST   | `/estimates/:id/convert`    | member | Convert a `SENT` or `APPROVED` estimate into a job (201).  |
+| DELETE | `/estimates/:id`            | admin  | Delete (204).                                             |
+
+Conversion copies line items, tax and totals, links the new job to the estimate, and marks the
+estimate `APPROVED`. Converting twice returns 409.
+
+### Invoices
+
+| Method | Path                        | Role   | Purpose                                                   |
+| ------ | --------------------------- | ------ | --------------------------------------------------------- |
+| GET    | `/invoices`                 | member | Paginated list. Filters: `status`, `customerId`, `jobId`, `overdue=true`; sort `amount`, `dueAt`, `createdAt`. Numbers start at `INV-1001`. |
+| POST   | `/invoices`                 | member | Create from a `jobId` or a `customerId` (201). From a job, customer, location and amount default to the job. |
+| GET    | `/invoices/:id`             | member | One invoice with derived `balance` and `overdue`.         |
+| PATCH  | `/invoices/:id`             | member | Update title, status, amount, `amountPaid`, dates or notes. |
+| PATCH  | `/invoices/:id/payment`     | member | Set `amountPaid`; derives `PARTIAL`/`PAID`/`SENT`.        |
+| DELETE | `/invoices/:id`             | admin  | Delete (204).                                             |
+
+`balance = max(0, amount - amountPaid)` and `overdue` is derived from `dueAt`, never stored. Marking
+an invoice `PAID` sets `amountPaid` to the amount and stamps `paidAt`. Payments above the amount are
+rejected.
+
+### Operations
+
+| Method | Path            | Role   | Purpose                                                          |
+| ------ | --------------- | ------ | ---------------------------------------------------------------- |
+| GET    | `/ops/summary`  | member | `?date=YYYY-MM-DD` (defaults to today, UTC). Today's jobs, completed count, unscheduled and unassigned counts, revenue today/week, booked week, outstanding and overdue receivables, active customers, recurring jobs, pipeline value, open estimate count/value, and the next six upcoming jobs. |
+
+Money values are integer cents throughout; `taxRate` is a percentage (for example `8.25`) stored
+internally as basis points. Estimate, job and invoice numbers are unique per workspace.
+
 ### Insights
 
 | Method | Path         | Role   | Purpose                                                              |
 | ------ | ------------ | ------ | -------------------------------------------------------------------- |
 | GET    | `/dashboard` | member | Aggregated dashboard summary. `months=3..12` controls the revenue trend window (default 6). |
-| GET    | `/search`    | member | `q` (min 2 chars), returns up to 15 hits across contacts, companies, and deals with `href`s. |
+| GET    | `/search`    | member | `q` (min 2 chars), returns up to 15 hits across contacts, customers, deals, jobs, locations, estimates and invoices with `href`s. |
 | GET    | `/health`    | no     | `{ status: "ok"\|"degraded", version, uptime, database }`; 503 when the database is down. |
 
 Dashboard payload includes `pipelineValue`, `openDealCount`, `wonValueThisMonth`, `wonCountThisMonth`,

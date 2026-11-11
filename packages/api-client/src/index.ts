@@ -470,6 +470,7 @@ export type ArchiveFilter = "active" | "archived" | "all";
 export interface CompanyListQuery extends ListParams {
   archive?: ArchiveFilter;
   industry?: Industry;
+  customerType?: CustomerType;
 }
 
 export interface ContactListQuery extends ListParams {

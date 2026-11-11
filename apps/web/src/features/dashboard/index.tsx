@@ -1,14 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
+  CalendarDays,
   Check,
   CircleDollarSign,
+  ClipboardList,
+  FileText,
   Loader2,
   Plus,
   RefreshCw,
   Target,
   Trophy,
   Wallet,
+  Wrench,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -19,6 +23,7 @@ import {
   type Activity,
   type DashboardSummary,
   type Deal,
+  type OpsSummary,
 } from "@meridian/api-client";
 import { type StageKind } from "@meridian/contracts";
 import { Avatar } from "../../components/ui/Avatar";
@@ -40,6 +45,7 @@ import { queryKeys } from "../../lib/query";
 import { cn, formatDate, formatMoney, relativeTime } from "../../lib/utils";
 import { ActivityMixCard, RevenueChartCard, StageChartCard } from "./charts";
 import { monthYearLabel } from "./format";
+import { JobStatusBadge } from "../operations/shared";
 
 const PERIODS = [3, 6, 12] as const;
 type Period = (typeof PERIODS)[number];
@@ -354,6 +360,145 @@ function TasksDueCard({ tasks }: { tasks: Activity[] }) {
   );
 }
 
+function OpsStrip({ summary }: { summary: OpsSummary }) {
+  const metrics = [
+    {
+      label: "Jobs today",
+      value: `${summary.jobsTodayCompleted}/${summary.jobsToday}`,
+      hint: "completed on site",
+      to: "/app/schedule",
+      icon: CalendarDays,
+    },
+    {
+      label: "Booked this week",
+      value: formatMoney(summary.bookedWeek, summary.currency),
+      hint: "scheduled value",
+      to: "/app/schedule",
+      icon: ClipboardList,
+    },
+    {
+      label: "Outstanding",
+      value: formatMoney(summary.outstanding, summary.currency),
+      hint: `${summary.overdueInvoices} overdue ${
+        summary.overdueInvoices === 1 ? "invoice" : "invoices"
+      }`,
+      to: "/app/invoices",
+      icon: Wallet,
+    },
+    {
+      label: "Open estimates",
+      value: formatMoney(summary.openEstimateValue, summary.currency),
+      hint: `${summary.openEstimates} to review`,
+      to: "/app/estimates",
+      icon: FileText,
+    },
+    {
+      label: "Crew coverage",
+      value: summary.jobsUnassigned === 0 ? "Fully staffed" : `${summary.jobsUnassigned} open`,
+      hint: `${summary.jobsUnscheduled} unscheduled`,
+      to: "/app/schedule?scope=unscheduled",
+      icon: Wrench,
+    },
+  ];
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
+        <div>
+          <p className="label-micro">Field operations</p>
+          <p className="mt-1 text-sm text-fg">
+            Today, {formatDate(summary.date, "EEEE, MMMM d")}
+          </p>
+        </div>
+        <Link
+          to="/app/schedule"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-accent transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          Open dispatch
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-y-0 xl:grid-cols-5 xl:divide-x">
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+          return (
+            <Link
+              key={metric.label}
+              to={metric.to}
+              className="group flex items-start justify-between gap-3 px-5 py-4 transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+            >
+              <div className="min-w-0">
+                <p className="label-micro">{metric.label}</p>
+                <p className="num mt-1 truncate text-lg text-fg">{metric.value}</p>
+                <p className="mt-0.5 truncate text-xs text-muted">{metric.hint}</p>
+              </div>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-input border border-border bg-surface-2 text-muted transition-colors group-hover:text-accent">
+                <Icon className="size-4" aria-hidden="true" />
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function TodayScheduleCard({ summary }: { summary: OpsSummary }) {
+  return (
+    <Card className="min-w-0">
+      <CardHeader className="pb-3">
+        <div>
+          <CardTitle>Today&apos;s route</CardTitle>
+          <CardDescription className="mt-1">
+            {summary.jobsToday === 0
+              ? "No visits on the board for today."
+              : `${summary.jobsToday} ${
+                  summary.jobsToday === 1 ? "visit" : "visits"
+                } on the board.`}
+          </CardDescription>
+        </div>
+        <Link
+          to="/app/schedule"
+          className="shrink-0 text-xs font-medium text-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          Schedule
+        </Link>
+      </CardHeader>
+      <CardContent className="p-0">
+        {summary.today.length === 0 ? (
+          <p className="border-t border-border px-5 py-6 text-sm text-muted">
+            Nothing scheduled today — a good day to confirm upcoming visits.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border border-t border-border">
+            {summary.today.map((job) => (
+              <li key={job.id}>
+                <Link
+                  to={`/app/schedule?job=${encodeURIComponent(job.id)}`}
+                  className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                >
+                  <span className="num w-16 shrink-0 text-xs text-muted">
+                    {job.scheduledStart ? formatDate(job.scheduledStart, "h:mm a") : "—"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-fg">{job.title}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted">
+                      {job.customer.name} · {job.location.label}
+                      {job.assignee ? ` · ${job.assignee.name}` : " · Unassigned"}
+                    </span>
+                  </span>
+                  <JobStatusBadge status={job.status} />
+                  <ArrowRight className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Loading dashboard">
@@ -387,7 +532,19 @@ export default function DashboardPage() {
     queryKey: queryKeys.insights.dashboard(months),
     queryFn: () => api.insights.dashboard(months),
   });
+  const opsQuery = useQuery({
+    queryKey: queryKeys.ops.summary(),
+    queryFn: () => api.ops.summary(),
+  });
   const summary = dashboardQuery.data;
+  const ops = opsQuery.data;
+  const opsHasWork = Boolean(
+    ops &&
+      (ops.jobsToday > 0 ||
+        ops.recurringJobs > 0 ||
+        ops.activeCustomers > 0 ||
+        ops.openEstimates > 0),
+  );
   const firstMonth = summary?.revenueTrend[0]?.month;
   const lastMonth = summary?.revenueTrend[summary.revenueTrend.length - 1]?.month;
   const rangeLabel =
@@ -396,6 +553,7 @@ export default function DashboardPage() {
       : `Last ${months} months`;
   const isEmpty =
     summary !== undefined &&
+    !opsHasWork &&
     summary.openDealCount === 0 &&
     summary.recentDeals.length === 0 &&
     summary.wonCountThisMonth === 0 &&
@@ -407,19 +565,30 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Overview"
         title={`${workspace?.name ?? "Workspace"} overview`}
-        description={`${rangeLabel} · a live read on pipeline health, revenue and follow-through.`}
+        description={`${rangeLabel} · a live read on the route, work and cash.`}
         actions={
           <>
             <PeriodSelector value={months} onChange={setMonths} />
-            <Button variant="primary" onClick={() => navigate("/app/deals?new=1")}>
+            <Button variant="secondary" onClick={() => navigate("/app/estimates?new=1")}>
               <Plus className="size-4" aria-hidden="true" />
-              New deal
+              New estimate
+            </Button>
+            <Button variant="primary" onClick={() => navigate("/app/schedule?new=1")}>
+              <Wrench className="size-4" aria-hidden="true" />
+              New job
             </Button>
           </>
         }
       />
 
       {dashboardQuery.isLoading ? <DashboardSkeleton /> : null}
+
+      {ops ? (
+        <div className="space-y-4">
+          <OpsStrip summary={ops} />
+          <TodayScheduleCard summary={ops} />
+        </div>
+      ) : null}
 
       {dashboardQuery.isError ? (
         <Card>

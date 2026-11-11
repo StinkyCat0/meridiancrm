@@ -1,6 +1,13 @@
 import { api, type CreateCompanyInput } from "@meridian/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { INDUSTRIES, type Company, type Industry } from "@meridian/contracts";
+import {
+  CUSTOMER_TYPES,
+  CUSTOMER_TYPE_META,
+  INDUSTRIES,
+  type Company,
+  type CustomerType,
+  type Industry,
+} from "@meridian/contracts";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/Button";
@@ -26,12 +33,16 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
   const queryClient = useQueryClient();
   const formId = useId();
   const [name, setName] = useState(company?.name ?? "");
+  const [customerType, setCustomerType] = useState<CustomerType>(
+    company?.customerType ?? "RESIDENTIAL",
+  );
   const [domain, setDomain] = useState(company?.domain ?? "");
   const [industry, setIndustry] = useState<Industry | "">(
     toIndustry(company?.industry),
   );
   const [size, setSize] = useState(company?.size ?? "");
   const [phone, setPhone] = useState(company?.phone ?? "");
+  const [email, setEmail] = useState(company?.email ?? "");
   const [website, setWebsite] = useState(company?.website ?? "");
   const [address, setAddress] = useState(company?.address ?? "");
   const [tags, setTags] = useState(tagsToInput(company?.tags ?? []));
@@ -46,7 +57,7 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
       void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
-      toast.success(company ? "Company updated" : "Company created");
+      toast.success(company ? "Customer updated" : "Customer created");
       onSaved(saved);
     },
     onError: (error) => {
@@ -58,16 +69,18 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
     event.preventDefault();
     if (save.isPending) return;
     if (!name.trim()) {
-      setErrors({ name: "Company name is required." });
+      setErrors({ name: "Customer name is required." });
       return;
     }
     setErrors({});
     save.mutate({
       name: name.trim(),
+      customerType,
       domain: domain.trim() || null,
       industry: industry || null,
       size: size.trim() || null,
       phone: phone.trim() || null,
+      email: email.trim() || null,
       website: website.trim() || null,
       address: address.trim() || null,
       notes: notes.trim() || null,
@@ -75,7 +88,7 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
     });
   }
 
-  const heading = company ? `Edit ${company.name}` : "New company";
+  const heading = company ? `Edit ${company.name}` : "New customer";
   const id = (field: string) => `${formId}-${field}`;
 
   return (
@@ -83,7 +96,7 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
       open
       onClose={onClose}
       title={heading}
-      description="The account record behind the people and the pipeline."
+      description="The customer record behind every location, job and invoice."
       size="lg"
       footer={
         <>
@@ -91,7 +104,7 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
             Cancel
           </Button>
           <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
-            {company ? "Save company" : "Create company"}
+            {company ? "Save customer" : "Create customer"}
           </Button>
         </>
       }
@@ -113,14 +126,18 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Domain" htmlFor={id("domain")}>
-            <Input
-              id={id("domain")}
-              value={domain}
-              onChange={(event) => setDomain(event.target.value)}
-              maxLength={200}
-              placeholder="meridian.studio"
-            />
+          <Field label="Customer type" htmlFor={id("customerType")}>
+            <Select
+              id={id("customerType")}
+              value={customerType}
+              onChange={(event) => setCustomerType(event.target.value as CustomerType)}
+            >
+              {CUSTOMER_TYPES.map((value) => (
+                <option key={value} value={value}>
+                  {CUSTOMER_TYPE_META[value].label}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Industry" htmlFor={id("industry")}>
             <Select
@@ -139,6 +156,15 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Domain" htmlFor={id("domain")}>
+            <Input
+              id={id("domain")}
+              value={domain}
+              onChange={(event) => setDomain(event.target.value)}
+              maxLength={200}
+              placeholder="meridian.studio"
+            />
+          </Field>
           <Field label="Size" htmlFor={id("size")}>
             <Input
               id={id("size")}
@@ -148,6 +174,9 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
               placeholder="11–50"
             />
           </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Phone" htmlFor={id("phone")}>
             <Input
               id={id("phone")}
@@ -156,6 +185,16 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
               onChange={(event) => setPhone(event.target.value)}
               maxLength={40}
               placeholder="+1 415 555 0190"
+            />
+          </Field>
+          <Field label="Email" htmlFor={id("email")}>
+            <Input
+              id={id("email")}
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              maxLength={200}
+              placeholder="billing@meridian.studio"
             />
           </Field>
         </div>

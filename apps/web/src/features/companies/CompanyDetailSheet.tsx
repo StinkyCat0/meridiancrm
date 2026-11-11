@@ -1,24 +1,30 @@
-import { api, type Company, type Deal } from "@meridian/api-client";
+import { api, type Company, type Deal, type Job, type Location } from "@meridian/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArrowUpRight,
   Globe2,
+  MapPin,
   Pencil,
   Phone,
+  Plus,
   RotateCcw,
+  Wrench,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { CUSTOMER_TYPE_META } from "@meridian/contracts";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge, type BadgeTone } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { useAuth } from "../../lib/auth";
-import { cn, formatDate, formatMoney, relativeTime } from "../../lib/utils";
+import { cn, formatDate, formatDateTime, formatMoney, relativeTime } from "../../lib/utils";
 import { queryKeys } from "../../lib/query";
+import { LocationFormModal } from "../locations/LocationFormModal";
+import { JobStatusBadge } from "../operations/shared";
 import { CompanyActivityTimeline } from "./ActivityTimeline";
 import { apiErrorMessage } from "./lib";
 
@@ -50,6 +56,8 @@ export function CompanyDetailSheet({
   const queryClient = useQueryClient();
   const { workspace } = useAuth();
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [locationFormOpen, setLocationFormOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const detailKey = queryKeys.companies.detail(companyId);
   const currency = workspace?.currency ?? "USD";
 
@@ -70,6 +78,30 @@ export function CompanyDetailSheet({
     queryFn: () => api.deals.list({ companyId, pageSize: 100 }),
   });
 
+  const locationsQuery = useQuery({
+    queryKey: queryKeys.locations.list({ customerId: companyId, pageSize: 50, archive: "active" }),
+    queryFn: () =>
+      api.locations.list({ customerId: companyId, pageSize: 50, archive: "active" }),
+  });
+
+  const jobsQuery = useQuery({
+    queryKey: queryKeys.jobs.list({
+      customerId: companyId,
+      pageSize: 20,
+      scope: "all",
+      sort: "scheduledStart",
+      order: "desc",
+    }),
+    queryFn: () =>
+      api.jobs.list({
+        customerId: companyId,
+        pageSize: 20,
+        scope: "all",
+        sort: "scheduledStart",
+        order: "desc",
+      }),
+  });
+
   const archive = useMutation({
     mutationFn: () => api.companies.archive(companyId),
     onSuccess: () => {
@@ -81,8 +113,7 @@ export function CompanyDetailSheet({
       void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
       setConfirmArchive(false);
-      toast.success("Company archived");
-    },
+      toast.success("Company archived");    },
     onError: (error) => {
       toast.error(apiErrorMessage(error));
     },
@@ -103,20 +134,32 @@ export function CompanyDetailSheet({
     },
   });
 
+  const archiveLocation = useMutation({
+    mutationFn: (id: string) => api.locations.archive(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+      toast.success("Location archived");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
   const company = companyQuery.data;
   const contacts = contactsQuery.data?.data ?? [];
   const deals = dealsQuery.data?.data ?? [];
+  const locations = locationsQuery.data?.data ?? [];
+  const jobs = jobsQuery.data?.data ?? [];
 
   return (
     <Modal
       open
       onClose={onClose}
       size="lg"
-      title={company ? company.name : "Company"}
+      title={company ? company.name : "Customer"}
       description={
         company
-          ? [company.industry, company.domain].filter(Boolean).join(" · ") || "Company record"
-          : "Company record"
+          ? [company.industry, company.domain].filter(Boolean).join(" · ") || "Customer record"
+          : "Customer record"
       }
     >
       {companyQuery.isPending ? (
@@ -156,6 +199,9 @@ export function CompanyDetailSheet({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="truncate text-base font-medium text-fg">{company.name}</h3>
+                  <Badge tone="accent">
+                    {CUSTOMER_TYPE_META[company.customerType].label}
+                  </Badge>
                   {company.archived ? <Badge tone="warning">Archived</Badge> : null}
                 </div>
                 <p className="mt-0.5 truncate text-sm text-muted">
@@ -230,6 +276,12 @@ export function CompanyDetailSheet({
               <dd className="mt-1 truncate text-sm text-fg">{company.domain ?? "—"}</dd>
             </div>
             <div className="min-w-0">
+              <dt className="label-micro">Customer type</dt>
+              <dd className="mt-1 truncate text-sm text-fg">
+                {CUSTOMER_TYPE_META[company.customerType].label}
+              </dd>
+            </div>
+            <div className="min-w-0">
               <dt className="label-micro">Industry</dt>
               <dd className="mt-1 truncate text-sm text-fg">{company.industry ?? "—"}</dd>
             </div>
@@ -247,6 +299,21 @@ export function CompanyDetailSheet({
                   >
                     <Phone className="size-3.5 shrink-0" aria-hidden="true" />
                     <span className="truncate">{company.phone}</span>
+                  </a>
+                ) : (
+                  <span className="text-muted">—</span>
+                )}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="label-micro">Email</dt>
+              <dd className="mt-1 truncate text-sm text-fg">
+                {company.email ? (
+                  <a
+                    href={`mailto:${company.email}`}
+                    className="text-accent hover:text-accent/80"
+                  >
+                    {company.email}
                   </a>
                 ) : (
                   <span className="text-muted">—</span>
@@ -331,6 +398,178 @@ export function CompanyDetailSheet({
               </div>
             </div>
           ) : null}
+
+          <section aria-labelledby="company-locations-heading" className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 id="company-locations-heading" className="text-sm font-medium text-fg">
+                  Service locations
+                </h3>
+                <p className="mt-0.5 text-xs text-muted">
+                  Addresses and site details the crew needs on arrival.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setEditingLocation(null);
+                  setLocationFormOpen(true);
+                }}
+              >
+                <Plus className="size-3.5" aria-hidden="true" />
+                Add location
+              </Button>
+            </div>
+
+            {locationsQuery.isPending ? (
+              <div className="space-y-2" role="status" aria-label="Loading locations">
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+              </div>
+            ) : locationsQuery.isError ? (
+              <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+                <p>Could not load locations. {apiErrorMessage(locationsQuery.error)}</p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => void locationsQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : locations.length === 0 ? (
+              <p className="rounded-card border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                No service locations yet. Add one before booking work.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+                {locations.map((location) => (
+                  <li
+                    key={location.id}
+                    className="flex flex-wrap items-start justify-between gap-3 px-4 py-3"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-input border border-border bg-surface-2 text-muted">
+                        <MapPin className="size-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-fg">
+                          {location.label}
+                          {location.isPrimary ? <Badge tone="accent">Primary</Badge> : null}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted">
+                          {[location.line1, location.line2, location.city, location.state]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {location.openJobCount} open{" "}
+                          {location.openJobCount === 1 ? "job" : "jobs"}
+                          {location.gateCode ? ` · gate ${location.gateCode}` : ""}
+                          {location.contactPhone ? ` · ${location.contactPhone}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingLocation(location);
+                          setLocationFormOpen(true);
+                        }}
+                      >
+                        <Pencil className="size-3.5" aria-hidden="true" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={archiveLocation.isPending}
+                        onClick={() => archiveLocation.mutate(location.id)}
+                      >
+                        <Archive className="size-3.5" aria-hidden="true" />
+                        Archive
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-labelledby="company-jobs-heading" className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 id="company-jobs-heading" className="text-sm font-medium text-fg">
+                  Job history
+                </h3>
+                <p className="mt-0.5 text-xs text-muted">
+                  Recent visits and work orders for this customer.
+                </p>
+              </div>
+              <Link
+                to={`/app/schedule?new=1&customerId=${encodeURIComponent(company.id)}`}
+                className="inline-flex h-8 items-center gap-1.5 rounded-input border border-border bg-surface-2 px-3 text-xs font-medium text-fg transition-colors hover:border-white/15 hover:bg-surface-2/70"
+              >
+                <Wrench className="size-3.5" aria-hidden="true" />
+                New job
+              </Link>
+            </div>
+            {jobsQuery.isPending ? (
+              <div className="space-y-2" role="status" aria-label="Loading jobs">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+            ) : jobsQuery.isError ? (
+              <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
+                <p>Could not load jobs. {apiErrorMessage(jobsQuery.error)}</p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => void jobsQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : jobs.length === 0 ? (
+              <p className="rounded-card border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                No jobs for this customer yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+                {jobs.map((job: Job) => (
+                  <li key={job.id}>
+                    <Link
+                      to={`/app/schedule?job=${encodeURIComponent(job.id)}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-fg">
+                          <span className="num mr-1.5 text-xs text-accent">{job.number}</span>
+                          {job.title}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-muted">
+                          {job.scheduledStart
+                            ? formatDateTime(job.scheduledStart)
+                            : "Unscheduled"}{" "}
+                          · {job.location.label}
+                        </span>
+                      </span>
+                      <JobStatusBadge status={job.status} />
+                      <span className="num shrink-0 text-sm text-fg">
+                        {formatMoney(job.total, currency)}
+                      </span>
+                      <ArrowUpRight className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <section aria-labelledby="company-contacts-heading" className="space-y-3">
             <div className="flex items-center justify-between gap-3">
@@ -455,6 +694,22 @@ export function CompanyDetailSheet({
           </section>
 
           <CompanyActivityTimeline companyId={company.id} />
+
+          {locationFormOpen ? (
+            <LocationFormModal
+              customerId={company.id}
+              customerName={company.name}
+              location={editingLocation}
+              onClose={() => {
+                setLocationFormOpen(false);
+                setEditingLocation(null);
+              }}
+              onSaved={() => {
+                setLocationFormOpen(false);
+                setEditingLocation(null);
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </Modal>

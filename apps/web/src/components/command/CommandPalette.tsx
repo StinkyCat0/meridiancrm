@@ -4,11 +4,18 @@ import type { SearchHit } from "@meridian/contracts";
 import {
   ArrowRight,
   Building2,
+  CalendarClock,
+  CalendarDays,
   CircleDollarSign,
   CornerDownLeft,
+  FileText,
+  MapPin,
   Plus,
+  Receipt,
   Search,
+  Tags,
   Users,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -41,10 +48,28 @@ const QUICK_ACTIONS: readonly ActionSeed[] = [
     keywords: "create add person people",
   },
   {
-    label: "New company",
-    sublabel: "Add an account to the workspace",
+    label: "New customer",
+    sublabel: "Add a customer and service location",
     to: "/app/companies?new=1",
-    keywords: "create add account organization",
+    keywords: "create add customer account client",
+  },
+  {
+    label: "New job",
+    sublabel: "Schedule a visit or work order",
+    to: "/app/schedule?new=1",
+    keywords: "create add work order dispatch visit",
+  },
+  {
+    label: "New estimate",
+    sublabel: "Price a scope for a customer",
+    to: "/app/estimates?new=1",
+    keywords: "create add quote proposal",
+  },
+  {
+    label: "New invoice",
+    sublabel: "Bill a job or customer",
+    to: "/app/invoices?new=1",
+    keywords: "create add bill receivable",
   },
   {
     label: "New deal",
@@ -61,9 +86,13 @@ const QUICK_ACTIONS: readonly ActionSeed[] = [
 ];
 
 const NAVIGATION: readonly ActionSeed[] = [
-  { label: "Overview", sublabel: "Pipeline and revenue", to: "/app", keywords: "dashboard home" },
+  { label: "Overview", sublabel: "Dispatch and pipeline", to: "/app", keywords: "dashboard home" },
+  { label: "Schedule", sublabel: "Jobs and dispatch", to: "/app/schedule", keywords: "jobs work orders calendar route" },
+  { label: "Customers", sublabel: "People, sites and accounts", to: "/app/companies", keywords: "clients accounts" },
+  { label: "Estimates", sublabel: "Quotes", to: "/app/estimates", keywords: "proposals quotes" },
+  { label: "Invoices", sublabel: "Receivables", to: "/app/invoices", keywords: "billing payments" },
+  { label: "Services", sublabel: "Price book", to: "/app/services", keywords: "pricing catalog" },
   { label: "Contacts", sublabel: "People", to: "/app/contacts", keywords: "people" },
-  { label: "Companies", sublabel: "Accounts", to: "/app/companies", keywords: "accounts" },
   { label: "Deals", sublabel: "Pipeline", to: "/app/deals", keywords: "opportunities revenue" },
   { label: "Activities", sublabel: "Calls, email, meetings, tasks", to: "/app/activities", keywords: "tasks notes" },
   { label: "Settings", sublabel: "Workspace and team", to: "/app/settings", keywords: "admin members" },
@@ -71,14 +100,22 @@ const NAVIGATION: readonly ActionSeed[] = [
 
 const HIT_GROUPS: Record<SearchHit["type"], string> = {
   contact: "Contacts",
-  company: "Companies",
+  company: "Customers",
   deal: "Deals",
+  location: "Locations",
+  job: "Jobs",
+  estimate: "Estimates",
+  invoice: "Invoices",
 };
 
 const HIT_ICONS: Record<SearchHit["type"], LucideIcon> = {
   contact: Users,
   company: Building2,
   deal: CircleDollarSign,
+  location: MapPin,
+  job: Wrench,
+  estimate: FileText,
+  invoice: Receipt,
 };
 
 interface CommandItem {
@@ -223,7 +260,15 @@ export function CommandPalette() {
       else buckets.set(group, [item]);
     }
 
-    for (const label of ["Contacts", "Companies", "Deals"] as const) {
+    for (const label of [
+      "Customers",
+      "Contacts",
+      "Locations",
+      "Jobs",
+      "Estimates",
+      "Invoices",
+      "Deals",
+    ] as const) {
       const items = buckets.get(label);
       if (items && items.length > 0) built.push({ label, items });
     }
@@ -313,8 +358,8 @@ export function CommandPalette() {
             aria-controls="command-list"
             aria-autocomplete="list"
             aria-activedescendant={activeItem?.id}
-            aria-label="Search contacts, companies, deals or actions"
-            placeholder="Search contacts, companies, deals…"
+            aria-label="Search customers, jobs, documents or actions"
+            placeholder="Search customers, jobs, invoices…"
             spellCheck={false}
             autoComplete="off"
             className="h-full min-w-0 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted/60"
@@ -355,7 +400,7 @@ export function CommandPalette() {
             <div className="px-3 py-10 text-center">
               <p className="text-sm font-medium text-fg">No matches</p>
               <p className="mt-1 text-xs text-muted">
-                Try a contact, company, or deal name.
+                Try a customer, job, estimate, invoice, or contact name.
               </p>
             </div>
           ) : null}

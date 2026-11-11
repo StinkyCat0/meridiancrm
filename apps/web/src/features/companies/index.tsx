@@ -1,9 +1,14 @@
-import { api, type Company } from "@meridian/api-client";
+import { api, type Company, type CustomerType } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Building2, Plus, Search } from "lucide-react";
-import { INDUSTRIES, type Industry } from "@meridian/contracts";
+import {
+  CUSTOMER_TYPES,
+  CUSTOMER_TYPE_META,
+  INDUSTRIES,
+  type Industry,
+} from "@meridian/contracts";
 import { useEffect, useState, type KeyboardEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -27,6 +32,7 @@ type ArchiveView = "active" | "archived";
 export default function CompaniesPage() {
   const navigate = useNavigate();
   const params = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { workspace } = useAuth();
   const currency = workspace?.currency ?? "USD";
   const selectedId = params["*"]?.split("/")[0] || null;
@@ -34,6 +40,7 @@ export default function CompaniesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
   const [industry, setIndustry] = useState<Industry | "">("");
+  const [customerType, setCustomerType] = useState<CustomerType | "">("");
   const [archive, setArchive] = useState<ArchiveView>("active");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
@@ -41,11 +48,20 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, industry, archive]);
+  }, [debouncedSearch, industry, customerType, archive]);
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setCreating(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const listQuery = {
     q: debouncedSearch.trim() || undefined,
     industry: industry || undefined,
+    customerType: customerType || undefined,
     archive,
     page,
     pageSize: PAGE_SIZE,
@@ -70,7 +86,7 @@ export default function CompaniesPage() {
   const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const rangeEnd = Math.min(currentPage * pageSize, total);
   const selectedCompany = companies.find((company) => company.id === selectedId) ?? null;
-  const hasFilters = Boolean(search.trim() || industry || archive === "archived");
+  const hasFilters = Boolean(search.trim() || industry || customerType || archive === "archived");
 
   function openCompany(id: string) {
     navigate(`/app/companies/${encodeURIComponent(id)}`);
@@ -83,6 +99,7 @@ export default function CompaniesPage() {
   function clearFilters() {
     setSearch("");
     setIndustry("");
+    setCustomerType("");
     setArchive("active");
   }
 
@@ -98,17 +115,17 @@ export default function CompaniesPage() {
         eyebrow="RECORDS"
         title={
           <span className="flex flex-wrap items-center gap-3">
-            Companies
+            Customers
             <span className="num rounded-full border border-border bg-white/5 px-2 py-0.5 text-xs font-medium text-muted">
               {companiesQuery.data ? total : "—"}
             </span>
           </span>
         }
-        description="The accounts behind the work — people, pipeline and the conversations that connect them."
+        description="The people and properties behind the work — contacts, sites, jobs and money."
         actions={
           <Button variant="primary" onClick={() => setCreating(true)}>
             <Plus aria-hidden="true" className="size-4" />
-            New company
+            New customer
           </Button>
         }
       />
@@ -123,17 +140,32 @@ export default function CompaniesPage() {
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search companies by name or domain"
-              aria-label="Search companies"
+              placeholder="Search customers by name, domain or email"
+              aria-label="Search customers"
               className="pl-9"
             />
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Select
+              value={customerType}
+              onChange={(event) =>
+                setCustomerType(event.target.value as CustomerType | "")
+              }
+              aria-label="Filter by customer type"
+              className="sm:w-40"
+            >
+              <option value="">All types</option>
+              {CUSTOMER_TYPES.map((option) => (
+                <option key={option} value={option}>
+                  {CUSTOMER_TYPE_META[option].label}
+                </option>
+              ))}
+            </Select>
+            <Select
               value={industry}
               onChange={(event) => setIndustry(toIndustry(event.target.value))}
               aria-label="Filter by industry"
-              className="sm:w-48"
+              className="sm:w-40"
             >
               <option value="">All industries</option>
               {INDUSTRIES.map((option) => (
@@ -171,7 +203,7 @@ export default function CompaniesPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load companies.</p>
+            <p className="mt-3 text-sm font-medium text-fg">Could not load customers.</p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(companiesQuery.error)}
             </p>
@@ -187,11 +219,11 @@ export default function CompaniesPage() {
       ) : companies.length === 0 ? (
         <EmptyState
           icon={<Building2 />}
-          title={hasFilters ? "No companies match those filters." : "No companies yet."}
+          title={hasFilters ? "No customers match those filters." : "No customers yet."}
           description={
             hasFilters
-              ? "Clear the filters or search for a different account."
-              : "Add the first account the studio works with."
+              ? "Clear the filters or search for a different customer."
+              : "Add the first customer and the locations your crews visit."
           }
           action={
             hasFilters ? (
@@ -201,7 +233,7 @@ export default function CompaniesPage() {
             ) : (
               <Button variant="primary" onClick={() => setCreating(true)}>
                 <Plus aria-hidden="true" className="size-4" />
-                New company
+                New customer
               </Button>
             )
           }
@@ -214,7 +246,10 @@ export default function CompaniesPage() {
                 <thead>
                   <tr className="border-b border-border">
                     <th scope="col" className="label-micro px-4 py-3">
-                      Company
+                      Customer
+                    </th>
+                    <th scope="col" className="label-micro px-4 py-3">
+                      Type
                     </th>
                     <th scope="col" className="label-micro px-4 py-3">
                       Industry
@@ -258,6 +293,11 @@ export default function CompaniesPage() {
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={company.customerType === "COMMERCIAL" ? "accent" : "neutral"}>
+                          {CUSTOMER_TYPE_META[company.customerType].short}
+                        </Badge>
                       </td>
                       <td className="px-4 py-3 text-muted">{company.industry ?? "—"}</td>
                       <td className="num px-4 py-3 text-fg">{company.contactCount}</td>

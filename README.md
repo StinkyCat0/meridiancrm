@@ -53,8 +53,9 @@ npm run dev
 - Interactive API docs: http://localhost:4000/docs
 - Health: http://localhost:4000/api/v1/health
 
-`npm run db:setup` runs Prisma migrations and seeds a demo workspace. The seed deletes and recreates
-the `meridian-studio` demo workspace, so avoid running it against a database you cannot restore.
+`npm run db:setup` generates the Prisma client, applies migrations, and seeds a demo workspace. The
+seed deletes and recreates the `meridian-studio` demo workspace, so avoid running it against a
+database you cannot restore.
 
 Demo account:
 
@@ -62,6 +63,11 @@ Demo account:
 demo@meridian.studio
 Meridian2026!
 ```
+
+A `500 Internal Server Error` on sign-in means the request never reached a healthy API: the dev
+server proxies `/api` to port 4000, so check that `npm run dev:api` (or `npm run dev`) is running
+and that `npm run db:setup` completed without errors. `npm run dev` and `npm run dev:api` generate
+the Prisma client on startup, so a first run does not need a separate `db:generate`.
 
 Development runs over plain HTTP, where `NODE_ENV=development` leaves the refresh cookie non-Secure
 by default. For a local production preview without TLS, set `COOKIE_SECURE=0`; behind TLS leave it
@@ -79,7 +85,7 @@ unset (defaults to `1` in production).
 | `npm test`           | Contracts + API integration tests (Vitest).                 |
 | `npm run verify`     | Tests plus both builds; the CI gate.                       |
 | `npm run typecheck`  | TypeScript check for API and web.                          |
-| `npm run db:setup`   | Apply migrations and seed the demo workspace.              |
+| `npm run db:setup`   | Generate client, migrate, seed the demo workspace.         |
 | `npm run seed`       | Re-run the seed script.                                    |
 | `npm run format`     | Prettier across the repo.                                  |
 

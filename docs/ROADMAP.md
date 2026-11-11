@@ -7,7 +7,10 @@ Scope discipline: the MVP is the contract below. Items under "Next" are delibera
 
 - Auth: register, login, refresh rotation, logout, me, profile update, password change.
 - Invite-based team onboarding with roles and audit trail.
-- Companies, contacts, deals, pipelines/stages, activities, stage history.
+- Companies (customers), contacts, deals, pipelines/stages, activities, stage history.
+- Service locations, price book, jobs/work orders, estimates with job conversion, and invoices with
+  payments and overdue tracking.
+- Operations dashboard: today's schedule, booked value, receivables and open estimates.
 - Momentum score and signal UI, dashboard analytics, global search / command palette.
 - OpenAPI docs, consistent errors, rate limits, PWA shell, Docker and Compose deployment.
 

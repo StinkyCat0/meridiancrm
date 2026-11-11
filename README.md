@@ -2,16 +2,30 @@
 
 [![CI](https://github.com/StinkyCat0/meridiancrm/actions/workflows/ci.yml/badge.svg)](https://github.com/StinkyCat0/meridiancrm/actions/workflows/ci.yml)
 
-Meridian CRM is a boutique, API-first CRM for small teams that need the pipeline to be legible at a
-glance: companies, contacts, deals with configurable stages, activities, team roles, audit history,
-and a revenue dashboard. It is built as a TypeScript monorepo with a shared contract layer, so a
-native mobile client consumes the same API rather than a second backend.
+Meridian CRM is a boutique, API-first CRM for service businesses — window cleaners, HVAC crews,
+utilities, hair and nail salons, and the teams that dispatch them. It keeps the pipeline legible
+while staying close to the day: customers, service locations, a price book, scheduled jobs,
+estimates, invoices, and the money still owed. It is built as a TypeScript monorepo with a shared
+contract layer, so a native mobile client consumes the same API rather than a second backend.
 
 ## Features
 
 - Email/password auth with rotating refresh cookies, workspace registration, and invite-only joins.
 - Multi-tenant workspaces with OWNER / ADMIN / MEMBER roles enforced server-side.
-- Companies and contacts with tags, ownership, archive/restore, notes, and cross-links.
+- Customers and contacts with tags, ownership, archive/restore, notes, and cross-links. Customers
+  are typed residential, commercial, or property manager.
+- Service locations per customer: address, access notes, gate codes, on-site contact, and a single
+  primary location.
+- Service price book with categories, units (visit, hour, sq ft, room, unit, item), duration, price
+  in cents, and taxable flags.
+- Jobs / work orders with numbering (`JOB-1001`), scheduling windows, priority, assignee, recurrence,
+  line items, tax, deposits, and a status lifecycle with arrival and completion timestamps.
+- Estimates (`EST-1001`) that move draft → sent → approved and convert into jobs with their line
+  items intact.
+- Invoices (`INV-1001`), optionally generated from a job, with partial payments, derived balances,
+  and overdue flags.
+- Operations dashboard strip: today's schedule, completed work, unscheduled and unassigned jobs,
+  booked value, receivables, and open estimates.
 - Multiple pipelines with configurable stages, drag-and-drop deal boards, stage history, and
   won/lost handling.
 - Deterministic 0-100 deal momentum score with an explainable breakdown.

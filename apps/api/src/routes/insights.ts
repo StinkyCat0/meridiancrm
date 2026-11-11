@@ -257,7 +257,7 @@ export async function insightRoutes(app: FastifyInstance): Promise<void> {
       if (q.length < 2) throw badRequest("Search needs at least 2 characters");
 
       const term = likeTerm(q);
-      const [contacts, companies, deals] = await Promise.all([
+      const [contacts, companies, deals, jobs, locations, estimates, invoices] = await Promise.all([
         prisma.contact.findMany({
           where: {
             workspaceId: auth.workspaceId,
@@ -299,6 +299,66 @@ export async function insightRoutes(app: FastifyInstance): Promise<void> {
           orderBy: { updatedAt: "desc" },
           take: 5,
         }),
+        prisma.job.findMany({
+          where: {
+            workspaceId: auth.workspaceId,
+            OR: [
+              { number: { contains: term } },
+              { title: { contains: term } },
+              { customer: { name: { contains: term } } },
+            ],
+          },
+          select: { id: true, number: true, title: true, status: true },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+        }),
+        prisma.location.findMany({
+          where: {
+            workspaceId: auth.workspaceId,
+            archived: false,
+            OR: [
+              { label: { contains: term } },
+              { line1: { contains: term } },
+              { city: { contains: term } },
+            ],
+          },
+          select: {
+            id: true,
+            customerId: true,
+            label: true,
+            line1: true,
+            city: true,
+            customer: { select: { name: true } },
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+        }),
+        prisma.estimate.findMany({
+          where: {
+            workspaceId: auth.workspaceId,
+            OR: [
+              { number: { contains: term } },
+              { title: { contains: term } },
+              { customer: { name: { contains: term } } },
+            ],
+          },
+          select: { id: true, number: true, title: true, status: true },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+        }),
+        prisma.invoice.findMany({
+          where: {
+            workspaceId: auth.workspaceId,
+            OR: [
+              { number: { contains: term } },
+              { title: { contains: term } },
+              { customer: { name: { contains: term } } },
+            ],
+          },
+          select: { id: true, number: true, title: true, status: true },
+          orderBy: { updatedAt: "desc" },
+          take: 5,
+        }),
       ]);
 
       const hits: SearchHit[] = [
@@ -322,6 +382,34 @@ export async function insightRoutes(app: FastifyInstance): Promise<void> {
           label: deal.title,
           sublabel: deal.company?.name ?? deal.stage.name,
           href: `/app/deals?deal=${deal.id}`,
+        })),
+        ...jobs.map((job) => ({
+          id: job.id,
+          type: "job" as const,
+          label: `${job.number} · ${job.title}`,
+          sublabel: job.status,
+          href: `/app/schedule?job=${job.id}`,
+        })),
+        ...locations.map((location) => ({
+          id: location.id,
+          type: "location" as const,
+          label: `${location.label} · ${location.customer.name}`,
+          sublabel: `${location.line1}, ${location.city}`,
+          href: `/app/customers/${location.customerId}`,
+        })),
+        ...estimates.map((estimate) => ({
+          id: estimate.id,
+          type: "estimate" as const,
+          label: `${estimate.number} · ${estimate.title}`,
+          sublabel: estimate.status,
+          href: `/app/estimates?estimate=${estimate.id}`,
+        })),
+        ...invoices.map((invoice) => ({
+          id: invoice.id,
+          type: "invoice" as const,
+          label: `${invoice.number} · ${invoice.title}`,
+          sublabel: invoice.status,
+          href: `/app/invoices?invoice=${invoice.id}`,
         })),
       ];
 

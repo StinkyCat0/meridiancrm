@@ -48,6 +48,11 @@ erDiagram
   WORKSPACE ||--o{ ACTIVITY : owns
   WORKSPACE ||--o{ INVITE : owns
   WORKSPACE ||--o{ AUDITLOG : owns
+  WORKSPACE ||--o{ LOCATION : owns
+  WORKSPACE ||--o{ SERVICEITEM : owns
+  WORKSPACE ||--o{ JOB : owns
+  WORKSPACE ||--o{ ESTIMATE : owns
+  WORKSPACE ||--o{ INVOICE : owns
   PIPELINE ||--o{ STAGE : contains
   PIPELINE ||--o{ DEAL : groups
   STAGE ||--o{ DEAL : holds
@@ -55,19 +60,40 @@ erDiagram
   DEAL ||--o{ ACTIVITY : logs
   COMPANY ||--o{ CONTACT : employs
   COMPANY ||--o{ DEAL : has
+  COMPANY ||--o{ LOCATION : services
+  COMPANY ||--o{ JOB : books
+  COMPANY ||--o{ ESTIMATE : receives
+  COMPANY ||--o{ INVOICE : owes
+  LOCATION ||--o{ JOB : hosts
+  LOCATION ||--o{ ESTIMATE : quotes
+  JOB ||--o{ JOBLINEITEM : contains
+  JOB ||--o{ INVOICE : bills
+  JOB ||--o{ ESTIMATE : originates
+  ESTIMATE ||--o{ ESTIMATELINEITEM : contains
+  SERVICEITEM ||--o{ JOBLINEITEM : prices
+  SERVICEITEM ||--o{ ESTIMATELINEITEM : prices
   CONTACT ||--o{ DEAL : involved
   USER ||--o{ REFRESHTOKEN : holds
   USER ||--o{ AUDITLOG : acts
 ```
 
-Core records: `User`, `Workspace`, `Membership`, `RefreshToken`, `Company`, `Contact`, `Pipeline`,
-`Stage`, `Deal`, `StageHistory`, `Activity`, `Invite`, `AuditLog`. SQLite has no native enums, so
-role, stage kind, and activity type are stored as text and validated at the API boundary with Zod.
+Core records: `User`, `Workspace`, `Membership`, `RefreshToken`, `Company` (presented as the
+customer), `Contact`, `Location`, `ServiceItem`, `Job`, `JobLineItem`, `Estimate`,
+`EstimateLineItem`, `Invoice`, `Pipeline`, `Stage`, `Deal`, `StageHistory`, `Activity`, `Invite`,
+`AuditLog`. SQLite has no native enums, so role, stage kind, job status, invoice status, and the
+other service enums are stored as text and validated at the API boundary with Zod.
 
-Money is stored as integer cents (`Deal.value`) with an ISO currency code. Tags are a JSON-encoded
-string array. Companies and contacts are archived by default and restored through a dedicated
-endpoint; `?permanent=true` (ADMIN+) hard-deletes them. Deals hard-delete immediately and require
-ADMIN. `StageHistory` is append-only and records every stage transition.
+Money is stored as integer cents (`Deal.value`, `Job.total`, `Invoice.amount`, `ServiceItem.price`)
+with an ISO currency code on the workspace. Tax rates are stored as basis points and exposed as
+percentages. Document numbers (`JOB-1001`, `EST-1001`, `INV-1001`) are allocated per workspace.
+Tags are a JSON-encoded string array. Customers and contacts are archived by default and restored
+through a dedicated endpoint; `?permanent=true` (ADMIN+) hard-deletes them. Locations and services
+archive the same way. Jobs and invoices hard-delete immediately and require ADMIN. `StageHistory` is
+append-only and records every stage transition.
+
+Service operations are intentionally layered onto the CRM rather than replacing it: deals and
+pipelines still describe the sales side, while jobs, estimates and invoices describe delivery and
+cash collection. A customer, location and contact can be shared by both.
 
 ## Multi-tenancy
 

@@ -8,6 +8,12 @@ import { dealRoutes } from "./deals.js";
 import { pipelineRoutes } from "./pipelines.js";
 import { activityRoutes } from "./activities.js";
 import { insightRoutes } from "./insights.js";
+import { locationRoutes } from "./locations.js";
+import { serviceRoutes } from "./services.js";
+import { jobRoutes } from "./jobs.js";
+import { estimateRoutes } from "./estimates.js";
+import { invoiceRoutes } from "./invoices.js";
+import { opsRoutes } from "./ops.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get("/health", { schema: { hide: true } }, async (_request, reply) => {
@@ -33,4 +39,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(pipelineRoutes);
   await app.register(activityRoutes);
   await app.register(insightRoutes);
+  await app.register(locationRoutes);
+  await app.register(serviceRoutes);
+  await app.register(jobRoutes);
+  await app.register(estimateRoutes);
+  await app.register(invoiceRoutes);
+  await app.register(opsRoutes);
 }

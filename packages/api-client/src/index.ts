@@ -6,14 +6,27 @@ import {
   type Company,
   type Contact,
   type Currency,
+  type CustomerType,
   type DashboardSummary,
   type Deal,
+  type Estimate,
+  type EstimateStatus,
   type Industry,
   type Invite,
+  type Invoice,
+  type InvoiceStatus,
+  type Job,
+  type JobPriority,
+  type JobStatus,
+  type Location,
   type MeResponse,
   type Member,
+  type OpsSummary,
   type Page,
   type Pipeline,
+  type RecurrenceFrequency,
+  type ServiceItem,
+  type ServiceUnit,
   type PublicUser,
   type Role,
   type SearchResponse,
@@ -263,10 +276,12 @@ export interface RefreshResult {
 
 export interface CreateCompanyInput {
   name: string;
+  customerType?: CustomerType;
   domain?: string | null;
   industry?: Industry | null;
   size?: string | null;
   phone?: string | null;
+  email?: string | null;
   website?: string | null;
   address?: string | null;
   notes?: string | null;
@@ -342,6 +357,105 @@ export interface CreateInviteInput {
   role?: "ADMIN" | "MEMBER";
 }
 
+export interface CreateLocationInput {
+  customerId: string;
+  label?: string;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+  accessNotes?: string | null;
+  gateCode?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  isPrimary?: boolean;
+  archived?: boolean;
+}
+
+export type UpdateLocationInput = Partial<Omit<CreateLocationInput, "customerId">>;
+
+export interface CreateServiceInput {
+  name: string;
+  category?: string | null;
+  description?: string | null;
+  unit?: ServiceUnit;
+  durationMinutes?: number;
+  price?: number;
+  taxable?: boolean;
+  archived?: boolean;
+}
+
+export type UpdateServiceInput = Partial<CreateServiceInput>;
+
+export interface LineItemInput {
+  serviceId?: string | null;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface CreateJobInput {
+  title: string;
+  customerId: string;
+  locationId: string;
+  contactId?: string | null;
+  assigneeId?: string | null;
+  status?: JobStatus;
+  priority?: JobPriority;
+  source?: string | null;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  durationMinutes?: number;
+  taxRate?: number;
+  deposit?: number;
+  notes?: string | null;
+  recurrence?: RecurrenceFrequency | null;
+  recurrenceUntil?: string | null;
+  lineItems?: LineItemInput[];
+}
+
+export type UpdateJobInput = Partial<CreateJobInput>;
+
+export interface CreateEstimateInput {
+  title: string;
+  customerId: string;
+  locationId: string;
+  contactId?: string | null;
+  status?: EstimateStatus;
+  issuedAt?: string | null;
+  expiresAt?: string | null;
+  taxRate?: number;
+  notes?: string | null;
+  lineItems?: LineItemInput[];
+}
+
+export type UpdateEstimateInput = Partial<CreateEstimateInput>;
+
+export interface CreateInvoiceInput {
+  title: string;
+  jobId?: string | null;
+  customerId?: string | null;
+  locationId?: string | null;
+  status?: InvoiceStatus;
+  amount?: number;
+  issuedAt?: string | null;
+  dueAt?: string | null;
+  notes?: string | null;
+}
+
+export type UpdateInvoiceInput = {
+  title?: string;
+  status?: InvoiceStatus;
+  amount?: number;
+  amountPaid?: number;
+  issuedAt?: string | null;
+  dueAt?: string | null;
+  paidAt?: string | null;
+  notes?: string | null;
+};
+
 /* List query shapes — every value is optional and omitted when empty. */
 export interface ListParams {
   page?: number;
@@ -387,6 +501,42 @@ export interface AuditQuery extends ListParams {
   action?: string;
   entityType?: string;
   actorId?: string;
+}
+
+export interface LocationListQuery extends ListParams {
+  archive?: ArchiveFilter;
+  customerId?: string;
+}
+
+export interface ServiceListQuery extends ListParams {
+  archive?: ArchiveFilter;
+  category?: string;
+  unit?: ServiceUnit;
+}
+
+export type JobScope = "all" | "open" | "today" | "week" | "unscheduled" | "upcoming";
+
+export interface JobListQuery extends ListParams {
+  status?: JobStatus;
+  scope?: JobScope;
+  customerId?: string;
+  locationId?: string;
+  assigneeId?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface EstimateListQuery extends ListParams {
+  status?: EstimateStatus;
+  customerId?: string;
+  open?: "true" | "false";
+}
+
+export interface InvoiceListQuery extends ListParams {
+  status?: InvoiceStatus;
+  customerId?: string;
+  jobId?: string;
+  overdue?: "true" | "false";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -580,6 +730,110 @@ const pipelines = {
 };
 
 /* -------------------------------------------------------------------------- */
+/* Service operations                                                          */
+/* -------------------------------------------------------------------------- */
+
+const locations = {
+  list: (query?: LocationListQuery): Promise<Page<Location>> =>
+    execute<Page<Location>>("/locations", { query }),
+  create: (input: CreateLocationInput): Promise<Location> =>
+    execute<Location>("/locations", { method: "POST", body: input }),
+  get: (id: string): Promise<Location> =>
+    execute<Location>(`/locations/${encodeURIComponent(id)}`),
+  update: (id: string, input: UpdateLocationInput): Promise<Location> =>
+    execute<Location>(`/locations/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+  archive: (id: string): Promise<void> =>
+    execute<void>(`/locations/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  restore: (id: string): Promise<Location> =>
+    execute<Location>(`/locations/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+};
+
+const services = {
+  list: (query?: ServiceListQuery): Promise<Page<ServiceItem>> =>
+    execute<Page<ServiceItem>>("/services", { query }),
+  create: (input: CreateServiceInput): Promise<ServiceItem> =>
+    execute<ServiceItem>("/services", { method: "POST", body: input }),
+  get: (id: string): Promise<ServiceItem> =>
+    execute<ServiceItem>(`/services/${encodeURIComponent(id)}`),
+  update: (id: string, input: UpdateServiceInput): Promise<ServiceItem> =>
+    execute<ServiceItem>(`/services/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+  archive: (id: string): Promise<void> =>
+    execute<void>(`/services/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  restore: (id: string): Promise<ServiceItem> =>
+    execute<ServiceItem>(`/services/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+};
+
+const jobs = {
+  list: (query?: JobListQuery): Promise<Page<Job>> => execute<Page<Job>>("/jobs", { query }),
+  create: (input: CreateJobInput): Promise<Job> =>
+    execute<Job>("/jobs", { method: "POST", body: input }),
+  get: (id: string): Promise<Job> => execute<Job>(`/jobs/${encodeURIComponent(id)}`),
+  update: (id: string, input: UpdateJobInput): Promise<Job> =>
+    execute<Job>(`/jobs/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+  setStatus: (id: string, status: JobStatus, cancelReason?: string): Promise<Job> =>
+    execute<Job>(`/jobs/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      body: { status, cancelReason },
+    }),
+  duplicate: (id: string, scheduledStart?: string | null): Promise<Job> =>
+    execute<Job>(`/jobs/${encodeURIComponent(id)}/duplicate`, {
+      method: "POST",
+      body: { scheduledStart },
+    }),
+  delete: (id: string): Promise<void> =>
+    execute<void>(`/jobs/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+const estimates = {
+  list: (query?: EstimateListQuery): Promise<Page<Estimate>> =>
+    execute<Page<Estimate>>("/estimates", { query }),
+  create: (input: CreateEstimateInput): Promise<Estimate> =>
+    execute<Estimate>("/estimates", { method: "POST", body: input }),
+  get: (id: string): Promise<Estimate> =>
+    execute<Estimate>(`/estimates/${encodeURIComponent(id)}`),
+  update: (id: string, input: UpdateEstimateInput): Promise<Estimate> =>
+    execute<Estimate>(`/estimates/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+  setStatus: (id: string, status: EstimateStatus): Promise<Estimate> =>
+    execute<Estimate>(`/estimates/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      body: { status },
+    }),
+  convert: (
+    id: string,
+    input?: { scheduledStart?: string | null; assigneeId?: string | null },
+  ): Promise<Job> =>
+    execute<Job>(`/estimates/${encodeURIComponent(id)}/convert`, {
+      method: "POST",
+      body: input ?? {},
+    }),
+  delete: (id: string): Promise<void> =>
+    execute<void>(`/estimates/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+const invoices = {
+  list: (query?: InvoiceListQuery): Promise<Page<Invoice>> =>
+    execute<Page<Invoice>>("/invoices", { query }),
+  create: (input: CreateInvoiceInput): Promise<Invoice> =>
+    execute<Invoice>("/invoices", { method: "POST", body: input }),
+  get: (id: string): Promise<Invoice> =>
+    execute<Invoice>(`/invoices/${encodeURIComponent(id)}`),
+  update: (id: string, input: UpdateInvoiceInput): Promise<Invoice> =>
+    execute<Invoice>(`/invoices/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+  recordPayment: (id: string, amountPaid: number): Promise<Invoice> =>
+    execute<Invoice>(`/invoices/${encodeURIComponent(id)}/payment`, {
+      method: "PATCH",
+      body: { amountPaid },
+    }),
+  delete: (id: string): Promise<void> =>
+    execute<void>(`/invoices/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+const ops = {
+  summary: (date?: string): Promise<OpsSummary> =>
+    execute<OpsSummary>("/ops/summary", { query: { date } }),
+};
+
+/* -------------------------------------------------------------------------- */
 /* Activities / insights                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -611,6 +865,12 @@ export const api = {
   contacts,
   deals,
   pipelines,
+  locations,
+  services,
+  jobs,
+  estimates,
+  invoices,
+  ops,
   activities,
   insights,
 };
@@ -625,17 +885,30 @@ export type {
   Company,
   Contact,
   Currency,
+  CustomerType,
   DashboardSummary,
   Deal,
+  Estimate,
+  EstimateStatus,
   Industry,
   Invite,
+  Invoice,
+  InvoiceStatus,
+  Job,
+  JobPriority,
+  JobStatus,
+  Location,
   MeResponse,
   Member,
+  OpsSummary,
   Page,
   Pipeline,
   PublicUser,
+  RecurrenceFrequency,
   Role,
   SearchResponse,
+  ServiceItem,
+  ServiceUnit,
   Stage,
   StageHistoryEntry,
   StageKind,

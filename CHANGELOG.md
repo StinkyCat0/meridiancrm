@@ -5,6 +5,26 @@ and the project adheres to semantic versioning for public contracts.
 
 ## [Unreleased]
 
+### Added
+
+- Service-business model: customers are typed `RESIDENTIAL`, `COMMERCIAL`, or `PROPERTY_MANAGER`
+  and carry an email plus location and open-job counts.
+- Service locations with access notes, gate codes, on-site contacts, archive/restore and a single
+  primary location per customer.
+- Service price book with categories, units, duration, price in cents, taxable flags and usage
+  counts.
+- Jobs / work orders with per-workspace numbers (`JOB-1001`), scheduling windows, priority,
+  assignee, recurrence, line items, tax, deposits, and an arrival/completion lifecycle.
+- Estimates (`EST-1001`) with draft → sent → approved flow and conversion into a job that preserves
+  line items and totals.
+- Invoices (`INV-1001`) generated from a job or customer, with partial payments, derived balances
+  and overdue flags.
+- `/ops/summary` operations dashboard aggregate, plus global search hits for jobs, locations,
+  estimates and invoices.
+- API integration tests covering locations, price book, jobs, estimates, invoices, ops summary,
+  search and tenant isolation.
+- Prisma migration and a demo seed built around home-service customers.
+
 ## [0.1.0] - 2026-11-10
 
 First MVP release.

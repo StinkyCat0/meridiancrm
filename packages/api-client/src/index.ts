@@ -80,7 +80,9 @@ async function toApiError(response: Response): Promise<ApiError> {
   const message =
     typeof payload?.error?.message === "string"
       ? payload.error.message
-      : response.statusText || `Request failed with status ${response.status}`;
+      : payload
+        ? response.statusText || `Request failed with status ${response.status}`
+        : `The API returned a non-JSON response (HTTP ${response.status}). Check that the API server is running.`;
   return new ApiError(response.status, code, message, payload?.error?.details);
 }
 

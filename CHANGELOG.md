@@ -25,6 +25,16 @@ and the project adheres to semantic versioning for public contracts.
   search and tenant isolation.
 - Prisma migration and a demo seed built around home-service customers.
 
+### Fixed
+
+- Estimate-to-job conversion is atomic: concurrent converts can no longer create two jobs for one
+  estimate, and the losing request gets a 409.
+- Location search hits link to the company detail route instead of a removed `/app/customers` path.
+- Fresh installs no longer leave `@prisma/client` ungenerated: `db:setup`, `dev`, and `build`
+  generate it, so the documented quickstart can sign in with the demo account.
+- Non-JSON API responses (for example, a Vite proxy error while the API is down) now report that
+  the API may be unreachable instead of surfacing a bare `Internal Server Error`.
+
 ## [0.1.0] - 2026-11-10
 
 First MVP release.

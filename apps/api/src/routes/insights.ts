@@ -395,7 +395,7 @@ export async function insightRoutes(app: FastifyInstance): Promise<void> {
           type: "location" as const,
           label: `${location.label} · ${location.customer.name}`,
           sublabel: `${location.line1}, ${location.city}`,
-          href: `/app/customers/${location.customerId}`,
+          href: `/app/companies/${location.customerId}`,
         })),
         ...estimates.map((estimate) => ({
           id: estimate.id,

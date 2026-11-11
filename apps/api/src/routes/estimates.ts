@@ -366,6 +366,20 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
       );
 
       const job = await prisma.$transaction(async (tx) => {
+        // Claim the estimate inside the transaction so concurrent converts cannot both create a job.
+        const claim = await tx.estimate.updateMany({
+          where: {
+            id: existing.id,
+            workspaceId: auth.workspaceId,
+            jobId: null,
+            status: { in: ["SENT", "APPROVED"] },
+          },
+          data: { status: "APPROVED" },
+        });
+        if (claim.count !== 1) {
+          throw conflict("This estimate has already been converted to a job");
+        }
+
         const created = await tx.job.create({
           data: {
             workspaceId: auth.workspaceId,

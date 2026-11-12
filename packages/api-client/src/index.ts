@@ -1,6 +1,7 @@
 import {
   type Activity,
   type ActivityType,
+  type AgingSummary,
   type AssistantBrief,
   type AuditEntry,
   type AuthSession,
@@ -1217,6 +1218,7 @@ const dispatch = {
 const finance = {
   summary: (query?: FinanceQuery): Promise<FinanceSummary> =>
     execute<FinanceSummary>("/finance/summary", { query }),
+  aging: (): Promise<AgingSummary> => execute<AgingSummary>("/finance/aging"),
   payments: (query?: PaymentListQuery): Promise<Page<Payment>> =>
     execute<Page<Payment>>("/finance/payments", { query }),
   expenses: (query?: ExpenseListQuery): Promise<Page<Expense>> =>
@@ -1347,6 +1349,7 @@ export type Api = typeof api;
 export type {
   Activity,
   ActivityType,
+  AgingSummary,
   AssistantBrief,
   AuditEntry,
   AuthSession,

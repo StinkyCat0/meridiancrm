@@ -79,6 +79,23 @@ export interface CustomerRevenue {
   balance: number;
 }
 
+export interface AgingBucket {
+  key: "CURRENT" | "D1_30" | "D31_60" | "D61_90" | "D90_PLUS";
+  label: string;
+  invoiceCount: number;
+  customerCount: number;
+  balance: number;
+}
+
+export interface AgingSummary {
+  asOf: string;
+  currency: string;
+  buckets: AgingBucket[];
+  totalBalance: number;
+  totalInvoices: number;
+  oldestDueAt: string | null;
+}
+
 export interface FinanceSummary {
   range: FinanceRange;
   currency: string;

@@ -1,5 +1,6 @@
 import {
   api,
+  type AgingSummary,
   type CreateExpenseInput,
   type Expense,
   type FinanceSummary,
@@ -587,6 +588,95 @@ function ExpenseFormModal({
 }
 
 /* -------------------------------------------------------------------------- */
+/* Aging                                                                      */
+/* -------------------------------------------------------------------------- */
+
+function AgingCard({
+  aging,
+  loading,
+  error,
+  onRetry,
+}: {
+  aging: AgingSummary | undefined;
+  loading: boolean;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  return (
+    <SectionCard
+      title="Accounts receivable aging"
+      description="Outstanding invoice balances by days past due."
+      action={
+        <Link
+          to="/app/invoices?status=SENT&overdue=true"
+          className="text-xs font-medium text-accent hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          Review overdue
+        </Link>
+      }
+    >
+      {loading ? (
+        <div className="space-y-4 p-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {Array.from({ length: 5 }, (_, index) => (
+              <Skeleton key={index} className="h-24" />
+            ))}
+          </div>
+          <Skeleton className="h-5 w-56" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5">
+          <p className="text-sm text-muted">
+            Could not load aging. {apiErrorMessage(error)}
+          </p>
+          <Button size="sm" variant="secondary" onClick={onRetry}>
+            Try again
+          </Button>
+        </div>
+      ) : !aging || aging.totalInvoices === 0 ? (
+        <TableEmpty message="No outstanding invoices — every open balance is settled." />
+      ) : (
+        <>
+          <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-5">
+            {aging.buckets.map((bucket) => (
+              <div
+                key={bucket.key}
+                className="rounded-panel border border-border/70 bg-surface-2/50 p-4"
+              >
+                <p className="label-micro">{bucket.label}</p>
+                <p className="num mt-2 text-lg font-semibold text-fg">
+                  {formatMoney(bucket.balance, aging.currency)}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {bucket.invoiceCount}{" "}
+                  {bucket.invoiceCount === 1 ? "invoice" : "invoices"} ·{" "}
+                  {bucket.customerCount}{" "}
+                  {bucket.customerCount === 1 ? "customer" : "customers"}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-3 text-xs text-muted">
+            <span>
+              Total balance{" "}
+              <span className="num text-sm font-medium text-fg">
+                {formatMoney(aging.totalBalance, aging.currency)}
+              </span>
+            </span>
+            <span>
+              Oldest due{" "}
+              <span className="font-medium text-fg">
+                {aging.oldestDueAt ? formatDate(aging.oldestDueAt) : "—"}
+              </span>
+            </span>
+          </div>
+        </>
+      )}
+    </SectionCard>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -624,6 +714,12 @@ export default function RevenuePage() {
     queryKey: queryKeys.finance.summary(range),
     queryFn: () => api.finance.summary(range),
     placeholderData: keepPreviousData,
+  });
+
+  const agingQuery = useQuery({
+    queryKey: ["finance", "aging"] as const,
+    queryFn: () => api.finance.aging(),
+    staleTime: 60_000,
   });
 
   const paymentsQuery = useQuery({
@@ -664,6 +760,7 @@ export default function RevenuePage() {
 
   function refreshAll() {
     void summaryQuery.refetch();
+    void agingQuery.refetch();
     void paymentsQuery.refetch();
     void expensesQuery.refetch();
     void intelligenceQuery.refetch();
@@ -799,6 +896,13 @@ export default function RevenuePage() {
               icon={<BadgeDollarSign aria-hidden="true" />}
             />
           </div>
+
+          <AgingCard
+            aging={agingQuery.data}
+            loading={agingQuery.isPending}
+            error={agingQuery.isError ? agingQuery.error : null}
+            onRetry={() => void agingQuery.refetch()}
+          />
 
           <FinanceTrendChart summary={summary} />
 

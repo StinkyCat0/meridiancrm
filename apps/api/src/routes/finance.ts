@@ -7,6 +7,8 @@ import {
   expensePatchSchema,
   financeRangeSchema,
   paymentListQuerySchema,
+  type AgingBucket,
+  type AgingSummary,
   type CategoryMargin,
   type CustomerRevenue,
   type CustomerSummary,
@@ -604,6 +606,105 @@ async function loadSummary(
 }
 
 /* -------------------------------------------------------------------------- */
+/* Aging                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const AGING_BUCKETS = [
+  { key: "CURRENT", label: "Current" },
+  { key: "D1_30", label: "1–30 days" },
+  { key: "D31_60", label: "31–60 days" },
+  { key: "D61_90", label: "61–90 days" },
+  { key: "D90_PLUS", label: "90+ days" },
+] as const satisfies readonly { key: AgingBucket["key"]; label: string }[];
+
+function agingBucketKey(daysPastDue: number): AgingBucket["key"] {
+  if (daysPastDue <= 0) return "CURRENT";
+  if (daysPastDue <= 30) return "D1_30";
+  if (daysPastDue <= 60) return "D31_60";
+  if (daysPastDue <= 90) return "D61_90";
+  return "D90_PLUS";
+}
+
+async function loadAging(workspaceId: string): Promise<AgingSummary> {
+  const now = new Date();
+  const asOfDay = startOfUtcDay(now);
+
+  const [workspace, invoices] = await Promise.all([
+    prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { currency: true },
+    }),
+    prisma.invoice.findMany({
+      where: {
+        workspaceId,
+        status: { notIn: ["DRAFT", "VOID", "PAID"] },
+      },
+      select: {
+        customerId: true,
+        amount: true,
+        amountPaid: true,
+        dueAt: true,
+      },
+    }),
+  ]);
+
+  if (!workspace) throw notFound("Workspace");
+
+  const buckets = AGING_BUCKETS.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    invoiceCount: 0,
+    customers: new Set<string>(),
+    balance: 0,
+  }));
+  const bucketByKey = new Map(
+    buckets.map((bucket) => [bucket.key, bucket] as const),
+  );
+
+  let totalBalance = 0;
+  let totalInvoices = 0;
+  let oldestDueAt: Date | null = null;
+
+  for (const invoice of invoices) {
+    const balance = invoice.amount - invoice.amountPaid;
+    if (balance <= 0) continue;
+
+    const daysPastDue = invoice.dueAt
+      ? Math.floor(
+          (asOfDay.getTime() - startOfUtcDay(invoice.dueAt).getTime()) / DAY_MS,
+        )
+      : 0;
+    const bucket = bucketByKey.get(agingBucketKey(daysPastDue));
+    if (!bucket) continue;
+
+    bucket.invoiceCount += 1;
+    bucket.customers.add(invoice.customerId);
+    bucket.balance += balance;
+    totalBalance += balance;
+    totalInvoices += 1;
+
+    if (invoice.dueAt && (!oldestDueAt || invoice.dueAt < oldestDueAt)) {
+      oldestDueAt = invoice.dueAt;
+    }
+  }
+
+  return {
+    asOf: now.toISOString(),
+    currency: workspace.currency,
+    buckets: buckets.map((bucket) => ({
+      key: bucket.key,
+      label: bucket.label,
+      invoiceCount: bucket.invoiceCount,
+      customerCount: bucket.customers.size,
+      balance: bucket.balance,
+    })),
+    totalBalance,
+    totalInvoices,
+    oldestDueAt: oldestDueAt ? oldestDueAt.toISOString() : null,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Expense helpers                                                            */
 /* -------------------------------------------------------------------------- */
 
@@ -658,6 +759,22 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
         query.from ?? undefined,
         query.to ?? undefined,
       );
+    },
+  );
+
+  app.get(
+    "/finance/aging",
+    {
+      preHandler: authenticate,
+      schema: {
+        tags: ["finance"],
+        summary: "Accounts-receivable aging",
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    async (request) => {
+      const auth = getAuth(request);
+      return loadAging(auth.workspaceId);
     },
   );
 

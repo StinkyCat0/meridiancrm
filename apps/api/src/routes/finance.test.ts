@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import type { FinanceSummary, Payment } from "@meridian/contracts";
+import type {
+  AgingSummary,
+  FinanceSummary,
+  Payment,
+} from "@meridian/contracts";
 import { prisma } from "../lib/db.js";
 import {
   authHeaders,
@@ -224,6 +228,27 @@ async function getSummary(
   });
   expect(response.statusCode).toBe(200);
   return response.json() as FinanceSummary;
+}
+
+async function getAging(target: TestAccount): Promise<AgingSummary> {
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/v1/finance/aging",
+    headers: as(target),
+  });
+  expect(response.statusCode).toBe(200);
+  return response.json() as AgingSummary;
+}
+
+async function seedAgingJob(target: TestAccount, name = "Aging Co") {
+  const customer = await createCustomer(target, name);
+  const location = await createLocation(target, customer.id);
+  const job = await createJob(target, {
+    title: `${name} visit`,
+    customerId: customer.id,
+    locationId: location.id,
+  });
+  return { customer, location, job };
 }
 
 async function seedJobInvoice(target: TestAccount, amount = 15000) {
@@ -549,6 +574,146 @@ describe("finance summary", () => {
       headers: as(owner),
     });
     expect(listForOwner.json().data).toHaveLength(1);
+  });
+});
+
+describe("finance aging", () => {
+  it("buckets balances on day boundaries and counts distinct customers", async () => {
+    const { job } = await seedAgingJob(owner, "Boundary Co");
+    const second = await seedAgingJob(owner, "Boundary Co Two");
+    const amounts = [
+      { days: 0, jobId: job.id },
+      { days: -1, jobId: job.id },
+      { days: -30, jobId: job.id },
+      { days: -31, jobId: second.job.id },
+      { days: -60, jobId: job.id },
+      { days: -61, jobId: job.id },
+      { days: -90, jobId: job.id },
+      { days: -91, jobId: job.id },
+    ];
+
+    for (const [index, entry] of amounts.entries()) {
+      await createInvoice(owner, {
+        title: `Boundary ${index}`,
+        jobId: entry.jobId,
+        amount: 1000,
+        dueAt: dayOffset(entry.days),
+      });
+    }
+
+    const aging = await getAging(owner);
+    expect(aging.buckets.map((bucket) => bucket.key)).toEqual([
+      "CURRENT",
+      "D1_30",
+      "D31_60",
+      "D61_90",
+      "D90_PLUS",
+    ]);
+    expect(aging.buckets.map((bucket) => bucket.invoiceCount)).toEqual([
+      1, 2, 2, 2, 1,
+    ]);
+    expect(aging.buckets.map((bucket) => bucket.customerCount)).toEqual([
+      1, 1, 2, 1, 1,
+    ]);
+    expect(aging.buckets.map((bucket) => bucket.balance)).toEqual([
+      1000, 2000, 2000, 2000, 1000,
+    ]);
+    expect(aging.totalInvoices).toBe(8);
+    expect(aging.totalBalance).toBe(8000);
+    expect(aging.buckets.reduce((sum, bucket) => sum + bucket.balance, 0)).toBe(
+      aging.totalBalance,
+    );
+    expect(aging.oldestDueAt).not.toBeNull();
+    expect(aging.oldestDueAt?.slice(0, 10)).toBe(dayOffset(-91));
+  });
+
+  it("treats a null due date as current", async () => {
+    const { job } = await seedAgingJob(owner, "No Due Co");
+    await createInvoice(owner, {
+      title: "No due date",
+      jobId: job.id,
+      amount: 2500,
+      dueAt: null,
+    });
+
+    const aging = await getAging(owner);
+    const current = aging.buckets.find((bucket) => bucket.key === "CURRENT");
+    expect(current?.invoiceCount).toBe(1);
+    expect(current?.customerCount).toBe(1);
+    expect(current?.balance).toBe(2500);
+    expect(aging.totalInvoices).toBe(1);
+    expect(aging.totalBalance).toBe(2500);
+    expect(aging.oldestDueAt).toBeNull();
+  });
+
+  it("excludes fully paid, draft and void invoices", async () => {
+    const { job } = await seedAgingJob(owner, "Exclusion Co");
+    const paid = await createInvoice(owner, {
+      title: "Paid",
+      jobId: job.id,
+      amount: 5000,
+      dueAt: dayOffset(-5),
+    });
+    await addPayment(owner, paid.id, 5000);
+    await createInvoice(owner, {
+      title: "Draft",
+      jobId: job.id,
+      amount: 3000,
+      status: "DRAFT",
+      dueAt: dayOffset(-5),
+    });
+    await createInvoice(owner, {
+      title: "Void",
+      jobId: job.id,
+      amount: 4000,
+      status: "VOID",
+      dueAt: dayOffset(-5),
+    });
+    const partial = await createInvoice(owner, {
+      title: "Partially paid",
+      jobId: job.id,
+      amount: 8000,
+      dueAt: dayOffset(-10),
+    });
+    await addPayment(owner, partial.id, 3000);
+
+    const aging = await getAging(owner);
+    const d1to30 = aging.buckets.find((bucket) => bucket.key === "D1_30");
+    expect(d1to30?.invoiceCount).toBe(1);
+    expect(d1to30?.balance).toBe(5000);
+    expect(aging.totalInvoices).toBe(1);
+    expect(aging.totalBalance).toBe(5000);
+  });
+
+  it("keeps tenant data isolated", async () => {
+    const { job } = await seedAgingJob(owner, "Tenant Co");
+    await createInvoice(owner, {
+      title: "Owner invoice",
+      jobId: job.id,
+      amount: 6000,
+      dueAt: dayOffset(-5),
+    });
+
+    const other = await registerAccount(app, {
+      email: `aging-other-${crypto.randomUUID()}@example.com`,
+    });
+
+    const otherAging = await getAging(other);
+    expect(otherAging.totalInvoices).toBe(0);
+    expect(otherAging.totalBalance).toBe(0);
+    expect(otherAging.oldestDueAt).toBeNull();
+    expect(
+      otherAging.buckets.every(
+        (bucket) =>
+          bucket.invoiceCount === 0 &&
+          bucket.customerCount === 0 &&
+          bucket.balance === 0,
+      ),
+    ).toBe(true);
+
+    const ownerAging = await getAging(owner);
+    expect(ownerAging.totalInvoices).toBe(1);
+    expect(ownerAging.totalBalance).toBe(6000);
   });
 });
 

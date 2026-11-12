@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { buildMessageDraft } from "./drafts.js";
+import {
+  companyPatchSchema,
+  contactPatchSchema,
+  dealPatchSchema,
+  activityPatchSchema,
+  stagePatchSchema,
+} from "./entities.js";
+import {
+  estimatePatchSchema,
+  jobPatchSchema,
+  locationPatchSchema,
+  servicePatchSchema,
+} from "./service.js";
+import { expensePatchSchema } from "./finance.js";
 import { deriveInvoiceStatus, invoiceIsOverdue } from "./invoice-rules.js";
 import {
   estimateDriveMinutes,
@@ -7,6 +21,35 @@ import {
   optimizeRoute,
 } from "./route.js";
 import { churnRiskScore, noShowRiskScore, upsellScore } from "./scoring.js";
+
+describe("patch schemas", () => {
+  it("do not inject creation defaults when fields are omitted", () => {
+    for (const schema of [
+      companyPatchSchema,
+      contactPatchSchema,
+      dealPatchSchema,
+      activityPatchSchema,
+      stagePatchSchema,
+      estimatePatchSchema,
+      jobPatchSchema,
+      locationPatchSchema,
+      servicePatchSchema,
+      expensePatchSchema,
+    ]) {
+      expect(schema.parse({})).toEqual({});
+    }
+  });
+
+  it("still validate fields that are present", () => {
+    expect(servicePatchSchema.parse({ price: 2500 })).toEqual({ price: 2500 });
+    expect(jobPatchSchema.parse({ priority: "HIGH" })).toEqual({
+      priority: "HIGH",
+    });
+    expect(companyPatchSchema.parse({ name: "Cedar & Co." })).toEqual({
+      name: "Cedar & Co.",
+    });
+  });
+});
 
 describe("route optimization", () => {
   it("measures distance and orders points from the depot", () => {

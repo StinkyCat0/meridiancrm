@@ -53,7 +53,7 @@ consistent.
   `PATCH /jobs/:id/status` both validate allowed transitions, write the same timeline activity and
   audit row, and emit the same domain event.
 - Invoice status defaults are derived from the money with one shared rule set, and explicit status
-  transitions are validated. Sending a draft stamps `issuedAt`; leaving `PAID` clears `paidAt`; a
+  transitions are validated. Sending a draft stamps `issuedAt`; leaving `PAID` is rejected; a
   paid invoice cannot be reopened.
 - Invoice `amountPaid` edits and payment endpoints append the matching delta to the `Payment`
   ledger in the same transaction, so the ledger and the invoice total cannot drift.
@@ -71,8 +71,7 @@ consistent.
 ### Fixed
 
 - **#10 Invoices:** `PATCH` no longer forces `amountPaid` when a status change does not require it,
-  rejects invalid transitions such as `VOID → PAID` and reopening `PAID`, clears `paidAt` on the
-  way out of `PAID`, and stamps `issuedAt` when a draft is sent.
+  rejects invalid transitions such as `VOID → PAID` and leaving `PAID`, and stamps `issuedAt` when a draft is sent.
 - **#11 Jobs:** a single status path removes the divergence between `PATCH /jobs/:id` and
   `PATCH /jobs/:id/status`; canceled and completed jobs can no longer be resurrected or counted
   twice, and `cancelReason` is handled on both routes.

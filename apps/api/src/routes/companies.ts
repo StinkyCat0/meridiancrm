@@ -4,6 +4,7 @@ import {
   CUSTOMER_TYPES,
   INDUSTRIES,
   companyInputSchema,
+  companyPatchSchema,
   idSchema,
   paginationSchema,
   type Company,
@@ -326,7 +327,7 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadCompany(auth.workspaceId, id);
-      const input = parseOrThrow(companyInputSchema.partial(), request.body);
+      const input = parseOrThrow(companyPatchSchema, request.body);
 
       const data: Prisma.CompanyUncheckedUpdateInput = {};
       if (input.name !== undefined) data.name = input.name;

@@ -248,6 +248,59 @@ describe("GET /dispatch/board", () => {
     });
   });
 
+  it("moves jobs from former members into the unassigned lane", async () => {
+    const tech = await addTechnician("Former Tech");
+    const customer = await createCustomer();
+    const location = await createLocation(customer.id);
+    const job = await createJob({
+      title: "Orphaned visit",
+      customerId: customer.id,
+      locationId: location.id,
+      status: "SCHEDULED",
+      assigneeId: tech.userId,
+      scheduledStart: at(9),
+      durationMinutes: 60,
+    });
+
+    await prisma.membership.delete({
+      where: {
+        userId_workspaceId: {
+          userId: tech.userId,
+          workspaceId: owner.workspaceId,
+        },
+      },
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/v1/dispatch/board?date=${DAY}`,
+      headers: asOwner(),
+    });
+    expect(response.statusCode).toBe(200);
+    const board = response.json() as Omit<BoardBody, "unassigned"> & {
+      unassigned: Array<{
+        id: string;
+        assignee: { id: string; name: string } | null;
+      }>;
+    };
+
+    expect(
+      board.technicians.some((entry) => entry.user.id === tech.userId),
+    ).toBe(false);
+    const unassignedJob = board.unassigned.find((row) => row.id === job.id);
+    expect(unassignedJob).toBeDefined();
+    // The assignee summary stays on the job payload even though the user is
+    // no longer a member and therefore has no lane.
+    expect(unassignedJob?.assignee?.id).toBe(tech.userId);
+    expect(board.stats).toEqual({
+      total: 1,
+      unassigned: 1,
+      inProgress: 0,
+      completed: 0,
+      noShow: 0,
+    });
+  });
+
   it("defaults to the current UTC day and caps utilization at 100%", async () => {
     const customer = await createCustomer();
     const location = await createLocation(customer.id);

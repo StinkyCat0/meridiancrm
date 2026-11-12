@@ -342,14 +342,39 @@ async function loadSummary(
     ),
   );
 
-  const jobs: SummaryJob[] =
+  const [jobs, jobInvoices]: [
+    SummaryJob[],
+    Array<{ jobId: string | null; amount: number }>,
+  ] =
     jobIds.length > 0
-      ? await prisma.job.findMany({
-          where: { workspaceId, id: { in: jobIds } },
-          select: summaryJobSelect,
-        })
-      : [];
+      ? await Promise.all([
+          prisma.job.findMany({
+            where: { workspaceId, id: { in: jobIds } },
+            select: summaryJobSelect,
+          }),
+          prisma.invoice.findMany({
+            where: {
+              workspaceId,
+              jobId: { in: jobIds },
+              status: { not: "VOID" },
+            },
+            select: { jobId: true, amount: true },
+          }),
+        ])
+      : [[], []];
   const jobMap = new Map(jobs.map((job) => [job.id, job] as const));
+
+  // A job can be billed by several invoices. COGS is allocated against the
+  // job's total billed amount, so each payment releases only its share of the
+  // job cost exactly once instead of charging the full cost per invoice.
+  const jobInvoiceTotals = new Map<string, number>();
+  for (const invoice of jobInvoices) {
+    if (!invoice.jobId) continue;
+    jobInvoiceTotals.set(
+      invoice.jobId,
+      (jobInvoiceTotals.get(invoice.jobId) ?? 0) + invoice.amount,
+    );
+  }
 
   const months = buildMonthSeries(start, endDay);
   const categoryStats = new Map<string, CategoryAccumulator>();
@@ -383,12 +408,17 @@ async function loadSummary(
     const totalLineTotal = lineCosts.reduce((acc, line) => acc + line.total, 0);
     const totalLineCost = lineCosts.reduce((acc, line) => acc + line.cost, 0);
 
-    // COGS: the job's line-item cost prorated to the share of the invoice this
-    // payment represents. Negative payments (refunds) release cost symmetrically.
+    // COGS: the job's line-item cost prorated to the share of the job's total
+    // billed value this payment represents. Negative payments (refunds) release
+    // cost symmetrically.
     let paymentCost = 0;
-    if (job && invoice.amount > 0 && totalLineCost > 0) {
-      const ratio = Math.max(-1, Math.min(1, amount / invoice.amount));
-      paymentCost = Math.round(totalLineCost * ratio);
+    if (job && totalLineCost > 0) {
+      const jobBilled = jobInvoiceTotals.get(job.id) ?? 0;
+      const denominator = jobBilled > 0 ? jobBilled : invoice.amount;
+      if (denominator > 0) {
+        const ratio = Math.max(-1, Math.min(1, amount / denominator));
+        paymentCost = Math.round(totalLineCost * ratio);
+      }
     }
 
     totalCogs += paymentCost;

@@ -51,9 +51,9 @@ estimates, invoices, payments, expenses, logged communications, and automation r
 
 Verified on branch `feat/service-provider-suite`:
 
-- **API integration tests:** 81 passing across auth, CRM, service operations, communications,
+- **API integration tests:** 90 passing across auth, CRM, service operations, communications,
   dispatch, finance, automations, intelligence, and team suites.
-- **Contract tests:** 15 passing (momentum, formatters, route optimization, message drafts, invoice
+- **Contract tests:** 17 passing (momentum, formatters, route optimization, message drafts, invoice
   rules, scoring).
 - **Typechecks:** `npm run typecheck` clean for API and web, run sequentially as CI does.
 - **Builds:** `@meridian/api` (`tsup`) and `@meridian/web` (`vite build`) both succeed.

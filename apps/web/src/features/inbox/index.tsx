@@ -26,7 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   COMMUNICATION_CHANNELS,
@@ -245,7 +245,13 @@ function ThreadRow({
   );
 }
 
-function MessageBubble({ message }: { message: Communication }) {
+function MessageBubble({
+  message,
+  highlighted = false,
+}: {
+  message: Communication;
+  highlighted?: boolean;
+}) {
   const outbound = message.direction === "OUTBOUND";
   const Icon = CHANNEL_ICONS[message.channel];
   const DirectionIcon = outbound ? ArrowUpRight : ArrowDownLeft;
@@ -254,7 +260,13 @@ function MessageBubble({ message }: { message: Communication }) {
 
   return (
     <article
-      className={cn("flex flex-col", outbound ? "items-end" : "items-start")}
+      data-communication-id={message.id}
+      className={cn(
+        "flex flex-col rounded-card transition-shadow",
+        highlighted &&
+          "ring-2 ring-accent/70 ring-offset-2 ring-offset-surface",
+        outbound ? "items-end" : "items-start",
+      )}
       aria-label={`${outbound ? "Outbound" : "Inbound"} ${COMMUNICATION_CHANNEL_META[message.channel].label}, ${message.status.toLowerCase()}`}
     >
       <div
@@ -319,6 +331,11 @@ function MessageBubble({ message }: { message: Communication }) {
 
 export default function InboxPage() {
   const queryClient = useQueryClient();
+  const [params] = useSearchParams();
+  const linkedCustomerId = params.get("customer")?.trim() || null;
+  const highlightedCommunicationId =
+    params.get("communication")?.trim() || null;
+  const linkKey = `${linkedCustomerId ?? ""}:${highlightedCommunicationId ?? ""}`;
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("ALL");
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -328,6 +345,7 @@ export default function InboxPage() {
   const debouncedSearch = useDebouncedValue(search, 250);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const markedReadRef = useRef<Set<string>>(new Set());
+  const appliedLinkRef = useRef<string | null>(null);
 
   const threadFilters = useMemo(
     () => ({ q: debouncedSearch.trim() || undefined, limit: 100 }),
@@ -344,6 +362,69 @@ export default function InboxPage() {
     queryKey: queryKeys.communications.stats,
     queryFn: () => api.communications.stats(),
   });
+
+  const linkedCommunicationQuery = useQuery({
+    queryKey: queryKeys.communications.detail(highlightedCommunicationId ?? ""),
+    queryFn: () => api.communications.get(highlightedCommunicationId as string),
+    enabled: Boolean(highlightedCommunicationId),
+    staleTime: 60_000,
+  });
+
+  const threads = threadsQuery.data ?? [];
+
+  const linkedThreadCustomer = useMemo(
+    () =>
+      linkedCustomerId
+        ? (threads.find((thread) => thread.customer.id === linkedCustomerId)
+            ?.customer ?? null)
+        : null,
+    [threads, linkedCustomerId],
+  );
+
+  const linkedCustomerQuery = useQuery({
+    queryKey: queryKeys.companies.detail(linkedCustomerId ?? ""),
+    queryFn: () => api.companies.get(linkedCustomerId as string),
+    enabled:
+      Boolean(linkedCustomerId) &&
+      !threadsQuery.isPending &&
+      linkedThreadCustomer === null,
+    staleTime: 60_000,
+  });
+
+  // Deep links from timelines and notifications open the matching conversation
+  // once. The ref stops a background refetch from overriding a manual pick.
+  useEffect(() => {
+    if (!linkKey || appliedLinkRef.current === linkKey) return;
+    if (linkedCustomerId) {
+      if (linkedThreadCustomer) {
+        appliedLinkRef.current = linkKey;
+        setSelectedCustomer(linkedThreadCustomer);
+        return;
+      }
+      const company = linkedCustomerQuery.data;
+      if (company) {
+        appliedLinkRef.current = linkKey;
+        setSelectedCustomer({
+          id: company.id,
+          name: company.name,
+          phone: company.phone,
+          customerType: company.customerType,
+        });
+        return;
+      }
+    }
+    const communicationCustomer = linkedCommunicationQuery.data?.customer;
+    if (communicationCustomer) {
+      appliedLinkRef.current = linkKey;
+      setSelectedCustomer(communicationCustomer);
+    }
+  }, [
+    linkKey,
+    linkedCustomerId,
+    linkedThreadCustomer,
+    linkedCustomerQuery.data,
+    linkedCommunicationQuery.data,
+  ]);
 
   const selectedCustomerId = selectedCustomer?.id ?? null;
   const messageFilters = useMemo(
@@ -407,12 +488,29 @@ export default function InboxPage() {
     markRead(unread.map((message) => message.id));
   }, [messages, markRead]);
 
+  const highlightedMessageVisible =
+    highlightedCommunicationId !== null &&
+    messages.some((message) => message.id === highlightedCommunicationId);
+
   useEffect(() => {
     const node = messagesContainerRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [messages.length, selectedCustomerId]);
+    if (!node || highlightedMessageVisible) return;
+    node.scrollTop = node.scrollHeight;
+  }, [messages.length, selectedCustomerId, highlightedMessageVisible]);
 
-  const threads = threadsQuery.data ?? [];
+  useEffect(() => {
+    if (!highlightedCommunicationId) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const node = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-communication-id]"),
+    ).find(
+      (element) =>
+        element.dataset.communicationId === highlightedCommunicationId,
+    );
+    if (node) node.scrollIntoView({ block: "center" });
+  }, [highlightedCommunicationId, messages]);
+
   const visibleThreads = useMemo(
     () =>
       threads.filter((thread) => {
@@ -667,7 +765,7 @@ export default function InboxPage() {
                   </div>
                 </div>
                 <Link
-                  to={`/app/companies?company=${selectedCustomer.id}`}
+                  to={`/app/companies/${encodeURIComponent(selectedCustomer.id)}`}
                   className="inline-flex h-8 items-center rounded-input border border-border bg-surface-2 px-3 text-xs font-medium text-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   Open customer
@@ -721,7 +819,11 @@ export default function InboxPage() {
                     className="max-h-[520px] space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5"
                   >
                     {messages.map((message) => (
-                      <MessageBubble key={message.id} message={message} />
+                      <MessageBubble
+                        key={message.id}
+                        message={message}
+                        highlighted={message.id === highlightedCommunicationId}
+                      />
                     ))}
                   </div>
                 )}

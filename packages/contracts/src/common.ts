@@ -1,5 +1,32 @@
 import { z } from "zod";
 
+/**
+ * Zod 4 keeps a field's `.default()` when an object schema is `.partial()`,
+ * which makes a PATCH that omits a field look like it explicitly sent the
+ * default. Strip top-level defaults before making every field optional so
+ * `{}` parses to `{}` and update handlers only see keys the caller sent.
+ */
+type PatchShape<T extends z.ZodRawShape> = {
+  [K in keyof T]: z.ZodOptional<z.ZodType<z.output<T[K]>>>;
+};
+
+export function patchSchema<T extends z.ZodObject<z.ZodRawShape>>(
+  schema: T,
+): z.ZodObject<PatchShape<T["shape"]>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const [key, field] of Object.entries(schema.shape) as Array<
+    [string, z.ZodTypeAny]
+  >) {
+    let stripped: z.ZodTypeAny = field;
+    while (stripped instanceof z.ZodOptional)
+      stripped = stripped.unwrap() as z.ZodTypeAny;
+    if (stripped instanceof z.ZodDefault)
+      stripped = stripped.removeDefault() as z.ZodTypeAny;
+    shape[key] = stripped.optional();
+  }
+  return z.object(shape as unknown as PatchShape<T["shape"]>);
+}
+
 export const idSchema = z.string().min(1).max(64);
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 

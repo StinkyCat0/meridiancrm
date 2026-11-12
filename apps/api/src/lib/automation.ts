@@ -29,6 +29,8 @@ const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 /** Caps a single run-due sweep so a large backlog cannot stall the request. */
 const MAX_CANDIDATES = 200;
+/** Caps how many recently-run entities a sweep excludes from its candidates. */
+const MAX_DEDUPE_EXCLUSIONS = 2_000;
 const MAX_DETAIL = 1_000;
 
 /* -------------------------------------------------------------------------- */
@@ -773,24 +775,20 @@ export async function runDueAutomations(
   const now = new Date();
   const horizon = new Date(now.getTime() + DAY_MS);
 
-  const [invoiceRows, jobRows] = await Promise.all([
-    prisma.invoice.findMany({
+  // Dedupe would silently discard an invoice that already produced a run, so
+  // exclude those entities before applying the sweep limit. Otherwise the same
+  // oldest invoices fill every batch and the rest of a backlog never runs.
+  const [recentRuns, jobRows] = await Promise.all([
+    prisma.automationRun.findMany({
       where: {
         workspaceId,
-        status: { in: ["SENT", "PARTIAL"] },
-        dueAt: { lt: now },
+        trigger: "INVOICE_OVERDUE",
+        entityType: "invoice",
+        createdAt: { gte: new Date(now.getTime() - DAY_MS) },
       },
-      select: {
-        id: true,
-        number: true,
-        customerId: true,
-        jobId: true,
-        amount: true,
-        amountPaid: true,
-        dueAt: true,
-      },
-      orderBy: { dueAt: "asc" },
-      take: MAX_CANDIDATES,
+      select: { entityId: true },
+      distinct: ["entityId"],
+      take: MAX_DEDUPE_EXCLUSIONS,
     }),
     prisma.job.findMany({
       where: {
@@ -808,6 +806,32 @@ export async function runDueAutomations(
       take: MAX_CANDIDATES,
     }),
   ]);
+
+  const recentInvoiceIds = recentRuns
+    .map((row) => row.entityId)
+    .filter((entityId): entityId is string => entityId !== null);
+
+  const invoiceRows = await prisma.invoice.findMany({
+    where: {
+      workspaceId,
+      status: { in: ["SENT", "PARTIAL"] },
+      dueAt: { lt: now },
+      ...(recentInvoiceIds.length > 0
+        ? { id: { notIn: recentInvoiceIds } }
+        : {}),
+    },
+    select: {
+      id: true,
+      number: true,
+      customerId: true,
+      jobId: true,
+      amount: true,
+      amountPaid: true,
+      dueAt: true,
+    },
+    orderBy: { dueAt: "asc" },
+    take: MAX_CANDIDATES,
+  });
 
   const events: DomainEvent[] = [];
   for (const invoice of invoiceRows) {

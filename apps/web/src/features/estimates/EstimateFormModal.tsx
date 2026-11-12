@@ -8,8 +8,8 @@ import {
   ESTIMATE_STATUS_META,
   type EstimateStatus,
 } from "@meridian/contracts";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/Button";
 import { Field } from "../../components/ui/Field";
@@ -34,12 +34,16 @@ import {
 
 interface EstimateFormModalProps {
   estimate?: Estimate | null;
+  defaultCustomerId?: string | null;
+  defaultServiceId?: string | null;
   onClose: () => void;
   onSaved: (estimate: Estimate) => void;
 }
 
 export function EstimateFormModal({
   estimate,
+  defaultCustomerId,
+  defaultServiceId,
   onClose,
   onSaved,
 }: EstimateFormModalProps) {
@@ -49,7 +53,9 @@ export function EstimateFormModal({
   const formId = useId();
 
   const [title, setTitle] = useState(estimate?.title ?? "");
-  const [customerId, setCustomerId] = useState(estimate?.customer.id ?? "");
+  const [customerId, setCustomerId] = useState(
+    estimate?.customer.id ?? defaultCustomerId ?? "",
+  );
   const [locationId, setLocationId] = useState(estimate?.location.id ?? "");
   const [status, setStatus] = useState<EstimateStatus>(
     estimate?.status ?? "DRAFT",
@@ -64,6 +70,42 @@ export function EstimateFormModal({
   const [errors, setErrors] = useState<{ title?: string; location?: string }>(
     {},
   );
+
+  const initialServiceId = estimate ? null : (defaultServiceId ?? null);
+  const defaultServiceQuery = useQuery({
+    queryKey: queryKeys.services.detail(initialServiceId ?? ""),
+    queryFn: () => api.services.get(initialServiceId as string),
+    enabled: Boolean(initialServiceId),
+    staleTime: 60_000,
+  });
+  const prefilledServiceRef = useRef(false);
+
+  // Quote deep links carry a service id; seed the first line once its price
+  // book entry arrives, unless the user already started editing the lines.
+  useEffect(() => {
+    const service = defaultServiceQuery.data;
+    if (!service || prefilledServiceRef.current) return;
+    prefilledServiceRef.current = true;
+    setLines((current) => {
+      if (
+        current.some((line) => line.name.trim() || line.serviceId) ||
+        current.length === 0
+      ) {
+        return current;
+      }
+      const first = current[0];
+      if (!first) return current;
+      return [
+        {
+          ...first,
+          serviceId: service.id,
+          name: service.name,
+          unitPrice: (service.price / 100).toFixed(2),
+        },
+        ...current.slice(1),
+      ];
+    });
+  }, [defaultServiceQuery.data]);
 
   const save = useMutation({
     mutationFn: (input: CreateEstimateInput) =>

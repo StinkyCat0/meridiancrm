@@ -34,6 +34,8 @@ export default function EstimatesPage() {
   const [params, setParams] = useSearchParams();
   const selectedId = params.get("estimate");
   const creating = params.get("new") === "1";
+  const defaultCustomerId = creating ? params.get("customerId") : null;
+  const defaultServiceId = creating ? params.get("serviceId") : null;
   const [status, setStatus] = useState<EstimateStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Estimate | null>(null);
@@ -82,6 +84,19 @@ export default function EstimatesPage() {
 
   function openEstimate(id: string) {
     setParam("estimate", id);
+  }
+
+  function closeCreate() {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("new");
+        next.delete("customerId");
+        next.delete("serviceId");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   return (
@@ -350,12 +365,16 @@ export default function EstimatesPage() {
 
       {creating ? (
         <EstimateFormModal
-          onClose={() => setParam("new", null)}
+          defaultCustomerId={defaultCustomerId || null}
+          defaultServiceId={defaultServiceId || null}
+          onClose={closeCreate}
           onSaved={(estimate) => {
             setParams(
               (current) => {
                 const next = new URLSearchParams(current);
                 next.delete("new");
+                next.delete("customerId");
+                next.delete("serviceId");
                 next.set("estimate", estimate.id);
                 return next;
               },

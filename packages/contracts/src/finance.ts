@@ -11,6 +11,7 @@ import {
   optionalText,
   optionalUrl,
   paginationSchema,
+  patchSchema,
 } from "./common.js";
 import type { PublicUser } from "./entities.js";
 import type { CustomerSummary } from "./service.js";
@@ -135,7 +136,7 @@ export const expenseInputSchema = z.object({
   receiptUrl: optionalUrl,
 });
 
-export const expensePatchSchema = expenseInputSchema.partial();
+export const expensePatchSchema = patchSchema(expenseInputSchema);
 
 export const expenseListQuerySchema = paginationSchema.extend({
   category: z.enum(EXPENSE_CATEGORIES).optional(),

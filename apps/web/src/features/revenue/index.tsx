@@ -949,7 +949,7 @@ export default function RevenuePage() {
                           Score {Math.round(upsell.score)}
                         </Badge>
                         <Link
-                          to={`/app/estimates?customer=${encodeURIComponent(upsell.customer.id)}`}
+                          to={`/app/estimates?new=1&customerId=${encodeURIComponent(upsell.customer.id)}&serviceId=${encodeURIComponent(upsell.serviceId)}`}
                           className="text-xs font-medium text-accent hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                         >
                           Quote this service

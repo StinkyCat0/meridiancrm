@@ -208,9 +208,13 @@ export async function dispatchRoutes(app: FastifyInstance): Promise<void> {
         loadDepot(auth.workspaceId),
       ]);
 
+      const memberIds = new Set(
+        memberships.map((membership) => membership.userId),
+      );
+
       const byAssignee = new Map<string, JobRow[]>();
       for (const row of jobs) {
-        if (!row.assigneeId) continue;
+        if (!row.assigneeId || !memberIds.has(row.assigneeId)) continue;
         const bucket = byAssignee.get(row.assigneeId);
         if (bucket) bucket.push(row);
         else byAssignee.set(row.assigneeId, [row]);
@@ -236,7 +240,9 @@ export async function dispatchRoutes(app: FastifyInstance): Promise<void> {
         },
       );
 
-      const unassignedRows = jobs.filter((row) => !row.assigneeId);
+      const unassignedRows = jobs.filter(
+        (row) => !row.assigneeId || !memberIds.has(row.assigneeId),
+      );
 
       const board: DispatchBoard = {
         date: formatDay(day),

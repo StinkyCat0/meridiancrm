@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   contactInputSchema,
+  contactPatchSchema,
   idSchema,
   paginationSchema,
   type Contact,
@@ -345,7 +346,7 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadContact(auth.workspaceId, id);
-      const input = parseOrThrow(contactInputSchema.partial(), request.body);
+      const input = parseOrThrow(contactPatchSchema, request.body);
 
       const data: Prisma.ContactUncheckedUpdateInput = {};
       if (input.firstName !== undefined) data.firstName = input.firstName;

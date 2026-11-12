@@ -217,26 +217,40 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
+      // Totals cover every in-range job and payment, including work assigned to
+      // people who are no longer workspace members, so removing a member does
+      // not erase their historical revenue from the workspace totals.
+      const overall = {
+        jobsScheduled: 0,
+        jobsCompleted: 0,
+        revenue: 0,
+        allocatedCost: 0,
+      };
+
       for (const job of jobs) {
+        const scheduledInRange =
+          job.scheduledStart !== null &&
+          job.scheduledStart.getTime() >= from.getTime() &&
+          job.scheduledStart.getTime() <= to.getTime();
+        const completedInRange =
+          job.completedAt !== null &&
+          job.completedAt.getTime() >= from.getTime() &&
+          job.completedAt.getTime() <= to.getTime();
+
+        if (scheduledInRange) overall.jobsScheduled += 1;
+        if (completedInRange) overall.jobsCompleted += 1;
+
         if (!job.assigneeId) continue;
         const member = stats.get(job.assigneeId);
         if (!member) continue;
 
-        if (
-          job.scheduledStart !== null &&
-          job.scheduledStart.getTime() >= from.getTime() &&
-          job.scheduledStart.getTime() <= to.getTime()
-        ) {
+        if (scheduledInRange) {
           member.jobsScheduled += 1;
           if (job.status === "CANCELED") member.jobsCanceled += 1;
           if (job.status === "NO_SHOW") member.jobsNoShow += 1;
         }
 
-        if (
-          job.completedAt !== null &&
-          job.completedAt.getTime() >= from.getTime() &&
-          job.completedAt.getTime() <= to.getTime()
-        ) {
+        if (completedInRange) {
           member.jobsCompleted += 1;
           member.completedMinutes += job.durationMinutes;
           if (job.rating !== null) {
@@ -260,22 +274,31 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
 
       for (const payment of paymentRows) {
         const job = payment.invoice.job;
+        overall.revenue += payment.amount;
+
+        // Allocate line-item cost in proportion to the job's billed value.
+        const lineCost =
+          job?.lineItems.reduce(
+            (sum, line) => sum + line.quantity * line.unitCost,
+            0,
+          ) ?? 0;
+        const billedValue = job
+          ? job.subtotal > 0
+            ? job.subtotal
+            : job.total
+          : 0;
+        const costShare =
+          job && billedValue > 0 && lineCost > 0
+            ? payment.amount * Math.min(lineCost / billedValue, 1)
+            : 0;
+        overall.allocatedCost += costShare;
+
         if (!job || !job.assigneeId) continue;
         const member = stats.get(job.assigneeId);
         if (!member) continue;
 
         member.revenue += payment.amount;
-
-        // Allocate line-item cost in proportion to the job's billed value.
-        const lineCost = job.lineItems.reduce(
-          (sum, line) => sum + line.quantity * line.unitCost,
-          0,
-        );
-        const billedValue = job.subtotal > 0 ? job.subtotal : job.total;
-        if (billedValue > 0 && lineCost > 0) {
-          member.allocatedCost +=
-            payment.amount * Math.min(lineCost / billedValue, 1);
-        }
+        member.allocatedCost += costShare;
       }
 
       const members: TeamMemberPerformance[] = memberships.map((membership) => {
@@ -328,26 +351,15 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
         };
       });
 
-      const totals = members.reduce<TeamTotals>(
-        (acc, member) => ({
-          jobsScheduled: acc.jobsScheduled + member.jobsScheduled,
-          jobsCompleted: acc.jobsCompleted + member.jobsCompleted,
-          revenue: acc.revenue + member.revenue,
-          margin: acc.margin + member.margin,
-          avgTicket: 0,
-          utilizationPct: 0,
-          ratingAvg: null,
-        }),
-        {
-          jobsScheduled: 0,
-          jobsCompleted: 0,
-          revenue: 0,
-          margin: 0,
-          avgTicket: 0,
-          utilizationPct: 0,
-          ratingAvg: null,
-        },
-      );
+      const totals: TeamTotals = {
+        jobsScheduled: overall.jobsScheduled,
+        jobsCompleted: overall.jobsCompleted,
+        revenue: overall.revenue,
+        margin: Math.round(overall.revenue - overall.allocatedCost),
+        avgTicket: 0,
+        utilizationPct: 0,
+        ratingAvg: null,
+      };
 
       const totalRatingCount = members.reduce(
         (sum, member) => sum + member.ratingCount,

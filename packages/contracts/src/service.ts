@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema, optionalDate, optionalText } from "./common.js";
+import { idSchema, optionalDate, optionalText, patchSchema } from "./common.js";
 import {
   CUSTOMER_TYPES,
   ESTIMATE_STATUSES,
@@ -231,9 +231,9 @@ export const locationInputSchema = z.object({
   archived: z.boolean().optional(),
 });
 
-export const locationPatchSchema = locationInputSchema
-  .partial()
-  .omit({ customerId: true });
+export const locationPatchSchema = patchSchema(locationInputSchema).omit({
+  customerId: true,
+});
 
 export const serviceInputSchema = z.object({
   name: z.string().trim().min(1).max(160),
@@ -247,7 +247,7 @@ export const serviceInputSchema = z.object({
   archived: z.boolean().optional(),
 });
 
-export const servicePatchSchema = serviceInputSchema.partial();
+export const servicePatchSchema = patchSchema(serviceInputSchema);
 
 export const lineItemInputSchema = z.object({
   serviceId: nullableId,
@@ -284,7 +284,7 @@ export const jobInputSchema = z.object({
   lineItems: z.array(lineItemInputSchema).max(50).default([]),
 });
 
-export const jobPatchSchema = jobInputSchema.partial().extend({
+export const jobPatchSchema = patchSchema(jobInputSchema).extend({
   rating: z.coerce.number().int().min(1).max(5).nullable().optional(),
   ratingNote: optionalText(500),
   cancelReason: optionalText(240),
@@ -310,7 +310,7 @@ export const estimateInputSchema = z.object({
   lineItems: z.array(lineItemInputSchema).max(50).default([]),
 });
 
-export const estimatePatchSchema = estimateInputSchema.partial();
+export const estimatePatchSchema = patchSchema(estimateInputSchema);
 export const estimateStatusSchema = z.object({
   status: z.enum(ESTIMATE_STATUSES),
 });

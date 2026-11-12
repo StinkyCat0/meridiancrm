@@ -188,7 +188,7 @@ Every pull request runs:
 - Dependency Review on pull requests, failing new high-severity dependencies.
 - `npm audit --omit=dev --audit-level=critical` for runtime dependencies.
 
-The suite on this branch is verified by 81 API integration tests and 15 contract tests, with both
+The suite on this branch is verified by 90 API integration tests and 17 contract tests, with both
 typechecks and builds passing.
 
 ## Deployment

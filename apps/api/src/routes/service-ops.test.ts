@@ -1051,6 +1051,159 @@ describe("job lifecycle invariants", () => {
     });
     expect(afterCancel.statusCode).toBe(201);
   });
+
+  it("revalidates rebooked slots and supports explicit unscheduling", async () => {
+    const customer = await createCustomer();
+    const location = await createLocation(customer.id);
+    const statusStart = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    const patchStart = new Date(Date.now() + 9 * 3_600_000).toISOString();
+
+    async function bookSlot(start: string, title: string) {
+      const created = await createJob({
+        title,
+        customerId: customer.id,
+        locationId: location.id,
+        status: "SCHEDULED",
+        assigneeId: account.userId,
+        scheduledStart: start,
+        durationMinutes: 60,
+      });
+      expect(created.statusCode).toBe(201);
+      return created.json();
+    }
+
+    async function makeNoShow(title: string, start: string) {
+      const created = await createJob({
+        title,
+        customerId: customer.id,
+        locationId: location.id,
+        status: "NO_SHOW",
+        assigneeId: account.userId,
+        scheduledStart: start,
+        durationMinutes: 60,
+      });
+      expect(created.statusCode).toBe(201);
+      return created.json();
+    }
+
+    async function cancelJob(id: string) {
+      const canceled = await app.inject({
+        method: "PATCH",
+        url: `/api/v1/jobs/${id}/status`,
+        headers: asAccount(),
+        payload: { status: "CANCELED" },
+      });
+      expect(canceled.statusCode).toBe(200);
+    }
+
+    const statusNoShow = await makeNoShow("Missed appointment", statusStart);
+    const statusBlocker = await bookSlot(statusStart, "Booked that slot");
+    const blockedStatus = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${statusNoShow.id}/status`,
+      headers: asAccount(),
+      payload: { status: "SCHEDULED" },
+    });
+    expect(blockedStatus.statusCode).toBe(409);
+    expect(blockedStatus.json().error.details.jobNumber).toBe(
+      statusBlocker.number,
+    );
+
+    await cancelJob(statusBlocker.id);
+
+    const rebooked = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${statusNoShow.id}/status`,
+      headers: asAccount(),
+      payload: { status: "SCHEDULED" },
+    });
+    expect(rebooked.statusCode).toBe(200);
+    expect(rebooked.json().status).toBe("SCHEDULED");
+
+    const patchNoShow = await makeNoShow("Missed visit", patchStart);
+    const patchBlocker = await bookSlot(patchStart, "Booked over it");
+    const blockedPatch = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${patchNoShow.id}`,
+      headers: asAccount(),
+      payload: { status: "SCHEDULED" },
+    });
+    expect(blockedPatch.statusCode).toBe(409);
+    expect(blockedPatch.json().error.details.jobNumber).toBe(
+      patchBlocker.number,
+    );
+
+    await cancelJob(patchBlocker.id);
+
+    const rebookedPatch = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${patchNoShow.id}`,
+      headers: asAccount(),
+      payload: { status: "SCHEDULED" },
+    });
+    expect(rebookedPatch.statusCode).toBe(200);
+    expect(rebookedPatch.json().status).toBe("SCHEDULED");
+
+    const start = new Date(Date.now() + 3 * 3_600_000).toISOString();
+
+    async function createWithStatus(status: string, title: string) {
+      const created = await createJob({
+        title,
+        customerId: customer.id,
+        locationId: location.id,
+        status,
+        assigneeId: account.userId,
+        scheduledStart: start,
+        durationMinutes: 60,
+      });
+      expect(created.statusCode).toBe(201);
+      return created.json();
+    }
+
+    const scheduled = await createWithStatus("SCHEDULED", "Scheduled visit");
+    const cleared = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${scheduled.id}`,
+      headers: asAccount(),
+      payload: {
+        status: "UNSCHEDULED",
+        scheduledStart: null,
+        scheduledEnd: null,
+      },
+    });
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.json()).toMatchObject({
+      status: "UNSCHEDULED",
+      scheduledStart: null,
+      scheduledEnd: null,
+      arrivedAt: null,
+      completedAt: null,
+    });
+
+    const dispatched = await createWithStatus("DISPATCHED", "Dispatched visit");
+    const clearedViaStatus = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${dispatched.id}/status`,
+      headers: asAccount(),
+      payload: { status: "UNSCHEDULED" },
+    });
+    expect(clearedViaStatus.statusCode).toBe(200);
+    expect(clearedViaStatus.json()).toMatchObject({
+      status: "UNSCHEDULED",
+      scheduledStart: null,
+      scheduledEnd: null,
+    });
+
+    const started = await createWithStatus("IN_PROGRESS", "Started visit");
+    const rejected = await app.inject({
+      method: "PATCH",
+      url: `/api/v1/jobs/${started.id}/status`,
+      headers: asAccount(),
+      payload: { status: "UNSCHEDULED" },
+    });
+    expect(rejected.statusCode).toBe(409);
+    expect(rejected.json().error.details.allowed).not.toContain("UNSCHEDULED");
+  });
 });
 
 describe("estimate line costs", () => {

@@ -279,7 +279,7 @@ date, never stored. When status is derived — the payment endpoints and `PATCH`
 status — a draft stays `DRAFT` until money is recorded, then `SENT`, `PARTIAL`, or `PAID` follows the
 balance. Explicit status changes are validated against the transition table, and a paid invoice is
 terminal. Sending a draft
-stamps `issuedAt`; leaving `PAID` clears `paidAt`; a paid invoice cannot be reopened; payments above
+stamps `issuedAt`; leaving `PAID` is rejected; a paid invoice cannot be reopened; payments above
 the amount are rejected; a zero-total invoice cannot be marked paid.
 
 Payments are a ledger, not a processor. `POST /invoices/:id/payments` inserts a `Payment` row and

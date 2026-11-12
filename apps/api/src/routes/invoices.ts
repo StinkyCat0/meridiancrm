@@ -159,6 +159,41 @@ function assertInvoiceMutable(status: InvoiceStatus): void {
   }
 }
 
+/**
+ * An explicitly requested status must agree with the invoice's final money.
+ * PAID needs a positive, fully settled total, PARTIAL needs a partial payment,
+ * SENT/DRAFT require nothing paid yet, and VOID is only legal when no money has
+ * been recorded.
+ */
+function assertStatusMatchesMoney(
+  status: InvoiceStatus,
+  amount: number,
+  amountPaid: number,
+  current: InvoiceStatus,
+): void {
+  const consistent =
+    status === "PAID"
+      ? amount > 0 && amountPaid >= amount
+      : status === "PARTIAL"
+        ? amountPaid > 0 && amountPaid < amount
+        : status === "SENT"
+          ? amountPaid === 0
+          : status === "DRAFT"
+            ? current === "DRAFT" && amountPaid === 0
+            : amountPaid === 0;
+  if (!consistent) {
+    throw badRequest(
+      `${status} does not match an amount of ${amount} with ${amountPaid} paid`,
+      {
+        status,
+        amount,
+        amountPaid,
+        derived: deriveInvoiceStatus(amount, amountPaid, current),
+      },
+    );
+  }
+}
+
 function paymentStatus(
   existing: InvoiceRow,
   amountPaid: number,
@@ -299,11 +334,17 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
       if (locationId)
         await loadLocation(auth.workspaceId, locationId, resolvedCustomerId);
 
+      if (input.status === "PARTIAL") {
+        // Creation has no amountPaid field, so a partial invoice cannot exist.
+        throw badRequest(
+          "An invoice cannot be created as partially paid; record a payment instead",
+        );
+      }
       if (input.status === "PAID" && amount <= 0) {
         throw badRequest("A zero-total invoice cannot be marked paid");
       }
       const issuedAt =
-        input.issuedAt ?? (input.status === "DRAFT" ? null : new Date());
+        input.status === "DRAFT" ? null : (input.issuedAt ?? new Date());
       const paidAt = input.status === "PAID" ? new Date() : null;
       const amountPaid = input.status === "PAID" ? amount : 0;
 
@@ -389,6 +430,8 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
       const input = parseOrThrow(invoicePatchSchema, request.body);
       const current = existing.status as InvoiceStatus;
 
+      assertInvoiceMutable(current);
+
       const amount = input.amount ?? existing.amount;
       const amountPaid = input.amountPaid ?? existing.amountPaid;
 
@@ -410,23 +453,7 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
             allowed: INVOICE_STATUS_TRANSITIONS[current],
           });
         }
-        if (input.status === "PAID") {
-          if (amount <= 0)
-            throw badRequest("A zero-total invoice cannot be marked paid");
-          if (amountPaid < amount) {
-            throw badRequest(
-              "Record the full payment before marking the invoice paid",
-            );
-          }
-        }
-        if (
-          input.status === "VOID" &&
-          (amountPaid !== 0 || existing.amountPaid !== 0)
-        ) {
-          throw badRequest(
-            "Only invoices with no recorded payments can be voided",
-          );
-        }
+        assertStatusMatchesMoney(input.status, amount, amountPaid, current);
         nextStatus = input.status;
       } else {
         nextStatus = deriveInvoiceStatus(amount, amountPaid, current);
@@ -439,24 +466,23 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
-      const leavingDraft = current === "DRAFT" && nextStatus !== "DRAFT";
+      // DRAFT invoices are never issued; every other status needs an issue date.
       const issuedAt =
-        input.issuedAt !== undefined
-          ? (input.issuedAt ?? null)
-          : leavingDraft && !existing.issuedAt
-            ? new Date()
-            : undefined;
+        nextStatus === "DRAFT"
+          ? null
+          : (input.issuedAt ?? existing.issuedAt ?? new Date());
+      // Only paid invoices carry a paid date; anything else must clear it.
       const paidAt =
         nextStatus === "PAID"
           ? (input.paidAt ?? existing.paidAt ?? new Date())
-          : (input.paidAt ?? null);
+          : null;
 
       const data: Prisma.InvoiceUncheckedUpdateInput = {
         status: nextStatus,
         amount,
         amountPaid,
         paidAt,
-        ...(issuedAt !== undefined ? { issuedAt } : {}),
+        issuedAt,
         ...(input.title !== undefined ? { title: input.title } : {}),
         ...(input.dueAt !== undefined ? { dueAt: input.dueAt ?? null } : {}),
         ...(input.notes !== undefined ? { notes: input.notes ?? null } : {}),

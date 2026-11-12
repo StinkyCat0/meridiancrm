@@ -4,6 +4,7 @@ import {
   JOB_PRIORITY_META,
   JOB_STATUSES,
   JOB_STATUS_META,
+  JOB_STATUS_TRANSITIONS,
   RECURRENCE_LABEL,
   RECURRENCE_FREQUENCIES,
   type JobPriority,
@@ -85,9 +86,13 @@ export function JobFormModal({
   const [lines, setLines] = useState<LineItemDraft[]>(
     job ? draftFromItems(job.lineItems) : [emptyLine()],
   );
-  const [errors, setErrors] = useState<{ title?: string; location?: string }>(
-    {},
-  );
+  const [errors, setErrors] = useState<{
+    title?: string;
+    location?: string;
+    schedule?: string;
+  }>({});
+  const canUnschedule =
+    !job || JOB_STATUS_TRANSITIONS[job.status].includes("UNSCHEDULED");
 
   const save = useMutation({
     mutationFn: (input: CreateJobInput) =>
@@ -112,18 +117,25 @@ export function JobFormModal({
     if (!customerId || !locationId) {
       nextErrors.location = "Choose the customer and the service location.";
     }
+    const start = fromDateTimeLocal(scheduledStart);
+    if (!start && job && !canUnschedule) {
+      nextErrors.schedule = `${JOB_STATUS_META[job.status].label} jobs can't be unscheduled.`;
+    }
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
     }
     setErrors({});
 
-    const start = fromDateTimeLocal(scheduledStart);
     const duration = Math.max(5, Number(durationMinutes) || 60);
     const end = start
       ? new Date(new Date(start).getTime() + duration * 60_000).toISOString()
       : null;
-    const nextStatus: JobStatus = start ? status : "UNSCHEDULED";
+    const nextStatus: JobStatus = start
+      ? status
+      : canUnschedule
+        ? "UNSCHEDULED"
+        : status;
 
     save.mutate({
       title: title.trim(),
@@ -249,6 +261,7 @@ export function JobFormModal({
             label="Start"
             htmlFor={id("start")}
             hint="Leave empty to keep the job unscheduled."
+            error={errors.schedule}
           >
             <Input
               id={id("start")}
@@ -258,6 +271,11 @@ export function JobFormModal({
                 setScheduledStart(event.target.value);
                 if (event.target.value && status === "UNSCHEDULED")
                   setStatus("SCHEDULED");
+                if (errors.schedule)
+                  setErrors((current) => ({
+                    ...current,
+                    schedule: undefined,
+                  }));
               }}
             />
           </Field>
@@ -278,7 +296,9 @@ export function JobFormModal({
           <Field label="Status" htmlFor={id("status")}>
             <Select
               id={id("status")}
-              value={scheduledStart ? status : "UNSCHEDULED"}
+              value={
+                scheduledStart ? status : canUnschedule ? "UNSCHEDULED" : status
+              }
               disabled={!scheduledStart}
               onChange={(event) => setStatus(event.target.value as JobStatus)}
             >

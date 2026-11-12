@@ -462,7 +462,9 @@ describe("automation event handling", () => {
       headers: asAccount(),
     });
     expect(second.statusCode).toBe(200);
-    expect(second.json()).toEqual({ evaluated: 1, run: 0 });
+    // The invoice already ran within the dedupe window, so the sweep excludes
+    // it before selecting candidates instead of re-evaluating a dead letter.
+    expect(second.json()).toEqual({ evaluated: 0, run: 0 });
 
     const runs = await listRuns("?trigger=INVOICE_OVERDUE");
     expect(runs.meta.total).toBe(1);
@@ -471,5 +473,74 @@ describe("automation event handling", () => {
     const tasks = await listTasks();
     expect(tasks).toHaveLength(1);
     expect(tasks[0]?.title).toBe("Call about the overdue invoice");
+  });
+
+  it("sweeps past the oldest invoices once they have already run", async () => {
+    const customer = await createCustomer();
+    const ruleResponse = await createRule({
+      name: "Chase overdue invoices",
+      trigger: "INVOICE_OVERDUE",
+      actions: [
+        { type: "CREATE_TASK", title: "Call about the overdue invoice" },
+      ],
+    });
+    expect(ruleResponse.statusCode).toBe(201);
+    const rule = ruleResponse.json<{ id: string }>();
+
+    const now = Date.now();
+    await prisma.invoice.createMany({
+      data: Array.from({ length: 201 }, (_, index) => ({
+        workspaceId: account.workspaceId,
+        number: `INV-BACKLOG-${index + 1}`,
+        title: `Overdue ${index + 1}`,
+        status: "SENT",
+        customerId: customer.id,
+        amount: 12_000,
+        dueAt: new Date(
+          now - (index === 200 ? 86_400_000 : 3 * 86_400_000) + index * 60_000,
+        ),
+      })),
+    });
+
+    const stored = await prisma.invoice.findMany({
+      where: { workspaceId: account.workspaceId },
+      select: { id: true },
+      orderBy: { dueAt: "asc" },
+    });
+    expect(stored).toHaveLength(201);
+    const backlog = stored.slice(0, 200);
+    const newest = stored[200];
+    expect(newest).toBeDefined();
+
+    // The oldest 200 invoices already produced a run inside the dedupe window.
+    // Without pre-filtering they would fill the sweep's 200-row limit forever.
+    await prisma.automationRun.createMany({
+      data: backlog.map((invoice) => ({
+        workspaceId: account.workspaceId,
+        ruleId: rule.id,
+        trigger: "INVOICE_OVERDUE",
+        status: "SUCCESS",
+        entityType: "invoice",
+        entityId: invoice.id,
+      })),
+    });
+
+    const sweep = await app.inject({
+      method: "POST",
+      url: "/api/v1/automations/run-due",
+      headers: asAccount(),
+    });
+    expect(sweep.statusCode).toBe(200);
+    expect(sweep.json()).toEqual({ evaluated: 1, run: 1 });
+
+    const runs = await prisma.automationRun.findMany({
+      where: {
+        workspaceId: account.workspaceId,
+        trigger: "INVOICE_OVERDUE",
+      },
+      select: { entityId: true },
+    });
+    expect(runs).toHaveLength(201);
+    expect(runs.some((run) => run.entityId === newest?.id)).toBe(true);
   });
 });

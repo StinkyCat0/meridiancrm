@@ -84,7 +84,9 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 /**
  * Allowed job transitions. A status always maps to itself (no-op). Completed,
  * canceled and no-show jobs are terminal except that a no-show can be
- * rebooked, which is the one recovery path dispatch actually needs.
+ * rebooked, which is the one recovery path dispatch actually needs. Scheduled
+ * and dispatched work can also be explicitly unscheduled, which clears its
+ * window; work that has already started cannot be unscheduled.
  */
 export const JOB_STATUS_TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
   UNSCHEDULED: [
@@ -96,6 +98,7 @@ export const JOB_STATUS_TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
   ],
   SCHEDULED: [
     "SCHEDULED",
+    "UNSCHEDULED",
     "DISPATCHED",
     "IN_PROGRESS",
     "COMPLETED",
@@ -104,6 +107,7 @@ export const JOB_STATUS_TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
   ],
   DISPATCHED: [
     "DISPATCHED",
+    "UNSCHEDULED",
     "SCHEDULED",
     "IN_PROGRESS",
     "COMPLETED",

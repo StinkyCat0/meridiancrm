@@ -49,7 +49,7 @@ constraint.
 
 Acceptance for the branch:
 
-- 81 API integration tests and 15 contract tests pass.
+- 90 API integration tests and 17 contract tests pass.
 - Coverage meets the configured floor: statements 20, branches 15, functions 20, lines 20.
 - API and web typechecks pass in sequence.
 - API and web production builds succeed.

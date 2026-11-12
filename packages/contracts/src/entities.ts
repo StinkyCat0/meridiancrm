@@ -15,6 +15,7 @@ import {
   optionalDate,
   optionalText,
   optionalUrl,
+  patchSchema,
 } from "./common.js";
 
 const tagsSchema = z
@@ -232,6 +233,8 @@ export const companyInputSchema = z.object({
   ),
 });
 
+export const companyPatchSchema = patchSchema(companyInputSchema);
+
 export const contactInputSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
@@ -252,6 +255,8 @@ export const contactInputSchema = z.object({
     idSchema.nullable().optional(),
   ),
 });
+
+export const contactPatchSchema = patchSchema(contactInputSchema);
 
 export const dealInputSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -275,7 +280,7 @@ export const dealInputSchema = z.object({
   ),
 });
 
-export const dealPatchSchema = dealInputSchema.partial();
+export const dealPatchSchema = patchSchema(dealInputSchema);
 
 export const stageMoveSchema = z.object({
   stageId: idSchema,
@@ -301,7 +306,7 @@ export const activityInputSchema = z.object({
   ),
 });
 
-export const activityPatchSchema = activityInputSchema.partial();
+export const activityPatchSchema = patchSchema(activityInputSchema);
 
 export const stageInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -310,7 +315,7 @@ export const stageInputSchema = z.object({
   targetDays: z.coerce.number().int().min(1).max(365).default(30),
 });
 
-export const stagePatchSchema = stageInputSchema.partial().omit({});
+export const stagePatchSchema = patchSchema(stageInputSchema);
 
 export const inviteInputSchema = z.object({
   email: emailSchema,

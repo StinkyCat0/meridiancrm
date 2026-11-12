@@ -412,6 +412,43 @@ describe("finance summary", () => {
     expect(byCustomer.json().meta.total).toBe(2);
   });
 
+  it("allocates a job's cost once across multiple invoices", async () => {
+    const { job, invoice } = await seedJobInvoice(owner, 9000);
+    const second = await createInvoice(owner, {
+      title: "Exterior refresh balance",
+      jobId: job.id,
+      amount: 6000,
+      dueAt: new Date().toISOString(),
+    });
+    await addPayment(owner, invoice.id, 9000);
+    await addPayment(owner, second.id, 6000);
+
+    const summary = await getSummary(
+      owner,
+      `?from=${dayOffset(-10)}&to=${dayOffset(0)}`,
+    );
+
+    expect(summary.revenue).toBe(15000);
+    // Job line-item cost is 6000; two fully paid invoices must release it once.
+    const allocatedCost = summary.serviceMargins.reduce(
+      (sum, row) => sum + row.cost,
+      0,
+    );
+    expect(allocatedCost).toBe(6000);
+    expect(summary.grossProfit).toBe(15000 - 6000);
+
+    expect(
+      summary.serviceMargins.find((row) => row.category === "Windows"),
+    ).toMatchObject({ revenue: 10000, cost: 4000, margin: 6000 });
+    expect(
+      summary.serviceMargins.find((row) => row.category === "Gutters"),
+    ).toMatchObject({ revenue: 5000, cost: 2000, margin: 3000 });
+    expect(summary.technicianRevenue[0]).toMatchObject({
+      revenue: 15000,
+      margin: 9000,
+    });
+  });
+
   it("nets refunds and never produces NaN margins", async () => {
     const customer = await createCustomer(owner, "Refund Client");
     const location = await createLocation(owner, customer.id);

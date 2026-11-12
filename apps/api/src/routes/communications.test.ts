@@ -597,8 +597,12 @@ describe("customer timeline", () => {
     });
     const estimate = await createEstimate(customer.id, location.id);
     const invoice = await createInvoice(customer.id, {
-      status: "PARTIAL",
+      status: "SENT",
       amount: 12000,
+    });
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { status: "PARTIAL", amountPaid: 5000 },
     });
     const payment = await prisma.payment.create({
       data: {

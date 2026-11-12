@@ -2,16 +2,18 @@ import { api, type Job } from "@meridian/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
+  CalendarX,
   CheckCircle2,
   Copy,
   MapPin,
-  PauseCircle,
   Pencil,
   PlayCircle,
   Receipt,
   RotateCcw,
+  Truck,
   UserRound,
   XCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,13 +33,80 @@ import {
   customerTypeLabel,
   money,
 } from "../operations/shared";
-import { RECURRENCE_LABEL } from "@meridian/contracts";
+import {
+  JOB_STATUS_TRANSITIONS,
+  RECURRENCE_LABEL,
+  type JobStatus,
+} from "@meridian/contracts";
 
 interface JobDetailModalProps {
   jobId: string;
   onClose: () => void;
   onEdit: (job: Job) => void;
   onDuplicated: (job: Job) => void;
+}
+
+interface StatusAction {
+  target: JobStatus;
+  label: string;
+  icon: LucideIcon;
+  variant: "primary" | "secondary";
+}
+
+function statusAction(
+  current: JobStatus,
+  target: JobStatus,
+): StatusAction | null {
+  switch (target) {
+    case "SCHEDULED":
+      if (current === "NO_SHOW") {
+        return {
+          target,
+          label: "Rebook",
+          icon: RotateCcw,
+          variant: "primary",
+        };
+      }
+      if (current === "DISPATCHED") {
+        return {
+          target,
+          label: "Back to scheduled",
+          icon: RotateCcw,
+          variant: "secondary",
+        };
+      }
+      return {
+        target,
+        label: "Schedule",
+        icon: CalendarClock,
+        variant: "primary",
+      };
+    case "DISPATCHED":
+      return { target, label: "Dispatch", icon: Truck, variant: "secondary" };
+    case "IN_PROGRESS":
+      return {
+        target,
+        label: "Start job",
+        icon: PlayCircle,
+        variant: "primary",
+      };
+    case "COMPLETED":
+      return {
+        target,
+        label: "Mark complete",
+        icon: CheckCircle2,
+        variant: "secondary",
+      };
+    case "NO_SHOW":
+      return {
+        target,
+        label: "Mark no-show",
+        icon: CalendarX,
+        variant: "secondary",
+      };
+    default:
+      return null;
+  }
 }
 
 export function JobDetailModal({
@@ -122,6 +191,22 @@ export function JobDetailModal({
   });
 
   const job = jobQuery.data;
+  const statusActions = job
+    ? JOB_STATUS_TRANSITIONS[job.status]
+        .filter(
+          (target) =>
+            target !== job.status &&
+            target !== "CANCELED" &&
+            // Unscheduling also clears the window; the edit form owns that.
+            target !== "UNSCHEDULED" &&
+            (target !== "SCHEDULED" || Boolean(job.scheduledStart)),
+        )
+        .map((target) => statusAction(job.status, target))
+        .filter((action): action is StatusAction => action !== null)
+    : [];
+  const canCancel = job
+    ? JOB_STATUS_TRANSITIONS[job.status].includes("CANCELED")
+    : false;
   const openInvoices = (invoicesQuery.data?.data ?? []).filter(
     (invoice) => invoice.status !== "VOID",
   );
@@ -306,53 +391,22 @@ export function JobDetailModal({
               Next step
             </h3>
             <div className="flex flex-wrap gap-2">
-              {job.status !== "IN_PROGRESS" &&
-              job.status !== "COMPLETED" &&
-              job.status !== "CANCELED" ? (
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => setStatus.mutate({ status: "IN_PROGRESS" })}
-                  loading={setStatus.isPending}
-                >
-                  <PlayCircle className="size-4" aria-hidden="true" />
-                  Start job
-                </Button>
-              ) : null}
-              {job.status !== "COMPLETED" && job.status !== "CANCELED" ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setStatus.mutate({ status: "COMPLETED" })}
-                  loading={setStatus.isPending}
-                >
-                  <CheckCircle2 className="size-4" aria-hidden="true" />
-                  Mark complete
-                </Button>
-              ) : null}
-              {job.status === "COMPLETED" || job.status === "CANCELED" ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setStatus.mutate({ status: "SCHEDULED" })}
-                  loading={setStatus.isPending}
-                >
-                  <RotateCcw className="size-4" aria-hidden="true" />
-                  Reopen
-                </Button>
-              ) : null}
-              {job.status === "IN_PROGRESS" ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setStatus.mutate({ status: "SCHEDULED" })}
-                  loading={setStatus.isPending}
-                >
-                  <PauseCircle className="size-4" aria-hidden="true" />
-                  Back to scheduled
-                </Button>
-              ) : null}
-              {job.status !== "CANCELED" ? (
+              {statusActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={action.target}
+                    size="sm"
+                    variant={action.variant}
+                    onClick={() => setStatus.mutate({ status: action.target })}
+                    loading={setStatus.isPending}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                    {action.label}
+                  </Button>
+                );
+              })}
+              {canCancel ? (
                 <Button
                   size="sm"
                   variant="danger"

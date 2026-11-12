@@ -64,7 +64,7 @@ order, including Prisma client generation and migrations before the tests.
 - **Production audit:** `npm audit --omit=dev --audit-level=critical` in the Verify job.
 - **CI:** the Verify job also uploads the web build and API coverage artifacts.
 
-The current branch verification is 81 API integration tests and 15 contract tests, with both
+The current branch verification is 90 API integration tests and 17 contract tests, with both
 typechecks and builds passing. Update [docs/STATUS.md](docs/STATUS.md) when those numbers change.
 
 ## Review standard

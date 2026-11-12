@@ -387,6 +387,16 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadJobRow(auth.workspaceId, id);
       const input = parseOrThrow(jobPatchSchema, request.body);
+      const body = request.body;
+      const bodyIsObject = body !== null && typeof body === "object";
+      const hasStatus = bodyIsObject && "status" in body;
+      const hasStart = bodyIsObject && "scheduledStart" in body;
+      const hasEnd = bodyIsObject && "scheduledEnd" in body;
+      const hasDuration = bodyIsObject && "durationMinutes" in body;
+      const hasPriority = bodyIsObject && "priority" in body;
+      const hasLineItems = bodyIsObject && "lineItems" in body;
+      const hasTaxRate = bodyIsObject && "taxRate" in body;
+      const hasDeposit = bodyIsObject && "deposit" in body;
 
       const customerId = input.customerId ?? existing.customerId;
       const locationId = input.locationId ?? existing.locationId;
@@ -405,13 +415,13 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       if (input.assigneeId !== undefined) {
         await assertAssignable(auth.workspaceId, input.assigneeId);
       }
-      if (input.lineItems !== undefined) {
-        await validateServiceIds(auth.workspaceId, input.lineItems);
+      if (hasLineItems) {
+        await validateServiceIds(auth.workspaceId, input.lineItems ?? []);
       }
 
       const data: Prisma.JobUncheckedUpdateInput = {};
       if (input.title !== undefined) data.title = input.title;
-      if (input.priority !== undefined) data.priority = input.priority;
+      if (hasPriority) data.priority = input.priority;
       if (input.source !== undefined) data.source = input.source ?? null;
       if (input.customerId !== undefined) data.customerId = input.customerId;
       if (input.locationId !== undefined) data.locationId = input.locationId;
@@ -424,32 +434,26 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         data.recurrence = input.recurrence ?? null;
       if (input.recurrenceUntil !== undefined)
         data.recurrenceUntil = input.recurrenceUntil ?? null;
-      if (input.durationMinutes !== undefined)
-        data.durationMinutes = input.durationMinutes;
-      if (input.deposit !== undefined) data.deposit = input.deposit;
+      if (hasDuration) data.durationMinutes = input.durationMinutes;
+      if (hasDeposit) data.deposit = input.deposit;
       if (input.rating !== undefined) data.rating = input.rating ?? null;
       if (input.ratingNote !== undefined)
         data.ratingNote = input.ratingNote ?? null;
       if (input.cancelReason !== undefined)
         data.cancelReason = input.cancelReason ?? null;
 
-      const scheduleChanged =
-        input.scheduledStart !== undefined ||
-        input.scheduledEnd !== undefined ||
-        input.durationMinutes !== undefined;
+      const scheduleChanged = hasStart || hasEnd || hasDuration;
       let nextStart = existing.scheduledStart;
       let nextEnd = existing.scheduledEnd;
       if (scheduleChanged) {
         const { start, end } = scheduleDefaults({
-          scheduledStart:
-            input.scheduledStart !== undefined
-              ? input.scheduledStart
-              : existing.scheduledStart,
-          scheduledEnd:
-            input.scheduledEnd !== undefined
-              ? input.scheduledEnd
-              : existing.scheduledEnd,
-          durationMinutes: input.durationMinutes ?? existing.durationMinutes,
+          scheduledStart: hasStart
+            ? input.scheduledStart
+            : existing.scheduledStart,
+          scheduledEnd: hasEnd ? input.scheduledEnd : existing.scheduledEnd,
+          durationMinutes: hasDuration
+            ? (input.durationMinutes ?? existing.durationMinutes)
+            : existing.durationMinutes,
         });
         nextStart = start;
         nextEnd = end;
@@ -457,25 +461,43 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         data.scheduledEnd = end;
       }
 
-      const taxRate =
-        input.taxRate !== undefined
-          ? taxRateToBps(input.taxRate)
-          : existing.taxRate;
-      if (input.taxRate !== undefined) data.taxRate = taxRate;
+      const taxRate = hasTaxRate
+        ? taxRateToBps(input.taxRate ?? 0)
+        : existing.taxRate;
+      if (hasTaxRate) data.taxRate = taxRate;
 
-      const pricedLines =
-        input.lineItems !== undefined
-          ? priceLineItems(
-              await applyServiceCosts(auth.workspaceId, input.lineItems),
-            )
-          : null;
-      const nextStatus = input.status ?? (existing.status as JobStatus);
+      const pricedLines = hasLineItems
+        ? priceLineItems(
+            await applyServiceCosts(auth.workspaceId, input.lineItems ?? []),
+          )
+        : null;
+      // jobPatchSchema partials keep the input defaults (status defaults to
+      // UNSCHEDULED), so only a key actually present in the body is a request
+      // to change the lifecycle.
+      const requestedStatus = hasStatus ? input.status : undefined;
+      const nextStatus = requestedStatus ?? (existing.status as JobStatus);
+      if (requestedStatus === "UNSCHEDULED") {
+        // An explicit unschedule releases the window, even when the caller only
+        // sent the status.
+        data.scheduledStart = null;
+        data.scheduledEnd = null;
+        nextStart = null;
+        nextEnd = null;
+      }
+      const rebooking =
+        requestedStatus !== undefined &&
+        existing.status === "NO_SHOW" &&
+        requestedStatus !== "UNSCHEDULED" &&
+        !TERMINAL_STATUSES.includes(requestedStatus);
       const events: DomainEvent[] = [];
 
       const updated = await prisma.$transaction(async (tx) => {
         const scheduleTouched =
           scheduleChanged || input.assigneeId !== undefined;
-        if (scheduleTouched && !TERMINAL_STATUSES.includes(nextStatus)) {
+        if (
+          (scheduleTouched || rebooking) &&
+          !TERMINAL_STATUSES.includes(nextStatus)
+        ) {
           await assertNoScheduleConflict(tx, {
             workspaceId: auth.workspaceId,
             assigneeId:
@@ -488,14 +510,14 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           });
         }
 
-        if (input.status !== undefined) {
+        if (requestedStatus !== undefined) {
           await applyJobStatus(
             tx,
             {
               workspaceId: auth.workspaceId,
               actorId: auth.userId,
               jobId: existing.id,
-              status: input.status,
+              status: requestedStatus,
               cancelReason: input.cancelReason,
             },
             { onEvent: (event) => events.push(event) },
@@ -514,14 +536,13 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           });
         }
         const totals = totalsFor(subtotal, taxRate);
-        if (input.lineItems !== undefined || input.taxRate !== undefined) {
+        if (hasLineItems || hasTaxRate) {
           data.subtotal = totals.subtotal;
           data.tax = totals.tax;
           data.total = totals.total;
         }
 
-        const deposit =
-          input.deposit !== undefined ? input.deposit : existing.deposit;
+        const deposit = hasDeposit ? (input.deposit ?? 0) : existing.deposit;
         if (
           deposit >
           (typeof data.total === "number" ? data.total : existing.total)
@@ -570,11 +591,24 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
-      await loadJobRow(auth.workspaceId, id);
+      const existing = await loadJobRow(auth.workspaceId, id);
       const input = parseOrThrow(jobStatusSchema, request.body);
+      const rebooking =
+        existing.status === "NO_SHOW" &&
+        input.status !== "UNSCHEDULED" &&
+        !TERMINAL_STATUSES.includes(input.status);
       const events: DomainEvent[] = [];
 
       const updated = await prisma.$transaction(async (tx) => {
+        if (rebooking) {
+          await assertNoScheduleConflict(tx, {
+            workspaceId: auth.workspaceId,
+            assigneeId: existing.assigneeId,
+            start: existing.scheduledStart,
+            end: existing.scheduledEnd,
+            excludeJobId: existing.id,
+          });
+        }
         await applyJobStatus(
           tx,
           {
@@ -586,6 +620,12 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           },
           { onEvent: (event) => events.push(event) },
         );
+        if (input.status === "UNSCHEDULED") {
+          await tx.job.update({
+            where: { id },
+            data: { scheduledStart: null, scheduledEnd: null },
+          });
+        }
         return tx.job.findFirstOrThrow({
           where: { id, workspaceId: auth.workspaceId },
           include: jobInclude,

@@ -285,6 +285,55 @@ describe("team performance", () => {
     });
   });
 
+  it("keeps former members' jobs and revenue in workspace totals", async () => {
+    const seed = await seedWorkspace(account.workspaceId);
+    const formerId = await addMember(account.workspaceId, "Former Member");
+
+    const formerJob = await seedJob(seed, {
+      assigneeId: formerId,
+      status: "COMPLETED",
+      scheduledStart: "2020-01-06T09:00:00.000Z",
+      completedAt: "2020-01-06T10:00:00.000Z",
+      durationMinutes: 60,
+      rating: 5,
+      subtotal: 10_000,
+      total: 10_000,
+      lineCost: 3_000,
+    });
+    await seedPayment(seed, formerJob, 10_000, "2020-01-06T10:30:00.000Z");
+
+    await prisma.membership.delete({
+      where: {
+        userId_workspaceId: {
+          userId: formerId,
+          workspaceId: account.workspaceId,
+        },
+      },
+    });
+
+    const response = await getPerformance(
+      "/api/v1/team/performance?from=2020-01-06T00:00:00.000Z&to=2020-01-06T23:59:59.999Z",
+    );
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+
+    expect(body.members).toHaveLength(1);
+    expect(
+      body.members.some(
+        (row: { user: { id: string } }) => row.user.id === formerId,
+      ),
+    ).toBe(false);
+    expect(body.totals).toEqual({
+      jobsScheduled: 1,
+      jobsCompleted: 1,
+      revenue: 10_000,
+      margin: 7_000,
+      avgTicket: 10_000,
+      utilizationPct: 0,
+      ratingAvg: null,
+    });
+  });
+
   it("defaults to the last 30 days and caps the range at 366 days", async () => {
     const seed = await seedWorkspace(account.workspaceId);
     const now = Date.now();

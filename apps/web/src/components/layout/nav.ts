@@ -87,6 +87,7 @@ export function sectionLabel(pathname: string): string {
     )
     .sort((a, b) => b.to.length - a.to.length)[0];
   if (match) return match.label;
+  if (pathname.startsWith("/app/walkthrough")) return "Walkthrough";
   if (pathname.startsWith("/app/settings")) return "Settings";
   return "Workspace";
 }

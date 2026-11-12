@@ -28,6 +28,7 @@ const RevenuePage = lazy(() => import("./features/revenue"));
 const AutomationsPage = lazy(() => import("./features/automations"));
 const IntelligencePage = lazy(() => import("./features/intelligence"));
 const TeamPage = lazy(() => import("./features/team"));
+const WalkthroughPage = lazy(() => import("./features/walkthrough"));
 
 function RouteFallback() {
   return (
@@ -211,6 +212,14 @@ export default function App() {
                 element={
                   <LazyRoute>
                     <TeamPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="walkthrough"
+                element={
+                  <LazyRoute>
+                    <WalkthroughPage />
                   </LazyRoute>
                 }
               />

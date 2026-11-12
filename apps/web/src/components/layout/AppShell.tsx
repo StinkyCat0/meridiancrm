@@ -10,6 +10,7 @@ import { LogoLockup } from "./Logo";
 import { MOBILE_NAV_ITEMS, NAV_GROUPS, type NavItem } from "./nav";
 import { TopBar } from "./TopBar";
 import { UserMenu } from "./UserMenu";
+import { WalkthroughToast } from "../../features/walkthrough/WalkthroughToast";
 
 function SidebarLink({
   to,
@@ -172,6 +173,7 @@ export function AppShell() {
         </div>
       </nav>
 
+      <WalkthroughToast />
       <CommandPalette />
     </div>
   );

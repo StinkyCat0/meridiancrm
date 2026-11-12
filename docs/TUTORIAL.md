@@ -69,11 +69,11 @@ The rest of this tour points out each boundary where it becomes relevant.
 The desktop sidebar groups navigation by the job it supports. The mobile tab bar keeps five
 destinations: Overview, Dispatch, Inbox, Calendar, and Customers.
 
-| Sidebar group | Items                                                 | What it answers                                      |
-| ------------- | ----------------------------------------------------- | ---------------------------------------------------- |
-| **Operate**   | Overview, Dispatch, Calendar, Jobs                    | What is happening today, and who is doing it?        |
-| **Grow**      | Customers, Contacts, Inbox, Quotes, Invoices, Revenue | Who are they, what did we promise, and what is owed? |
-| **Run**       | Automations, Intelligence, Team, Price book           | What should we do next, and is the business healthy? |
+| Sidebar group | Items                                                        | What it answers                                      |
+| ------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| **Operate**   | Overview, Dispatch, Calendar, Jobs                           | What is happening today, and who is doing it?        |
+| **Grow**      | Customers, Contacts, Inbox, Quotes, Invoices, Revenue, Leads | Who are they, what did we promise, and what is owed? |
+| **Run**       | Automations, Intelligence, Team, Price book                  | What should we do next, and is the business healthy? |
 
 **Settings** sits below the groups. **Activities** is a palette destination rather than a sidebar
 item; it is the follow-through queue for notes, calls, emails, meetings, and tasks.
@@ -129,7 +129,7 @@ Open **Overview**. The page starts with service operations, not the sales pipeli
 
 The full **Activities** surface is reachable from the command palette. It groups work into
 **Overdue**, **Today**, **Upcoming**, **Later**, and **Completed**, filters by type, and supports
-**New activity** for notes, calls, emails, meetings, and tasks. The checkbox completes or reopens an
+**Log activity** for notes, calls, emails, meetings, and tasks. The checkbox completes or reopens an
 activity; the row actions edit or delete it.
 
 The two primary header actions, **New estimate** and **New job**, are the start of the two main
@@ -164,8 +164,8 @@ history; they are not deleted.
 
 **Contacts** is the person-level counterpart. Search people, filter by company or archive state,
 and click **New contact** to set first name (required), last name (required), email, phone, title,
-company, tags, and notes. A contact detail shows the company, owner, tags, last activity, open deals,
-and an activity timeline. The Customers list also offers **Export CSV** for reconciliation.
+company, and tags. A contact detail shows the company, owner, tags, last activity, open deals, and
+an activity timeline. The Customers list also offers **Export CSV** for reconciliation.
 
 ### Step 3 — Check the price book
 
@@ -215,16 +215,16 @@ Open **Jobs**. The page title is **Schedule**. The scopes are **Today**, **Next 
    phone, scope, totals, deposit, and notes.
 3. Use the **Next step** buttons. The available actions come from the job's current status, not from
    a free-form status picker:
-   - **Schedule** moves an unscheduled job onto the calendar.
    - **Dispatch** marks the crew as sent.
    - **Start job** begins work.
    - **Mark complete** closes the job.
    - **Mark no-show** records a missed visit.
    - **Cancel** asks for an optional reason, which is appended to the notes.
-   - A no-show can be **Rebook**ed; a completed job exposes **Create invoice**.
+   - **Back to scheduled** returns dispatched work; a no-show can be **Rebook**ed; a completed job
+     exposes **Create invoice**.
 4. Open **Edit** to change the title, customer, location, assignee, priority, start, duration,
-   status, tax rate, deposit, recurrence, line items, and notes. Scheduling an unscheduled job can
-   also move it directly to **Scheduled**.
+   status, tax rate, deposit, recurrence, line items, and notes. For an unscheduled job, setting
+   **Start** and **Status** to **Scheduled** is the scheduling path.
 5. Click **Duplicate** to copy the job into a new work order when a repeat visit needs a fresh
    record.
 
@@ -333,8 +333,8 @@ Open **Revenue**.
    **Outstanding**, and **Average ticket**.
 2. Read the monthly **Revenue & margin** chart, then the **Service margin**, **Technician revenue**,
    **Top customers**, and **Upsell opportunities** tables.
-3. Open the **Accounts receivable aging** card to see outstanding balances by bucket. Click a
-   customer to jump to their record.
+3. Open the **Accounts receivable aging** card to see outstanding balances by bucket. The **Review
+   overdue** link opens the invoice list filtered to overdue `SENT` invoices.
 4. In **Payments**, filter by the range, open an invoice from its number, or click **Export CSV**.
 5. In **Expenses**, click **Add expense**, choose **Category**, enter **Vendor**, **Description**,
    **Amount**, **Date incurred**, and optionally attach a **Job** and **Technician**. Save. Edit or
@@ -359,8 +359,8 @@ lead**, **Site visit**, **Quote sent**, **Won**, and **Lost**.
    external model.
 5. Use **New deal** to set **Deal title**, **Value**, **Currency**, **Stage**, **Expected close**,
    **Company**, **Contact**, **Description**, and **Tags**.
-6. Filter by status (`Open`, `Won`, `Lost`), owner, or stage; search by title or company. The board
-   honors the active pipeline; change the pipeline in the toolbar when more than one exists.
+6. Filter by status (`Open`, `Won`, `Lost`), owner, or stage; search by title. The board honors the
+   active pipeline; change the pipeline in the toolbar when more than one exists.
 
 Stages are configurable in **Settings → Pipeline**, where each stage carries a name, order, kind
 (`OPEN`, `WON`, `LOST`), probability, and target days. Stage moves are transactional and keep their
@@ -456,15 +456,15 @@ refresh cookie. Behind TLS, leave it unset.
 
 ## Troubleshooting the walkthrough
 
-| Symptom                                     | Check                                                                                                                                                                   |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sign-in returns `500 Internal Server Error` | The API is not healthy. Confirm `npm run dev` (or `npm run dev:api`) is running on port 4000 and `npm run db:setup` completed.                                          |
-| Sign-in succeeds but requests return `401`  | The refresh cookie is not being accepted. For a local HTTP production preview set `COOKIE_SECURE=0`; for dev, use the Vite origin.                                      |
-| Dispatch map is blank                       | OpenStreetMap tiles are blocked or offline, or no stops have coordinates. The board still lists the jobs.                                                               |
-| A job will not change status                | Only the transitions in the lifecycle table are allowed. Start or rebook the job instead of forcing a state.                                                            |
-| An automation did not run                   | Check that the rule is enabled, its trigger and conditions match, and no successful run for the same entity happened in the last 24 hours. Use **Run now** as an admin. |
-| A message "sent" never arrived              | Expected. Communications are logged locally; no carrier or mailbox is connected.                                                                                        |
-| Demo data disappeared                       | `npm run db:setup` replaces the `meridian-studio` workspace. Do not run it against data you need.                                                                       |
+| Symptom                                     | Check                                                                                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sign-in returns `500 Internal Server Error` | The API is not healthy. Confirm `npm run dev` (or `npm run dev:api`) is running on port 4000 and `npm run db:setup` completed.                                   |
+| Sign-in succeeds but requests return `401`  | The refresh cookie is not being accepted. For a local HTTP production preview set `COOKIE_SECURE=0`; for dev, use the Vite origin.                               |
+| Dispatch map is blank                       | OpenStreetMap tiles are blocked or offline, or no stops have coordinates. The board still lists the jobs.                                                        |
+| A job will not change status                | Only the transitions in the lifecycle table are allowed. Start or rebook the job instead of forcing a state.                                                     |
+| An automation did not run                   | Check that the rule is enabled, its trigger and conditions match, and no run for the same entity was recorded in the last 24 hours. Use **Run now** as an admin. |
+| A message "sent" never arrived              | Expected. Communications are logged locally; no carrier or mailbox is connected.                                                                                 |
+| Demo data disappeared                       | `npm run db:setup` replaces the `meridian-studio` workspace. Do not run it against data you need.                                                                |
 
 ## Where to go next
 

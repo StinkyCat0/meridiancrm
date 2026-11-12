@@ -16,5 +16,26 @@ export default defineConfig({
     poolOptions: { forks: { singleFork: true } },
     testTimeout: 20_000,
     hookTimeout: 30_000,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      reportsDirectory: "./coverage",
+      include: ["src/**/*.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/test/**",
+        "src/worker/**",
+        "src/**/*.d.ts",
+        "prisma/**",
+      ],
+      // Deliberately conservative floor: it fails a collapse in coverage without
+      // penalising every untested branch. Raise as suites land, never lower.
+      thresholds: {
+        statements: 20,
+        branches: 15,
+        functions: 20,
+        lines: 20,
+      },
+    },
   },
 });

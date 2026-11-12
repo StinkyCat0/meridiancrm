@@ -117,7 +117,14 @@ export const automationRuleInputSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
-export const automationRulePatchSchema = automationRuleInputSchema.partial();
+export const automationRulePatchSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  description: optionalText(500),
+  trigger: z.enum(AUTOMATION_TRIGGERS).optional(),
+  conditions: automationConditionSchema.optional(),
+  actions: z.array(automationActionSchema).min(1).max(5).optional(),
+  enabled: z.boolean().optional(),
+});
 
 export const automationListQuerySchema = paginationSchema.extend({
   trigger: z.enum(AUTOMATION_TRIGGERS).optional(),

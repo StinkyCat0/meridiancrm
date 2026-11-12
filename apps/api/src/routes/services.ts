@@ -133,6 +133,7 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
           unit: input.unit,
           durationMinutes: input.durationMinutes,
           price: input.price,
+          cost: input.cost,
           taxable: input.taxable,
           archived: input.archived ?? false,
         },
@@ -182,6 +183,7 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
       if (input.unit !== undefined) data.unit = input.unit;
       if (input.durationMinutes !== undefined) data.durationMinutes = input.durationMinutes;
       if (input.price !== undefined) data.price = input.price;
+      if (input.cost !== undefined) data.cost = input.cost;
       if (input.taxable !== undefined) data.taxable = input.taxable;
       if (input.archived !== undefined) data.archived = input.archived;
 

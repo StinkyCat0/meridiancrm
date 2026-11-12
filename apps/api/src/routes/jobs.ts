@@ -24,25 +24,29 @@ import {
   parseOrThrow,
 } from "../lib/http.js";
 import {
-  allocateNumber,
+  applyServiceCosts,
   assertRecurrence,
+  bpsToTaxRate,
   contactSummarySelect,
+  createWithDocumentNumber,
   customerSelect,
-  locationSummarySelect,
   loadAssignee,
+  locationSummarySelect,
   priceLineItems,
   taxRateToBps,
-  bpsToTaxRate,
   toContactSummary,
   toCustomerSummary,
   toLineItem,
-  toLocationSummary,
   toLineItemCreate,
+  toLocationSummary,
   totalsFor,
   userSelect,
   validateAssociation,
   validateServiceIds,
 } from "../lib/service-ops.js";
+import { applyJobStatus, jobStatusTimestamps } from "../lib/job-status.js";
+import { assertNoScheduleConflict } from "../lib/schedule.js";
+import { emitEvent, type DomainEvent } from "../lib/events.js";
 
 export const jobInclude = {
   customer: { select: customerSelect },
@@ -99,7 +103,6 @@ const listQuerySchema = paginationSchema.extend({
 });
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(64) });
-const deleteQuerySchema = z.object({ permanent: z.enum(["true", "false"]).optional() });
 
 const OPEN_STATUSES = ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"];
 
@@ -144,18 +147,7 @@ function scheduleDefaults(input: {
   return { start, end };
 }
 
-function statusTimestamps(status: JobStatus, existing?: { arrivedAt: Date | null; completedAt: Date | null }) {
-  const now = new Date();
-  const arrivedAt =
-    status === "IN_PROGRESS" || status === "COMPLETED"
-      ? (existing?.arrivedAt ?? now)
-      : status === "UNSCHEDULED" || status === "SCHEDULED"
-        ? null
-        : (existing?.arrivedAt ?? null);
-  const completedAt =
-    status === "COMPLETED" ? (existing?.completedAt ?? now) : null;
-  return { arrivedAt, completedAt };
-}
+const TERMINAL_STATUSES: readonly JobStatus[] = ["CANCELED", "NO_SHOW"];
 
 export async function jobRoutes(app: FastifyInstance): Promise<void> {
   app.get(
@@ -214,12 +206,12 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
       const orderBy: Prisma.JobOrderByWithRelationInput[] =
         query.scope === "today" || query.scope === "week" || query.scope === "upcoming"
-          ? [{ scheduledStart: "asc" }, { createdAt: "desc" }]
+          ? [{ scheduledStart: "asc" }, { createdAt: "desc" }, { id: "asc" }]
           : query.sort === "scheduledStart"
-            ? [{ scheduledStart: query.order }, { createdAt: "desc" }]
+            ? [{ scheduledStart: query.order }, { createdAt: "desc" }, { id: "asc" }]
             : query.sort === "total"
-              ? [{ total: query.order }]
-              : [{ updatedAt: query.order }];
+              ? [{ total: query.order }, { id: "asc" }]
+              : [{ updatedAt: query.order }, { id: "asc" }];
 
       const [total, rows] = await Promise.all([
         prisma.job.count({ where }),
@@ -257,46 +249,56 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       await assertAssignable(auth.workspaceId, input.assigneeId);
 
       const { start, end } = scheduleDefaults(input);
-      const { lines, subtotal } = priceLineItems(input.lineItems);
-      const totals = totalsFor(subtotal, taxRateToBps(input.taxRate));
-      const stamps = statusTimestamps(input.status);
+      const priced = priceLineItems(await applyServiceCosts(auth.workspaceId, input.lineItems));
+      const totals = totalsFor(priced.subtotal, taxRateToBps(input.taxRate));
+      const stamps = jobStatusTimestamps(input.status);
       if (input.deposit > totals.total) {
         throw badRequest("The deposit cannot exceed the job total");
       }
 
-      const number = await allocateNumber("JOB", async (candidate) =>
-        Boolean(await prisma.job.findUnique({ where: { workspaceId_number: { workspaceId: auth.workspaceId, number: candidate } } })),
-      );
-
-      const created = await prisma.job.create({
-        data: {
-          workspaceId: auth.workspaceId,
-          number,
-          title: input.title,
-          status: input.status,
-          priority: input.priority,
-          source: input.source ?? null,
-          customerId: input.customerId,
-          locationId: input.locationId,
-          contactId: input.contactId ?? null,
-          assigneeId: input.assigneeId ?? null,
-          scheduledStart: start,
-          scheduledEnd: end,
-          arrivedAt: stamps.arrivedAt,
-          completedAt: stamps.completedAt,
-          durationMinutes: input.durationMinutes,
-          taxRate: taxRateToBps(input.taxRate),
-          subtotal: totals.subtotal,
-          tax: totals.tax,
-          total: totals.total,
-          deposit: input.deposit,
-          notes: input.notes ?? null,
-          recurrence: input.recurrence ?? null,
-          recurrenceUntil: input.recurrenceUntil ?? null,
-          lineItems: { create: toLineItemCreate(lines) },
+      const created = await createWithDocumentNumber(
+        auth.workspaceId,
+        "JOB",
+        async (tx, number) => {
+          if (!TERMINAL_STATUSES.includes(input.status)) {
+            await assertNoScheduleConflict(tx, {
+              workspaceId: auth.workspaceId,
+              assigneeId: input.assigneeId ?? null,
+              start,
+              end,
+            });
+          }
+          return tx.job.create({
+            data: {
+              workspaceId: auth.workspaceId,
+              number,
+              title: input.title,
+              status: input.status,
+              priority: input.priority,
+              source: input.source ?? null,
+              customerId: input.customerId,
+              locationId: input.locationId,
+              contactId: input.contactId ?? null,
+              assigneeId: input.assigneeId ?? null,
+              scheduledStart: start,
+              scheduledEnd: end,
+              arrivedAt: stamps.arrivedAt,
+              completedAt: stamps.completedAt,
+              durationMinutes: input.durationMinutes,
+              taxRate: taxRateToBps(input.taxRate),
+              subtotal: totals.subtotal,
+              tax: totals.tax,
+              total: totals.total,
+              deposit: input.deposit,
+              notes: input.notes ?? null,
+              recurrence: input.recurrence ?? null,
+              recurrenceUntil: input.recurrenceUntil ?? null,
+              lineItems: { create: toLineItemCreate(priced.lines) },
+            },
+            include: jobInclude,
+          });
         },
-        include: jobInclude,
-      });
+      );
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -305,6 +307,17 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         entityType: "job",
         entityId: created.id,
         metadata: { number: created.number, total: created.total },
+      });
+
+      await emitEvent({
+        workspaceId: auth.workspaceId,
+        type: "JOB_CREATED",
+        entityType: "job",
+        entityId: created.id,
+        actorId: auth.userId,
+        customerId: created.customerId,
+        jobId: created.id,
+        payload: { number: created.number, title: created.title, status: created.status },
       });
 
       return reply.status(201).send(toJob(created));
@@ -355,10 +368,6 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
       const data: Prisma.JobUncheckedUpdateInput = {};
       if (input.title !== undefined) data.title = input.title;
-      if (input.status !== undefined) {
-        data.status = input.status;
-        Object.assign(data, statusTimestamps(input.status, existing));
-      }
       if (input.priority !== undefined) data.priority = input.priority;
       if (input.source !== undefined) data.source = input.source ?? null;
       if (input.customerId !== undefined) data.customerId = input.customerId;
@@ -370,13 +379,24 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       if (input.recurrenceUntil !== undefined) data.recurrenceUntil = input.recurrenceUntil ?? null;
       if (input.durationMinutes !== undefined) data.durationMinutes = input.durationMinutes;
       if (input.deposit !== undefined) data.deposit = input.deposit;
+      if (input.rating !== undefined) data.rating = input.rating ?? null;
+      if (input.ratingNote !== undefined) data.ratingNote = input.ratingNote ?? null;
+      if (input.cancelReason !== undefined) data.cancelReason = input.cancelReason ?? null;
 
-      if (input.scheduledStart !== undefined || input.scheduledEnd !== undefined || input.durationMinutes !== undefined) {
+      const scheduleChanged =
+        input.scheduledStart !== undefined ||
+        input.scheduledEnd !== undefined ||
+        input.durationMinutes !== undefined;
+      let nextStart = existing.scheduledStart;
+      let nextEnd = existing.scheduledEnd;
+      if (scheduleChanged) {
         const { start, end } = scheduleDefaults({
           scheduledStart: input.scheduledStart !== undefined ? input.scheduledStart : existing.scheduledStart,
           scheduledEnd: input.scheduledEnd !== undefined ? input.scheduledEnd : existing.scheduledEnd,
           durationMinutes: input.durationMinutes ?? existing.durationMinutes,
         });
+        nextStart = start;
+        nextEnd = end;
         data.scheduledStart = start;
         data.scheduledEnd = end;
       }
@@ -384,14 +404,45 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const taxRate = input.taxRate !== undefined ? taxRateToBps(input.taxRate) : existing.taxRate;
       if (input.taxRate !== undefined) data.taxRate = taxRate;
 
+      const pricedLines =
+        input.lineItems !== undefined
+          ? priceLineItems(await applyServiceCosts(auth.workspaceId, input.lineItems))
+          : null;
+      const nextStatus = input.status ?? (existing.status as JobStatus);
+      const events: DomainEvent[] = [];
+
       const updated = await prisma.$transaction(async (tx) => {
+        const scheduleTouched = scheduleChanged || input.assigneeId !== undefined;
+        if (scheduleTouched && !TERMINAL_STATUSES.includes(nextStatus)) {
+          await assertNoScheduleConflict(tx, {
+            workspaceId: auth.workspaceId,
+            assigneeId: input.assigneeId !== undefined ? (input.assigneeId ?? null) : existing.assigneeId,
+            start: nextStart,
+            end: nextEnd,
+            excludeJobId: existing.id,
+          });
+        }
+
+        if (input.status !== undefined) {
+          await applyJobStatus(
+            tx,
+            {
+              workspaceId: auth.workspaceId,
+              actorId: auth.userId,
+              jobId: existing.id,
+              status: input.status,
+              cancelReason: input.cancelReason,
+            },
+            { onEvent: (event) => events.push(event) },
+          );
+        }
+
         let subtotal = existing.subtotal;
-        if (input.lineItems !== undefined) {
-          const priced = priceLineItems(input.lineItems);
-          subtotal = priced.subtotal;
+        if (pricedLines) {
+          subtotal = pricedLines.subtotal;
           await tx.jobLineItem.deleteMany({ where: { jobId: existing.id } });
           await tx.jobLineItem.createMany({
-            data: priced.lines.map((line) => ({ ...line, jobId: existing.id })),
+            data: pricedLines.lines.map((line) => ({ ...line, jobId: existing.id })),
           });
         }
         const totals = totalsFor(subtotal, taxRate);
@@ -406,12 +457,20 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           throw badRequest("The deposit cannot exceed the job total");
         }
 
+        if (Object.keys(data).length === 0) {
+          return tx.job.findFirstOrThrow({
+            where: { id: existing.id, workspaceId: auth.workspaceId },
+            include: jobInclude,
+          });
+        }
         return tx.job.update({
           where: { id: existing.id },
           data,
           include: jobInclude,
         });
       });
+
+      for (const event of events) await emitEvent(event);
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -439,45 +498,29 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
-      const existing = await loadJobRow(auth.workspaceId, id);
+      await loadJobRow(auth.workspaceId, id);
       const input = parseOrThrow(jobStatusSchema, request.body);
-      const stamps = statusTimestamps(input.status, existing);
+      const events: DomainEvent[] = [];
 
-      const updated = await prisma.job.update({
-        where: { id: existing.id },
-        data: {
-          status: input.status,
-          ...stamps,
-          ...(input.status === "CANCELED" && input.cancelReason
-            ? { notes: [existing.notes, `Canceled: ${input.cancelReason}`].filter(Boolean).join("\n") }
-            : {}),
-        },
-        include: jobInclude,
-      });
-
-      if (input.status === "COMPLETED" && existing.status !== "COMPLETED") {
-        await prisma.activity.create({
-          data: {
+      const updated = await prisma.$transaction(async (tx) => {
+        await applyJobStatus(
+          tx,
+          {
             workspaceId: auth.workspaceId,
-            type: "NOTE",
-            title: `Completed ${updated.number}: ${updated.title}`,
-            body: updated.notes,
-            completedAt: new Date(),
-            companyId: updated.customerId,
-            contactId: updated.contactId,
-            ownerId: updated.assigneeId ?? auth.userId,
+            actorId: auth.userId,
+            jobId: id,
+            status: input.status,
+            cancelReason: input.cancelReason,
           },
+          { onEvent: (event) => events.push(event) },
+        );
+        return tx.job.findFirstOrThrow({
+          where: { id, workspaceId: auth.workspaceId },
+          include: jobInclude,
         });
-      }
-
-      await audit({
-        workspaceId: auth.workspaceId,
-        actorId: auth.userId,
-        action: "job.status_changed",
-        entityType: "job",
-        entityId: updated.id,
-        metadata: { number: updated.number, from: existing.status, to: input.status },
       });
+
+      for (const event of events) await emitEvent(event);
 
       return toJob(updated);
     },
@@ -499,46 +542,58 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const end = start
         ? new Date(start.getTime() + existing.durationMinutes * 60_000)
         : null;
-      const number = await allocateNumber("JOB", async (candidate) =>
-        Boolean(await prisma.job.findUnique({ where: { workspaceId_number: { workspaceId: auth.workspaceId, number: candidate } } })),
-      );
 
-      const created = await prisma.job.create({
-        data: {
-          workspaceId: auth.workspaceId,
-          number,
-          title: existing.title,
-          status: start ? "SCHEDULED" : "UNSCHEDULED",
-          priority: existing.priority,
-          source: existing.source,
-          customerId: existing.customerId,
-          locationId: existing.locationId,
-          contactId: existing.contactId,
-          assigneeId: existing.assigneeId,
-          scheduledStart: start,
-          scheduledEnd: end,
-          durationMinutes: existing.durationMinutes,
-          taxRate: existing.taxRate,
-          subtotal: existing.subtotal,
-          tax: existing.tax,
-          total: existing.total,
-          deposit: 0,
-          notes: existing.notes,
-          recurrence: existing.recurrence,
-          recurrenceUntil: existing.recurrenceUntil,
-          lineItems: {
-            create: existing.lineItems.map((line) => ({
-              serviceId: line.serviceId,
-              name: line.name,
-              quantity: line.quantity,
-              unitPrice: line.unitPrice,
-              total: line.total,
-              position: line.position,
-            })),
-          },
+      const created = await createWithDocumentNumber(
+        auth.workspaceId,
+        "JOB",
+        async (tx, number) => {
+          if (start) {
+            await assertNoScheduleConflict(tx, {
+              workspaceId: auth.workspaceId,
+              assigneeId: existing.assigneeId,
+              start,
+              end,
+            });
+          }
+          return tx.job.create({
+            data: {
+              workspaceId: auth.workspaceId,
+              number,
+              title: existing.title,
+              status: start ? "SCHEDULED" : "UNSCHEDULED",
+              priority: existing.priority,
+              source: existing.source,
+              customerId: existing.customerId,
+              locationId: existing.locationId,
+              contactId: existing.contactId,
+              assigneeId: existing.assigneeId,
+              scheduledStart: start,
+              scheduledEnd: end,
+              durationMinutes: existing.durationMinutes,
+              taxRate: existing.taxRate,
+              subtotal: existing.subtotal,
+              tax: existing.tax,
+              total: existing.total,
+              deposit: 0,
+              notes: existing.notes,
+              recurrence: existing.recurrence,
+              recurrenceUntil: existing.recurrenceUntil,
+              lineItems: {
+                create: existing.lineItems.map((line) => ({
+                  serviceId: line.serviceId,
+                  name: line.name,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  unitCost: line.unitCost,
+                  total: line.total,
+                  position: line.position,
+                })),
+              },
+            },
+            include: jobInclude,
+          });
         },
-        include: jobInclude,
-      });
+      );
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -547,6 +602,17 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         entityType: "job",
         entityId: created.id,
         metadata: { number: created.number, source: existing.number },
+      });
+
+      await emitEvent({
+        workspaceId: auth.workspaceId,
+        type: "JOB_CREATED",
+        entityType: "job",
+        entityId: created.id,
+        actorId: auth.userId,
+        customerId: created.customerId,
+        jobId: created.id,
+        payload: { number: created.number, title: created.title, status: created.status },
       });
 
       return reply.status(201).send(toJob(created));
@@ -567,7 +633,6 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadJobRow(auth.workspaceId, id);
-      parseOrThrow(deleteQuerySchema, request.query);
       await requireRole(request, "ADMIN");
       await prisma.job.delete({ where: { id: existing.id } });
       await audit({

@@ -76,10 +76,52 @@ async function loadLocationRow(workspaceId: string, id: string): Promise<Locatio
   return row;
 }
 
-async function clearOtherPrimaries(workspaceId: string, customerId: string, keepId: string) {
-  await prisma.location.updateMany({
-    where: { workspaceId, customerId, isPrimary: true, id: { not: keepId } },
+async function clearOtherPrimaries(
+  tx: Prisma.TransactionClient,
+  workspaceId: string,
+  customerId: string,
+  keepId: string | null,
+) {
+  await tx.location.updateMany({
+    where: {
+      workspaceId,
+      customerId,
+      isPrimary: true,
+      ...(keepId ? { id: { not: keepId } } : {}),
+    },
     data: { isPrimary: false },
+  });
+}
+
+/**
+ * Active locations must always keep exactly one primary. When the current
+ * primary is archived or demoted, the next active location inherits the flag;
+ * if there is no candidate the write is rejected instead of silently leaving
+ * the customer without a primary.
+ */
+async function promoteReplacementPrimary(
+  tx: Prisma.TransactionClient,
+  existing: { id: string; workspaceId: string; customerId: string },
+): Promise<void> {
+  const replacement = await tx.location.findFirst({
+    where: {
+      workspaceId: existing.workspaceId,
+      customerId: existing.customerId,
+      archived: false,
+      id: { not: existing.id },
+    },
+    orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+  if (!replacement) {
+    throw badRequest(
+      "Add another active location before this one stops being the primary",
+    );
+  }
+  await clearOtherPrimaries(tx, existing.workspaceId, existing.customerId, replacement.id);
+  await tx.location.update({
+    where: { id: replacement.id },
+    data: { isPrimary: true },
   });
 }
 
@@ -113,8 +155,10 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
           : {}),
       };
 
-      const orderBy: Prisma.LocationOrderByWithRelationInput =
-        query.sort === "label" ? { label: query.order } : { updatedAt: query.order };
+      const orderBy: Prisma.LocationOrderByWithRelationInput[] =
+        query.sort === "label"
+          ? [{ label: query.order }, { id: "asc" }]
+          : [{ updatedAt: query.order }, { id: "asc" }];
 
       const [total, rows] = await Promise.all([
         prisma.location.count({ where }),
@@ -149,30 +193,39 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       const input = parseOrThrow(locationInputSchema, request.body);
       await loadCustomer(auth.workspaceId, input.customerId);
 
-      const created = await prisma.location.create({
-        data: {
-          workspaceId: auth.workspaceId,
-          customerId: input.customerId,
-          label: input.label,
-          line1: input.line1,
-          line2: input.line2 ?? null,
-          city: input.city,
-          state: input.state ?? null,
-          postalCode: input.postalCode ?? null,
-          country: input.country ?? null,
-          accessNotes: input.accessNotes ?? null,
-          gateCode: input.gateCode ?? null,
-          contactName: input.contactName ?? null,
-          contactPhone: input.contactPhone ?? null,
-          isPrimary: input.isPrimary ?? false,
-          archived: input.archived ?? false,
-        },
-        include,
-      });
+      const archived = input.archived ?? false;
+      const isPrimary = archived ? false : (input.isPrimary ?? false);
 
-      if (created.isPrimary) {
-        await clearOtherPrimaries(auth.workspaceId, created.customerId, created.id);
-      }
+      const created = await prisma.$transaction(async (tx) => {
+        // The partial unique index allows one primary per customer, so existing
+        // primaries must be cleared before the new row is inserted.
+        if (isPrimary) {
+          await clearOtherPrimaries(tx, auth.workspaceId, input.customerId, null);
+        }
+        const row = await tx.location.create({
+          data: {
+            workspaceId: auth.workspaceId,
+            customerId: input.customerId,
+            label: input.label,
+            line1: input.line1,
+            line2: input.line2 ?? null,
+            city: input.city,
+            state: input.state ?? null,
+            postalCode: input.postalCode ?? null,
+            country: input.country ?? null,
+            accessNotes: input.accessNotes ?? null,
+            gateCode: input.gateCode ?? null,
+            contactName: input.contactName ?? null,
+            contactPhone: input.contactPhone ?? null,
+            latitude: input.latitude ?? null,
+            longitude: input.longitude ?? null,
+            isPrimary,
+            archived,
+          },
+          include,
+        });
+        return row;
+      });
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -220,6 +273,10 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       const existing = await loadLocationRow(auth.workspaceId, id);
       const input = parseOrThrow(locationPatchSchema, request.body);
 
+      const archived = input.archived ?? existing.archived;
+      const isPrimary = archived ? false : (input.isPrimary ?? existing.isPrimary);
+      const losingPrimary = existing.isPrimary && !isPrimary;
+
       const data: Prisma.LocationUncheckedUpdateInput = {};
       if (input.label !== undefined) data.label = input.label;
       if (input.line1 !== undefined) data.line1 = input.line1;
@@ -232,18 +289,26 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       if (input.gateCode !== undefined) data.gateCode = input.gateCode ?? null;
       if (input.contactName !== undefined) data.contactName = input.contactName ?? null;
       if (input.contactPhone !== undefined) data.contactPhone = input.contactPhone ?? null;
-      if (input.isPrimary !== undefined) data.isPrimary = input.isPrimary;
-      if (input.archived !== undefined) data.archived = input.archived;
-
-      const updated = await prisma.location.update({
-        where: { id: existing.id },
-        data,
-        include,
-      });
-
-      if (updated.isPrimary) {
-        await clearOtherPrimaries(auth.workspaceId, updated.customerId, updated.id);
+      if (input.latitude !== undefined) data.latitude = input.latitude ?? null;
+      if (input.longitude !== undefined) data.longitude = input.longitude ?? null;
+      if (input.isPrimary !== undefined || archived !== existing.archived) {
+        data.isPrimary = isPrimary;
       }
+      if (input.archived !== undefined) data.archived = archived;
+
+      const updated = await prisma.$transaction(async (tx) => {
+        if (losingPrimary) {
+          await promoteReplacementPrimary(tx, existing);
+        }
+        if (isPrimary) {
+          await clearOtherPrimaries(tx, auth.workspaceId, existing.customerId, existing.id);
+        }
+        return tx.location.update({
+          where: { id: existing.id },
+          data,
+          include,
+        });
+      });
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -267,10 +332,27 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadLocationRow(auth.workspaceId, id);
-      const restored = await prisma.location.update({
-        where: { id: existing.id },
-        data: { archived: false },
-        include,
+      const restored = await prisma.$transaction(async (tx) => {
+        const activePrimary = await tx.location.findFirst({
+          where: {
+            workspaceId: auth.workspaceId,
+            customerId: existing.customerId,
+            archived: false,
+            isPrimary: true,
+            id: { not: existing.id },
+          },
+          select: { id: true },
+        });
+        // Restoring the only active location makes it the primary; restoring a
+        // former primary demotes any duplicate primary that appeared meanwhile.
+        if (existing.isPrimary || !activePrimary) {
+          await clearOtherPrimaries(tx, auth.workspaceId, existing.customerId, existing.id);
+        }
+        return tx.location.update({
+          where: { id: existing.id },
+          data: { archived: false, ...(activePrimary ? {} : { isPrimary: true }) },
+          include,
+        });
       });
       await audit({
         workspaceId: auth.workspaceId,
@@ -301,17 +383,38 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
 
       if (permanent === "true") {
         await requireRole(request, "ADMIN");
-        // Jobs, estimates and invoices all point at the location. Deleting the
-        // rows would erase service history, so require them to be moved first.
-        const [jobs, estimates, invoices] = await Promise.all([
-          prisma.job.count({ where: { locationId: existing.id } }),
-          prisma.estimate.count({ where: { locationId: existing.id } }),
-          prisma.invoice.count({ where: { locationId: existing.id } }),
-        ]);
-        if (jobs + estimates + invoices > 0) {
-          throw badRequest("Move or archive this location's jobs, estimates and invoices first");
-        }
-        await prisma.location.delete({ where: { id: existing.id } });
+        await prisma.$transaction(async (tx) => {
+          // Jobs, estimates and invoices all point at the location. Deleting the
+          // rows would erase service history, so require them to be moved first.
+          const [jobs, estimates, invoices] = await Promise.all([
+            tx.job.count({ where: { locationId: existing.id } }),
+            tx.estimate.count({ where: { locationId: existing.id } }),
+            tx.invoice.count({ where: { locationId: existing.id } }),
+          ]);
+          if (jobs + estimates + invoices > 0) {
+            throw badRequest("Move or archive this location's jobs, estimates and invoices first");
+          }
+          if (existing.isPrimary && !existing.archived) {
+            const replacement = await tx.location.findFirst({
+              where: {
+                workspaceId: auth.workspaceId,
+                customerId: existing.customerId,
+                archived: false,
+                id: { not: existing.id },
+              },
+              orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+              select: { id: true },
+            });
+            if (replacement) {
+              await clearOtherPrimaries(tx, auth.workspaceId, existing.customerId, replacement.id);
+              await tx.location.update({
+                where: { id: replacement.id },
+                data: { isPrimary: true },
+              });
+            }
+          }
+          await tx.location.delete({ where: { id: existing.id } });
+        });
         await audit({
           workspaceId: auth.workspaceId,
           actorId: auth.userId,
@@ -321,7 +424,16 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
           metadata: { label: existing.label },
         });
       } else {
-        await prisma.location.update({ where: { id: existing.id }, data: { archived: true } });
+        await prisma.$transaction(async (tx) => {
+          // Archiving never moves jobs; it only protects the primary invariant.
+          if (existing.isPrimary && !existing.archived) {
+            await promoteReplacementPrimary(tx, existing);
+          }
+          await tx.location.update({
+            where: { id: existing.id },
+            data: { archived: true, isPrimary: false },
+          });
+        });
         await audit({
           workspaceId: auth.workspaceId,
           actorId: auth.userId,

@@ -16,6 +16,7 @@
     "db:setup": "prisma generate && prisma migrate deploy && prisma db seed",
     "seed": "tsx prisma/seed.ts",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "prisma": {

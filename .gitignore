@@ -18,3 +18,6 @@ playwright-report/
 .turbo/
 .cache/
 *.tsbuildinfo
+
+*.db-wal
+*.db-shm

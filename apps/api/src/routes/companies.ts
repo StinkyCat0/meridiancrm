@@ -15,6 +15,7 @@ import { authenticate, getAuth, requireRole } from "../lib/auth.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/db.js";
 import { badRequest, likeTerm, notFound, pageMeta, parseOrThrow, parseTags, serializeTags } from "../lib/http.js";
+import { emitEvent } from "../lib/events.js";
 
 const userSelect = {
   id: true,
@@ -88,16 +89,16 @@ function archiveFilter(archive: "active" | "archived" | "all"): { archived?: boo
 function companyOrder(
   sort: string | undefined,
   order: "asc" | "desc",
-): Prisma.CompanyOrderByWithRelationInput {
+): Prisma.CompanyOrderByWithRelationInput[] {
   switch (sort) {
     case "name":
-      return { name: order };
+      return [{ name: order }, { id: "asc" }];
     case "updatedAt":
-      return { updatedAt: order };
+      return [{ updatedAt: order }, { id: "asc" }];
     case "createdAt":
-      return { createdAt: order };
+      return [{ createdAt: order }, { id: "asc" }];
     default:
-      return { createdAt: order };
+      return [{ createdAt: order }, { id: "asc" }];
   }
 }
 
@@ -236,6 +237,16 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
         entityType: "company",
         entityId: created.id,
         metadata: { name: created.name },
+      });
+
+      await emitEvent({
+        workspaceId: auth.workspaceId,
+        type: "CUSTOMER_CREATED",
+        entityType: "company",
+        entityId: created.id,
+        actorId: auth.userId,
+        customerId: created.id,
+        payload: { name: created.name },
       });
 
       return reply.status(201).send(toCompany(created, 0));

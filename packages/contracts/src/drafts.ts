@@ -37,7 +37,7 @@ function serviceLine(context: DraftContext): string {
   if (context.serviceName && context.jobNumber) {
     return `${context.serviceName} (${context.jobNumber})`;
   }
-  return context.serviceName ?? context.jobNumber ?? "your upcoming visit";
+  return context.serviceName ?? context.jobNumber ?? "upcoming visit";
 }
 
 function bodyFor(context: DraftContext): string {
@@ -85,7 +85,7 @@ function subjectFor(context: DraftContext): string | null {
 }
 
 function rationaleFor(context: DraftContext): string {
-  const parts = [`${context.intent.replaceAll("_", " ").toLowerCase()} intent`];
+  const parts = [`${context.intent.replaceAll("_", "-").toLowerCase()} intent`];
   if (context.appointmentLabel) parts.push("appointment context");
   if (context.amountLabel) parts.push("open balance");
   parts.push(`${context.tone.toLowerCase()} tone`);

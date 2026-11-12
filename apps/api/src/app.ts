@@ -9,6 +9,7 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import staticPlugin from "@fastify/static";
 import { config } from "./config.js";
+import { configureDatabase } from "./lib/db.js";
 import { registerErrorHandler } from "./lib/http.js";
 import { registerRoutes } from "./routes/index.js";
 
@@ -29,6 +30,7 @@ const redactSensitiveUrl = (url: string): string =>
   url.replace(/\/invite\/[^/?#]+/gi, "/invite/[redacted]");
 
 export async function buildApp(options: { logger?: boolean } = {}): Promise<FastifyInstance> {
+  await configureDatabase();
   const app = Fastify({
     logger:
       options.logger ??
@@ -99,6 +101,12 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
         { name: "activities", description: "Calls, emails, meetings, notes, tasks" },
         { name: "pipelines", description: "Pipelines and stages" },
         { name: "insights", description: "Dashboard, search, audit" },
+        { name: "communications", description: "Calls, texts, email and customer timeline" },
+        { name: "dispatch", description: "Dispatch board, map and route planning" },
+        { name: "finance", description: "Payments, expenses and margins" },
+        { name: "automations", description: "Workflow rules and runs" },
+        { name: "intelligence", description: "Explainable recommendations and forecasts" },
+        { name: "team", description: "Technician performance and workload" },
       ],
     },
   });

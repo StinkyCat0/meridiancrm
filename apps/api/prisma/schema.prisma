@@ -344,6 +344,7 @@ model Location {
   invoices  Invoice[]
 
   @@index([workspaceId, customerId])
+  @@index([workspaceId, customerId, isPrimary])
   @@index([workspaceId, archived])
 }
 
@@ -368,6 +369,7 @@ model ServiceItem {
 
   @@index([workspaceId, archived])
   @@index([workspaceId, name])
+  @@index([workspaceId, category])
 }
 
 model Job {
@@ -415,8 +417,11 @@ model Job {
   @@unique([workspaceId, number])
   @@index([workspaceId, status])
   @@index([workspaceId, scheduledStart])
+  @@index([workspaceId, scheduledStart, assigneeId])
   @@index([workspaceId, customerId])
   @@index([workspaceId, assigneeId])
+  @@index([workspaceId, updatedAt])
+  @@index([workspaceId, completedAt])
 }
 
 model JobLineItem {
@@ -468,8 +473,11 @@ model Estimate {
 
   @@unique([workspaceId, number])
   @@index([workspaceId, status])
+  @@index([workspaceId, status, createdAt])
   @@index([workspaceId, customerId])
+  @@index([workspaceId, jobId])
   @@index([workspaceId, createdAt])
+  @@index([workspaceId, expiresAt])
 }
 
 model EstimateLineItem {
@@ -516,8 +524,11 @@ model Invoice {
 
   @@unique([workspaceId, number])
   @@index([workspaceId, status])
+  @@index([workspaceId, status, dueAt])
   @@index([workspaceId, customerId])
+  @@index([workspaceId, jobId])
   @@index([workspaceId, dueAt])
+  @@index([workspaceId, createdAt])
 }
 
 /**

@@ -447,6 +447,20 @@ Dashboard payload includes `pipelineValue`, `openDealCount`, `wonValueThisMonth`
 `winRate` (0-100), `avgDealSize`, `revenueTrend`, `stageDistribution`, `activityMix`, `momentum`
 counts, `recentDeals`, `tasksDue`, and the workspace `currency`.
 
+### Exports
+
+| Method | Path                     | Role   | Purpose                                                                     |
+| ------ | ------------------------ | ------ | --------------------------------------------------------------------------- |
+| GET    | `/exports/invoices.csv`  | member | Invoice register. Filters: `status`, `customerId`, `jobId`, `overdue`, `q`. |
+| GET    | `/exports/payments.csv`  | member | Payment ledger. Filters: `from`, `to`, `customerId`, `invoiceId`, `q`.      |
+| GET    | `/exports/expenses.csv`  | member | Expense register. Filters: `category`, `jobId`, `from`, `to`, `q`.          |
+| GET    | `/exports/customers.csv` | member | Customer register. Filters: `archive`, `industry`, `customerType`, `q`.     |
+
+CSV responses are `text/csv; charset=utf-8` attachments capped at 10,000 rows, with money in major
+units and ISO timestamps. User-controlled cells beginning with a spreadsheet formula character are
+prefixed with `'` to prevent CSV injection. Every response also carries an `x-request-id` header
+that is echoed from a valid inbound id or generated per request.
+
 ## Tenancy and RBAC
 
 The access token carries the workspace id. Every request re-reads the caller's membership, so role

@@ -3,7 +3,17 @@
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to semantic versioning for public contracts.
 
-## [0.2.0] - 2026-11-11
+## [Unreleased]
+
+### Added
+
+- CSV exports for invoices, payments, expenses and customers, with filter parity, bounded rows and
+  spreadsheet formula-injection escaping.
+- Request ids on every API response and in request logs, accepting a validated inbound id or
+  generating a UUID.
+- SQLite backup/restore scripts, a scheduled automation due-sweep workflow, Postgres migration
+  runbook, and the carrier/mailbox adapter boundary ADR.
+- Download actions for invoice, customer, payment and expense CSV exports.
 
 Service-provider suite: dispatch, a local inbox, automations, finance and margins, intelligence,
 team performance, a payment ledger, and the review fixes that make the service operations

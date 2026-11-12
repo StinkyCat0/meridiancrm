@@ -74,6 +74,19 @@ export function fromCents(cents: number | null | undefined): string {
   return amount.toFixed(2);
 }
 
+/** Triggers a browser download for a CSV blob and releases its object URL. */
+export function downloadCsv(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
+
 export function useDebouncedValue<T>(value: T, delay = 250): T {
   const [debounced, setDebounced] = useState(value);
 

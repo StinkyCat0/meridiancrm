@@ -1,6 +1,6 @@
 import { api, type Company, type CustomerType } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Building2, Plus, Search } from "lucide-react";
+import { AlertTriangle, Building2, Download, Plus, Search } from "lucide-react";
 import {
   CUSTOMER_TYPES,
   CUSTOMER_TYPE_META,
@@ -9,6 +9,7 @@ import {
 } from "@meridian/contracts";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -21,7 +22,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { Tabs } from "../../components/ui/Tabs";
 import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
-import { formatMoney, useDebouncedValue } from "../../lib/utils";
+import { downloadCsv, formatMoney, useDebouncedValue } from "../../lib/utils";
 import { CompanyDetailSheet } from "./CompanyDetailSheet";
 import { CompanyFormModal } from "./CompanyFormModal";
 import { apiErrorMessage, toIndustry } from "./lib";
@@ -44,6 +45,7 @@ export default function CompaniesPage() {
   const [archive, setArchive] = useState<ArchiveView>("active");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
 
   useEffect(() => {
@@ -112,6 +114,25 @@ export default function CompaniesPage() {
     navigate(`/app/companies/${encodeURIComponent(saved.id)}`);
   }
 
+  async function exportCustomers() {
+    setExporting(true);
+    try {
+      const blob = await api.exports.customers({
+        q: debouncedSearch.trim() || undefined,
+        industry: industry || undefined,
+        customerType: customerType || undefined,
+        archive,
+      });
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(blob, `customers-${stamp}.csv`);
+      toast.success("Customers exported");
+    } catch (error) {
+      toast.error(apiErrorMessage(error));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -126,10 +147,22 @@ export default function CompaniesPage() {
         }
         description="The people and properties behind the work — contacts, sites, jobs and money."
         actions={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            <Plus aria-hidden="true" className="size-4" />
-            New customer
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => void exportCustomers()}
+              loading={exporting}
+            >
+              {exporting ? null : (
+                <Download className="size-4" aria-hidden="true" />
+              )}
+              Export CSV
+            </Button>
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              <Plus aria-hidden="true" className="size-4" />
+              New customer
+            </Button>
+          </div>
         }
       />
 

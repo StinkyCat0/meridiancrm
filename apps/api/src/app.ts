@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import cors from "@fastify/cors";
@@ -29,6 +30,9 @@ const STATIC_CSP = [
 const redactSensitiveUrl = (url: string): string =>
   url.replace(/\/invite\/[^/?#]+/gi, "/invite/[redacted]");
 
+const REQUEST_ID_HEADER = "x-request-id";
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
+
 export async function buildApp(
   options: { logger?: boolean } = {},
 ): Promise<FastifyInstance> {
@@ -47,18 +51,35 @@ export async function buildApp(
                   options: { colorize: true, translateTime: "HH:MM:ss" },
                 },
             serializers: {
-              req: (request: { method?: string; url?: string }) => ({
+              req: (request: {
+                method?: string;
+                url?: string;
+                id?: string;
+              }) => ({
                 method: request.method,
                 url: redactSensitiveUrl(request.url ?? ""),
+                requestId: request.id,
               }),
             },
           }),
+    genReqId(request) {
+      const supplied = request.headers[REQUEST_ID_HEADER];
+      if (typeof supplied === "string" && REQUEST_ID_PATTERN.test(supplied)) {
+        return supplied;
+      }
+      return randomUUID();
+    },
     trustProxy: config.trustProxy,
     bodyLimit: 1024 * 1024,
   });
 
   app.decorateRequest("auth", null);
   registerErrorHandler(app);
+
+  app.addHook("onRequest", async (request, reply) => {
+    request.log = request.log.child({ requestId: request.id });
+    reply.header(REQUEST_ID_HEADER, request.id);
+  });
 
   app.addHook("onSend", async (request, reply, payload) => {
     if (request.url.startsWith("/api/v1/auth"))
@@ -128,6 +149,7 @@ export async function buildApp(
           description: "Explainable recommendations and forecasts",
         },
         { name: "team", description: "Technician performance and workload" },
+        { name: "exports", description: "CSV exports for reconciliation" },
       ],
     },
   });

@@ -1,41 +1,89 @@
 # Meridian CRM
 
 [![CI](https://github.com/StinkyCat0/meridiancrm/actions/workflows/ci.yml/badge.svg)](https://github.com/StinkyCat0/meridiancrm/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/StinkyCat0/meridiancrm/actions/workflows/codeql.yml/badge.svg)](https://github.com/StinkyCat0/meridiancrm/actions/workflows/codeql.yml)
 
-Meridian CRM is a boutique, API-first CRM for service businesses — window cleaners, HVAC crews,
-utilities, hair and nail salons, and the teams that dispatch them. It keeps the pipeline legible
-while staying close to the day: customers, service locations, a price book, scheduled jobs,
-estimates, invoices, and the money still owed. It is built as a TypeScript monorepo with a shared
-contract layer, so a native mobile client consumes the same API rather than a second backend.
+Meridian CRM is a boutique, API-first operations platform for local service businesses — hair and
+nail salons, barbershops, HVAC crews, window cleaners, plumbers, landscapers, and the small teams
+that run them. It keeps the books, the calendar, the customer conversation, and the money in one
+place without turning a four-person shop into an enterprise software project. Customers, service
+locations, a price book, dispatch, jobs, estimates, invoices, payments, expenses, and margins all
+share one typed contract layer, so a native client can consume the same API rather than a second
+backend.
+
+Built for the day, not the quarter: dispatch the morning, collect the afternoon, and know which
+service actually pays for itself.
 
 ## Features
 
-- Email/password auth with rotating refresh cookies, workspace registration, and invite-only joins.
-- Multi-tenant workspaces with OWNER / ADMIN / MEMBER roles enforced server-side.
-- Customers and contacts with tags, ownership, archive/restore, notes, and cross-links. Customers
-  are typed residential, commercial, or property manager.
-- Service locations per customer: address, access notes, gate codes, on-site contact, and a single
-  primary location.
-- Service price book with categories, units (visit, hour, sq ft, room, unit, item), duration, price
-  in cents, and taxable flags.
-- Jobs / work orders with numbering (`JOB-1001`), scheduling windows, priority, assignee, recurrence,
-  line items, tax, deposits, and a status lifecycle with arrival and completion timestamps.
-- Estimates (`EST-1001`) that move draft → sent → approved and convert into jobs with their line
-  items intact.
-- Invoices (`INV-1001`), optionally generated from a job, with partial payments, derived balances,
-  and overdue flags.
-- Operations dashboard strip: today's schedule, completed work, unscheduled and unassigned jobs,
-  booked value, receivables, and open estimates.
-- Multiple pipelines with configurable stages, drag-and-drop deal boards, stage history, and
-  won/lost handling.
-- Deterministic 0-100 deal momentum score with an explainable breakdown.
-- Activities (note, call, email, meeting, task) linked to companies, contacts, and deals.
-- Dashboard with pipeline value, win rate, average deal size, revenue trend, stage distribution,
-  activity mix, and momentum bands.
-- Global search and a keyboard-first command palette (`Cmd/Ctrl+K`).
-- Team management: members, role changes, revocable expiring invites, audit log.
-- Installable PWA; documented plan for an Expo/React Native client.
+**Operate the day**
+
+- Dispatch board grouped by technician with utilization, unassigned work, and a route-optimized day
+  per tech. The map plots service locations with coordinates on OpenStreetMap tiles.
+- Calendar and job schedule with status, priority, assignee, recurrence, line items, tax, deposits,
+  arrival and completion timestamps.
+- Job lifecycle with explicit transitions
+  `UNSCHEDULED → SCHEDULED → DISPATCHED → IN_PROGRESS → COMPLETED`, plus `CANCELED` and `NO_SHOW`,
+  with the same side effects on every write path.
+- Local, logged inbox for calls, texts, and emails. Messages are recorded against a customer,
+  contact, or job — there is no carrier or mailbox connection, so nothing is sent or received.
+- Local message drafts for reminders, follow-ups, quotes, payments, reviews, win-backs, and
+  reschedules. A deterministic template engine builds the copy, and every draft carries a rationale.
+
+**Grow the book**
+
+- Customers typed residential, commercial, or property manager, with contacts, tags, ownership,
+  archive/restore, and cross-links.
+- Service locations with access notes, gate codes, on-site contacts, coordinates, and one primary
+  location per customer.
+- Customer 360 timeline that merges activities, logged communications, jobs, estimates, invoices,
+  and payments in one feed.
+- Price book with categories, units (visit, hour, sq ft, room, unit, item), duration, price, cost,
+  and taxable flags.
+- Estimates (`EST-1001`) that move draft → sent → approved and convert into jobs with line items
+  intact.
+- Invoices (`INV-1001`) generated from a job or customer, with a payment ledger, derived status and
+  balance, and overdue flags.
+- Leads pipeline with configurable stages, drag-and-drop boards, stage history, won/lost handling,
+  and a deterministic 0–100 momentum score with an explainable breakdown.
+
+**Run the business**
+
+- Revenue and margin view: collected revenue, expenses, gross profit, monthly trend, service-line
+  margins, technician revenue, top customers, and outstanding balances.
+- Expense tracking by category, vendor, job, and team member, with an optional receipt URL.
+- Automations: rules on job, quote, invoice, and customer events with conditions and contained
+  actions (create a task, log a message, add a tag, request a review).
+- Intelligence: deterministic, explainable recommendations for churn risk, no-show risk, upsells,
+  collections, review requests, staffing, forecasts, quote follow-up, and route coverage. No
+  external model is called.
+- Team performance and workload: jobs scheduled/completed/canceled/no-show, revenue, margin,
+  utilization, ratings, and today's capacity.
+- Operations dashboard, global search, keyboard-first command palette (`Cmd/Ctrl+K`), and audit log.
+- Email/password auth with rotating refresh cookies, invite-only team joins, and OWNER / ADMIN /
+  MEMBER roles enforced server-side.
 - REST API with OpenAPI docs, consistent error envelopes, Zod validation, and rate limiting.
+
+## Local semantics
+
+These boundaries are deliberate and visible in the UI:
+
+- **Communications are logged, not delivered.** There is no SMS carrier, mailbox, or email
+  provider. Logging a message writes a `Communication` row with `provider: "log"`; automation
+  messages are also rows, with `provider: "automation"`.
+- **Intelligence and drafts are local engines.** Recommendations and message copy come from
+  deterministic rules and templates in `packages/contracts` and the API. No customer data leaves
+  the server for a model provider.
+- **Payments are a ledger.** Meridian records payments against invoices; it is not a payment
+  processor and never moves money. `Payment` rows are the ledger, and `Invoice.amountPaid` is the
+  denormalized total maintained in the same transaction.
+- **Maps use OpenStreetMap.** The dispatch map loads raster tiles from
+  `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` in the browser. No API key is required, and
+  the browser discloses its IP address to OpenStreetMap while tiles load. Coordinates come from
+  locations you enter; there is no geocoding service.
+- **SQLite is single-writer.** WAL, a busy timeout, and an in-process per-workspace document-write
+  queue keep concurrent creates fast and deterministic on one machine. Horizontal scaling needs
+  Postgres.
 
 ## Quickstart
 
@@ -53,16 +101,20 @@ npm run dev
 - Interactive API docs: http://localhost:4000/docs
 - Health: http://localhost:4000/api/v1/health
 
-`npm run db:setup` generates the Prisma client, applies migrations, and seeds a demo workspace. The
-seed deletes and recreates the `meridian-studio` demo workspace, so avoid running it against a
+`npm run db:setup` generates the Prisma client, applies migrations, and seeds the `meridian-studio`
+demo workspace. The seed deletes and recreates that workspace, so avoid running it against a
 database you cannot restore.
 
-Demo account:
+Demo accounts, all with password `Meridian2026!`:
 
 ```text
-demo@meridian.studio
-Meridian2026!
+demo@meridian.studio    OWNER
+member@meridian.studio  ADMIN
 ```
+
+The seed also creates member accounts for role checks and a realistic Austin, TX home-services book
+with customers, locations, jobs, estimates, invoices, payments, expenses, logged communications, and
+automation rules.
 
 A `500 Internal Server Error` on sign-in means the request never reached a healthy API: the dev
 server proxies `/api` to port 4000, so check that `npm run dev:api` (or `npm run dev`) is running
@@ -75,19 +127,22 @@ unset (defaults to `1` in production).
 
 ## Scripts
 
-| Command             | Purpose                                            |
-| ------------------- | -------------------------------------------------- |
-| `npm run dev`       | Run API and web together (concurrently).           |
-| `npm run dev:api`   | API only with watch mode.                          |
-| `npm run dev:web`   | Vite dev server only.                              |
-| `npm run build`     | Build API (`tsup`) and web (`vite build`).         |
-| `npm start`         | Start the built API.                               |
-| `npm test`          | Contracts + API integration tests (Vitest).        |
-| `npm run verify`    | Tests plus both builds; the CI gate.               |
-| `npm run typecheck` | TypeScript check for API and web.                  |
-| `npm run db:setup`  | Generate client, migrate, seed the demo workspace. |
-| `npm run seed`      | Re-run the seed script.                            |
-| `npm run format`    | Prettier across the repo.                          |
+| Command                 | Purpose                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| `npm run dev`           | Run API and web together (concurrently).                    |
+| `npm run dev:api`       | API only with watch mode.                                   |
+| `npm run dev:web`       | Vite dev server only.                                       |
+| `npm run build`         | Build API (`tsup`) and web (`vite build`).                  |
+| `npm start`             | Start the built API.                                        |
+| `npm test`              | Contracts + API integration tests (Vitest).                 |
+| `npm run test:coverage` | Contracts tests plus API tests with the V8 coverage gate.   |
+| `npm run verify`        | Tests plus both builds.                                     |
+| `npm run verify:ci`     | Format check, coverage tests, both typechecks, both builds. |
+| `npm run typecheck`     | TypeScript check for API and web.                           |
+| `npm run format`        | Prettier write across the repo.                             |
+| `npm run format:check`  | Prettier check; fails CI on unformatted files.              |
+| `npm run db:setup`      | Generate client, migrate, seed the demo workspace.          |
+| `npm run seed`          | Re-run the seed script.                                     |
 
 ## Architecture
 
@@ -96,19 +151,24 @@ flowchart LR
   B[Browser] --> SPA[React SPA<br/>Vite + TanStack Query]
   SPA -->|typed fetch| C["@meridian/api-client"]
   C -->|JSON /api/v1| API[Fastify REST API]
-  API -->|Prisma| DB[(SQLite)]
+  API -->|Prisma| DB[(SQLite<br/>WAL)]
+  API --> ENG[Local engines<br/>drafts · intelligence · automations]
   API --> SH[Shared packages]
   SPA --> SH
-  SH["@meridian/contracts<br/>Zod schemas + types"]
+  SPA -->|raster tiles| OSM[OpenStreetMap]
+  SH["@meridian/contracts<br/>Zod schemas + types + pure rules"]
 ```
 
-- `apps/api` — Fastify 5, Prisma 6, SQLite, JWT auth, OpenAPI.
-- `apps/web` — React 19, Vite, Tailwind CSS v4, TanStack Query, React Router, dnd-kit, Recharts.
-- `packages/contracts` — Zod schemas, TypeScript types, and the momentum calculator shared by every
-  client.
+- `apps/api` — Fastify 5, Prisma 6, SQLite, JWT auth, OpenAPI, dispatch routing, finance ledger,
+  automation runner, local intelligence.
+- `apps/web` — React 19, Vite, Tailwind CSS v4, TanStack Query, React Router, dnd-kit, Recharts,
+  Leaflet.
+- `packages/contracts` — Zod schemas, TypeScript types, status machines, invoice rules, message
+  drafting, route optimization, momentum and scoring helpers shared by every client.
 - `packages/api-client` — typed fetch wrapper over the REST API.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for multi-tenancy, auth, and design decisions.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the data model, write serialization, event
+flow, and design decisions.
 
 ## Authentication
 
@@ -117,6 +177,19 @@ opaque refresh token is stored hashed in the database (one row per session) and 
 httpOnly, SameSite=Lax cookie scoped to `/api/v1/auth`. `POST /api/v1/auth/refresh` rotates that
 token and returns a new access token; individual sessions are revocable. Passwords are hashed with
 scrypt from `node:crypto`; there are no native dependencies.
+
+## Quality gates
+
+Every pull request runs:
+
+- Prettier format check, contracts tests, API integration tests with the coverage floor, sequential
+  API and web typechecks, and both production builds.
+- CodeQL `security-extended` analysis for JavaScript/TypeScript.
+- Dependency Review on pull requests, failing new high-severity dependencies.
+- `npm audit --omit=dev --audit-level=critical` for runtime dependencies.
+
+The suite on this branch is verified by 81 API integration tests and 15 contract tests, with both
+typechecks and builds passing.
 
 ## Deployment
 
@@ -138,10 +211,11 @@ Details are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#optional-load-the-demo-wo
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [API reference](docs/API.md)
-- [Mobile strategy](docs/MOBILE.md)
-- [Deployment](docs/DEPLOYMENT.md)
+- [Status](docs/STATUS.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Decisions](docs/DECISIONS.md)
+- [Mobile strategy](docs/MOBILE.md)
+- [Deployment](docs/DEPLOYMENT.md)
 - [Security](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)

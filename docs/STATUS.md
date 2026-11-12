@@ -1,7 +1,7 @@
 # Meridian CRM — Release Status
 
-**Version:** 0.1.0 (MVP) · **Date:** 2026-11-10 · **Repository:** private
-[`StinkyCat0/meridiancrm`](https://github.com/StinkyCat0/meridiancrm)
+**Version:** 0.2.0 (service-provider suite) · **Date:** 2026-11-11 · **Repository:** public,
+proprietary [`StinkyCat0/meridiancrm`](https://github.com/StinkyCat0/meridiancrm)
 
 ## Running now
 
@@ -12,48 +12,86 @@
 | API docs | http://localhost:4000/docs          | OpenAPI 3.0       |
 | Health   | http://localhost:4000/api/v1/health | includes DB check |
 
-Demo workspace: **Meridian Studio** — `demo@meridian.studio` / `Meridian2026!` (OWNER).
-Second seeded account: `member@meridian.studio` / `Meridian2026!` (MEMBER, for role checks).
+Demo workspace: **Meridian Home Services** (slug `meridian-studio`), seeded as an Austin, TX
+home-services book. Password for all seeded accounts is `Meridian2026!`.
+
+| Account                  | Role   | Purpose                    |
+| ------------------------ | ------ | -------------------------- |
+| `demo@meridian.studio`   | OWNER  | full workspace walkthrough |
+| `member@meridian.studio` | ADMIN  | admin-gated surfaces       |
+| `maya@meridian.studio`   | MEMBER | member-level checks        |
+
+The seed also creates `chris@` and `sofia@` as MEMBER accounts, plus customers, locations, jobs,
+estimates, invoices, payments, expenses, logged communications, and automation rules.
 
 ## Shipped surface
 
-- Auth with short-lived JWTs, rotating httpOnly refresh cookies, scrypt hashing, invites, password change.
-- Multi-tenant workspaces with OWNER/ADMIN/MEMBER enforcement re-read per request, audit log.
-- Companies, contacts, deals with archive/restore, tags, ownership, search, filters, pagination.
-- Configurable pipelines/stages, drag-and-drop board, stage history, won/lost reconciliation.
-- Explainable 0–100 momentum score on every deal, with breakdown.
-- Activities (note/call/email/meeting/task), due grouping, completion, linked records.
-- Dashboard: pipeline value, wins, win rate, average deal, revenue trend, stage distribution,
-  activity mix, momentum bands, recent deals, tasks due.
-- Global ⌘K/Ctrl+K palette and REST search.
-- Settings: profile, password, workspace, members/roles, invites, pipeline stage admin, audit.
-- Installable PWA; typed API client and shared Zod contracts for a future native client.
+- Auth with short-lived JWTs, rotating httpOnly refresh cookies, scrypt hashing, invites, password
+  change, and audited workspace administration.
+- Multi-tenant workspaces with OWNER/ADMIN/MEMBER enforcement re-read per request.
+- CRM: customers, contacts, deals with archive/restore, tags, configurable pipelines, stage history,
+  drag-and-drop board, and explainable momentum with a breakdown.
+- Service operations: locations with one primary per customer, price book with cost, jobs with a
+  single transition table, estimates with atomic conversion, invoices with a payment ledger.
+- Dispatch: daily board with utilization, OpenStreetMap stop map, per-technician optimized route,
+  bulk assignment with schedule-conflict checks.
+- Local inbox: logged calls/texts/emails, per-customer threads, stats, unread state, and
+  deterministic message drafts. No carrier or mailbox is connected.
+- Customer 360 timeline across activities, communications, jobs, estimates, invoices, and payments.
+- Automations: nine triggers, conditions, four contained action types, run history, 24-hour dedupe,
+  admin-triggered due sweep.
+- Finance: summary, payment ledger list, expense CRUD, margins, monthly trends, category spend,
+  technician revenue, and top customers.
+- Intelligence: local recommendations, forecast, health, upsells, and assistant brief.
+- Team performance and workload with utilization, ratings, revenue, and margin.
+- Operations dashboard, dashboard analytics, global search, ⌘K/Ctrl+K palette, settings, audit,
+  installable PWA, and documented REST API.
 
 ## Verification evidence
 
-- Contracts tests: 6/6. API integration tests: 14/14 (auth, refresh reuse, invites, tenancy, RBAC,
-  CRUD, stage transitions, stage integrity, dashboard, search).
-- `npm run typecheck` clean across API, web, contracts; `npm run build` succeeds for both apps.
-- Chromium walkthrough at 1440px and 390px: login, dashboard, contacts (created a record), companies,
-  deals board and `?deal=` deep link, activities, settings, command palette; zero console errors.
-- Production single-container mode: SPA fallback, CSP, immutable hashed assets, missing asset 404,
-  `Cache-Control: no-store` on auth, HttpOnly/SameSite refresh cookie.
-- GitHub Actions `Verify` job: automatic run on `main`; manual dispatch verified on the release branch.
+Verified on branch `feat/service-provider-suite`:
 
-## Known limits (intentional for MVP)
+- **API integration tests:** 81 passing across auth, CRM, service operations, communications,
+  dispatch, finance, automations, intelligence, and team suites.
+- **Contract tests:** 15 passing (momentum, formatters, route optimization, message drafts, invoice
+  rules, scoring).
+- **Typechecks:** `npm run typecheck` clean for API and web, run sequentially as CI does.
+- **Builds:** `@meridian/api` (`tsup`) and `@meridian/web` (`vite build`) both succeed.
+- **Coverage:** `npm run test:coverage` satisfies the configured floor (statements 20, branches 15,
+  functions 20, lines 20).
+- **Formatting:** Prettier check clean across the repository.
 
-- SQLite is single-writer; multi-instance deployment needs Postgres (provider swap, no API rewrite).
-  MongoDB is not a fit for the relational pipeline model and remains a later evaluation only.
-- No email delivery: invite links are returned to the admin to share; no password-reset email flow.
-- No billing, SSO/MFA, automation builder, file uploads, or native mobile build yet.
-- One workspace per account at a time (invite acceptance is for new accounts).
-- Docker image not built in this environment (no Docker daemon); config is committed and documented.
-- Cloudflare health worker is committed but not deployed (no Cloudflare credentials).
+CI runs these same gates on every pull request: format check, Prisma client generation and
+migrations, contracts tests, API tests with coverage, sequential API then web typechecks, both
+builds, and artifact upload. Separate workflows run CodeQL `security-extended` and Dependency Review
+(failing new high-severity dependencies); the Verify job also audits production dependencies at
+critical severity.
+
+## Known limits (current)
+
+- **No carrier or mailbox.** Communications are recorded locally; nothing is delivered or received.
+  "Sent" is local bookkeeping.
+- **No external LLM.** Drafts and intelligence are deterministic local engines; they do not call a
+  model provider and cannot reason beyond their encoded rules.
+- **No file uploads.** Expenses accept an optional receipt URL only.
+- **SQLite is single-writer.** WAL, a 5-second busy timeout, and an in-process per-workspace
+  document-write queue keep one instance reliable. Multi-instance deployment needs Postgres.
+- **No native app.** The responsive, installable PWA is the mobile surface today.
+- **OpenStreetMap tile dependency.** The dispatch map loads tiles directly from
+  `tile.openstreetmap.org` in the browser, with no API key, proxy, or offline cache. Tile requests
+  disclose the browser IP to OSM; if tiles fail, stops still render without a basemap.
+- **Payments are a ledger.** Meridian records receipts and adjustments; it is not a payment
+  processor.
+- No email delivery for invites or password resets; invite links are copied manually.
+- No billing, SSO/SAML, MFA, or reporting exports yet.
+- One workspace per account at a time.
 
 ## Next
 
-1. Deploy behind TLS (Caddy example in `docs/DEPLOYMENT.md`) and point the health worker at it.
-2. Add email delivery for invites and password resets.
-3. Add Postgres when more than one app instance is needed.
-4. Start the Expo client from `docs/MOBILE.md` using `packages/contracts` and `packages/api-client`.
-5. Add email-logging sync and a reporting/export surface.
+1. Add a carrier/mailbox integration and a scheduled automation worker.
+2. Add Postgres when more than one app instance is needed.
+3. Add file storage for receipts and exports.
+4. Deploy behind TLS (Caddy example in [DEPLOYMENT.md](DEPLOYMENT.md)) and point the optional health
+   worker at it.
+5. Start the Expo client from [MOBILE.md](MOBILE.md) using `packages/contracts` and
+   `packages/api-client`.

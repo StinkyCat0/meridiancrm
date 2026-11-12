@@ -73,7 +73,9 @@ List endpoints accept:
 | `order`    | `desc`  | `asc` or `desc`.                                            |
 
 Responses are `{ "data": [...], "meta": { "page", "pageSize", "total", "totalPages" } }`. Endpoint-
-specific filters are listed below.
+specific filters are listed below. Endpoints that are not paginated — threads, stats, drafts,
+customer timeline, dispatch, finance summary, intelligence, team reports, and an invoice's payment
+list — return their documented object or array directly.
 
 ## Errors
 
@@ -119,17 +121,17 @@ Every non-2xx JSON response uses one envelope:
 
 ### Workspace, members, invites, audit
 
-| Method | Path                     | Role   | Purpose                                                                                                       |
-| ------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------------------------- |
-| GET    | `/workspace`             | member | Current workspace summary.                                                                                    |
-| PATCH  | `/workspace`             | admin  | Rename workspace or set `currency` (USD, EUR, GBP, CAD, AUD, JPY).                                            |
-| GET    | `/workspace/members`     | member | All members with roles.                                                                                       |
-| PATCH  | `/workspace/members/:id` | admin  | Change role to `ADMIN` or `MEMBER`; owners can only be changed by owners.                                     |
-| DELETE | `/workspace/members/:id` | admin  | Remove a member (204); cannot remove yourself or the last owner.                                              |
-| GET    | `/workspace/invites`     | admin  | Pending and past invites.                                                                                     |
-| POST   | `/workspace/invites`     | admin  | Invite by email (201); returns `{ invite, token, inviteUrl }`. Token is shown once; 7-day expiry, single use. |
-| DELETE | `/workspace/invites/:id` | admin  | Revoke an invite (204).                                                                                       |
-| GET    | `/workspace/audit`       | admin  | Paginated audit entries, newest first; `q` matches action/entity.                                             |
+| Method | Path                     | Role   | Purpose                                                                                                                              |
+| ------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/workspace`             | member | Current workspace summary.                                                                                                           |
+| PATCH  | `/workspace`             | admin  | Rename workspace or set `currency` (USD, EUR, GBP, CAD, AUD, JPY), `businessType`, `timezone`, `serviceArea`, and depot coordinates. |
+| GET    | `/workspace/members`     | member | All members with roles.                                                                                                              |
+| PATCH  | `/workspace/members/:id` | admin  | Change role to `ADMIN` or `MEMBER`; owners can only be changed by owners.                                                            |
+| DELETE | `/workspace/members/:id` | admin  | Remove a member (204); cannot remove yourself or the last owner.                                                                     |
+| GET    | `/workspace/invites`     | admin  | Pending and past invites.                                                                                                            |
+| POST   | `/workspace/invites`     | admin  | Invite by email (201); returns `{ invite, token, inviteUrl }`. Token is shown once; 7-day expiry, single use.                        |
+| DELETE | `/workspace/invites/:id` | admin  | Revoke an invite (204).                                                                                                              |
+| GET    | `/workspace/audit`       | admin  | Paginated audit entries, newest first; `q` matches action/entity.                                                                    |
 
 ### Customers (companies)
 
@@ -236,10 +238,13 @@ Units are `VISIT`, `HOUR`, `SQFT`, `ROOM`, `UNIT`, or `ITEM`.
 | POST   | `/jobs/:id/duplicate` | member | Copy a job, optionally at a new `scheduledStart` (201).                                                                                                                                             |
 | DELETE | `/jobs/:id`           | admin  | Permanently delete (204).                                                                                                                                                                           |
 
-Statuses are `UNSCHEDULED → SCHEDULED → DISPATCHED → IN_PROGRESS → COMPLETED`, plus `CANCELED`.
-Moving to `IN_PROGRESS` stamps `arrivedAt`; `COMPLETED` stamps `completedAt` and logs a note
-activity. Supplying `scheduledStart` without `scheduledEnd` derives the end from `durationMinutes`.
-`recurrence` is one of `WEEKLY`, `BIWEEKLY`, `MONTHLY`, `QUARTERLY`, `SEMIANNUAL`, `ANNUAL`.
+Statuses are `UNSCHEDULED → SCHEDULED → DISPATCHED → IN_PROGRESS → COMPLETED`, plus `CANCELED`
+and `NO_SHOW`. Allowed transitions are enforced, and a no-show can be rebooked to `SCHEDULED`;
+completed, canceled, and no-show jobs are otherwise terminal. Moving to `IN_PROGRESS` stamps
+`arrivedAt`; `COMPLETED` stamps `completedAt`; `COMPLETED`, `CANCELED`, and `NO_SHOW` also write a
+note activity, an audit entry, and a domain event. Supplying `scheduledStart` without
+`scheduledEnd` derives the end from `durationMinutes`. `recurrence` is one of `WEEKLY`, `BIWEEKLY`,
+`MONTHLY`, `QUARTERLY`, `SEMIANNUAL`, `ANNUAL`.
 
 ### Estimates
 
@@ -258,18 +263,70 @@ estimate `APPROVED`. Converting twice returns 409.
 
 ### Invoices
 
-| Method | Path                    | Role   | Purpose                                                                                                                                     |
-| ------ | ----------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/invoices`             | member | Paginated list. Filters: `status`, `customerId`, `jobId`, `overdue=true`; sort `amount`, `dueAt`, `createdAt`. Numbers start at `INV-1001`. |
-| POST   | `/invoices`             | member | Create from a `jobId` or a `customerId` (201). From a job, customer, location and amount default to the job.                                |
-| GET    | `/invoices/:id`         | member | One invoice with derived `balance` and `overdue`.                                                                                           |
-| PATCH  | `/invoices/:id`         | member | Update title, status, amount, `amountPaid`, dates or notes.                                                                                 |
-| PATCH  | `/invoices/:id/payment` | member | Set `amountPaid`; derives `PARTIAL`/`PAID`/`SENT`.                                                                                          |
-| DELETE | `/invoices/:id`         | admin  | Delete (204).                                                                                                                               |
+| Method | Path                     | Role   | Purpose                                                                                                                                     |
+| ------ | ------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/invoices`              | member | Paginated list. Filters: `status`, `customerId`, `jobId`, `overdue=true`; sort `amount`, `dueAt`, `createdAt`. Numbers start at `INV-1001`. |
+| POST   | `/invoices`              | member | Create from a `jobId` or a `customerId` (201). From a job, customer, location and amount default to the job.                                |
+| GET    | `/invoices/:id`          | member | One invoice with derived `balance` and `overdue`.                                                                                           |
+| PATCH  | `/invoices/:id`          | member | Update title, status, amount, `amountPaid`, dates or notes. Status transitions are validated.                                               |
+| PATCH  | `/invoices/:id/payment`  | member | Set `amountPaid` to an absolute value; derives `PARTIAL`/`PAID`/`SENT` and appends the delta to the ledger.                                 |
+| GET    | `/invoices/:id/payments` | member | List the invoice's payments, newest first.                                                                                                  |
+| POST   | `/invoices/:id/payments` | member | Append a payment (`amount`, `method`, `reference`, `receivedAt`) and return the updated invoice (201).                                      |
+| DELETE | `/invoices/:id`          | admin  | Delete (204).                                                                                                                               |
 
-`balance = max(0, amount - amountPaid)` and `overdue` is derived from `dueAt`, never stored. Marking
-an invoice `PAID` sets `amountPaid` to the amount and stamps `paidAt`. Payments above the amount are
-rejected.
+`balance = max(0, amount - amountPaid)` and `overdue` is derived from a positive balance and the due
+date, never stored. When status is derived — the payment endpoints and `PATCH` without an explicit
+status — a draft stays `DRAFT` until money is recorded, then `SENT`, `PARTIAL`, or `PAID` follows the
+balance. Explicit status changes are validated against the transition table, and a paid invoice is
+terminal. Sending a draft
+stamps `issuedAt`; leaving `PAID` clears `paidAt`; a paid invoice cannot be reopened; payments above
+the amount are rejected; a zero-total invoice cannot be marked paid.
+
+Payments are a ledger, not a processor. `POST /invoices/:id/payments` inserts a `Payment` row and
+raises `amountPaid`; `PATCH /invoices/:id/payment` and `PATCH /invoices/:id` record the difference as
+a `Payment` with method `ADJUSTMENT` when it is negative. `method` is one of `CARD`, `CASH`, `CHECK`,
+`ACH`, `TRANSFER`, `ADJUSTMENT`, `OTHER`. Creating an invoice already `PAID` records its opening
+payment in the same transaction.
+
+### Communications
+
+The inbox is a local log. No carrier, mailbox, or email provider is connected: logging a message
+writes a workspace row and does not deliver anything. Rows created by `POST /communications` carry
+`provider: "log"`; automation-created messages carry `provider: "automation"`. Both have
+`externalId: null`.
+
+| Method | Path                      | Role   | Purpose                                                                                                                               |
+| ------ | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/communications`         | member | Paginated log. Filters: `channel=CALL\|SMS\|EMAIL`, `direction=INBOUND\|OUTBOUND`, `customerId`, `contactId`, `jobId`, `unread`, `q`. |
+| GET    | `/communications/threads` | member | Threads grouped by customer, newest first. `q` matches customer name, subject, or body; `limit` 1-100 (default 50).                   |
+| GET    | `/communications/stats`   | member | Totals by channel, direction, and unread state, plus calls/texts today and open follow-up tasks.                                      |
+| POST   | `/communications/draft`   | member | Build a local message draft. Body: `customerId`, optional `jobId`, `channel`, `intent`, `tone`.                                       |
+| GET    | `/communications/:id`     | member | One communication.                                                                                                                    |
+| POST   | `/communications`         | member | Log a call, text, or email (201). Requires at least one of `customerId`, `contactId`, `jobId`.                                        |
+| PATCH  | `/communications/:id`     | member | Set `readAt` (or clear it) and/or `sentiment`.                                                                                        |
+| DELETE | `/communications/:id`     | admin  | Delete the row (204).                                                                                                                 |
+
+`channel` is `CALL`, `SMS`, or `EMAIL`; `direction` is `INBOUND` or `OUTBOUND`; `intent` is one of
+`GENERAL`, `REMINDER`, `FOLLOW_UP`, `QUOTE`, `PAYMENT`, `REVIEW`, `WINBACK`, `RESCHEDULE`;
+`sentiment` is `POSITIVE`, `NEUTRAL`, or `NEGATIVE`. When `status` is omitted, inbound rows default
+to `RECEIVED`, outbound calls to `LOGGED`, and other outbound rows to `SENT`. "Unread" means inbound
+with `readAt: null`.
+
+`POST /communications/draft` is deterministic and never calls a model. It composes subject and body
+from the customer, first active contact, workspace business type, optional job appointment and
+service, and any open balance. The response includes the `rationale` and `tone` (`WARM`,
+`PROFESSIONAL`, `BRIEF`). Nothing is stored until the message is logged.
+
+### Customer timeline
+
+| Method | Path                      | Role   | Purpose                                                                                                                 |
+| ------ | ------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/companies/:id/timeline` | member | Merge activities, communications, jobs, estimates, invoices, and payments for one customer. `limit` 1-200 (default 80). |
+
+The response is `{ customer, items, counts }`, newest first. `items[].kind` is one of `activity`,
+`communication`, `job`, `estimate`, `invoice`, `payment`; entries carry a human title, optional
+detail, status, amount, `entityId`, and an in-app `href` where one exists. `counts` reports the full
+number of each kind even when `items` is truncated by `limit`.
 
 ### Operations
 
@@ -279,6 +336,104 @@ rejected.
 
 Money values are integer cents throughout; `taxRate` is a percentage (for example `8.25`) stored
 internally as basis points. Estimate, job and invoice numbers are unique per workspace.
+
+### Dispatch
+
+| Method | Path               | Role   | Purpose                                                                                                                    |
+| ------ | ------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/dispatch/board`  | member | Daily board: every member with their jobs, scheduled minutes and utilization (480-minute day), unassigned jobs, and stats. |
+| GET    | `/dispatch/map`    | member | Mappable stops for a day with coordinates, `missingLocationCount`, depot, and map center. `assigneeId` narrows the board.  |
+| GET    | `/dispatch/route`  | member | Optimized route for one technician. `assigneeId` is required; unknown or non-member ids return 400/404.                    |
+| POST   | `/dispatch/assign` | member | Bulk assign or unassign up to 50 jobs. `{ "jobIds": ["…"], "assigneeId": "…" \| null }`.                                   |
+
+`date` defaults to today (UTC); use `YYYY-MM-DD`. Assigning a job moves
+`UNSCHEDULED`/`SCHEDULED` work to `DISPATCHED`; unassigning a dispatched job returns it to
+`SCHEDULED`. Assignment checks for overlapping schedules on the same technician and returns 409 on a
+conflict. The route uses nearest-neighbour ordering plus a bounded 2-opt pass over haversine
+distances from the workspace depot (or the first stop when no depot is set); it is a driving
+estimate, not live traffic. The map response includes only jobs whose location has coordinates.
+
+### Finance
+
+All finance reads are available to MEMBER. Expense mutations require ADMIN.
+
+| Method | Path                    | Role   | Purpose                                                                                                                            |
+| ------ | ----------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/finance/summary`      | member | Revenue, collected, refunds, invoiced, outstanding, overdue amount, expenses, gross profit/margin, average ticket, and breakdowns. |
+| GET    | `/finance/payments`     | member | Paginated ledger. Filters: `from`, `to`, `customerId`, `invoiceId`, `q`; sort `receivedAt`, `amount`, `createdAt`.                 |
+| GET    | `/finance/expenses`     | member | Paginated expenses. Filters: `category`, `jobId`, `from`, `to`, `q`; sort `incurredAt`, `amount`, `createdAt`.                     |
+| POST   | `/finance/expenses`     | admin  | Record an expense (201).                                                                                                           |
+| PATCH  | `/finance/expenses/:id` | admin  | Update an expense.                                                                                                                 |
+| DELETE | `/finance/expenses/:id` | admin  | Delete an expense (204).                                                                                                           |
+
+`/finance/summary` accepts optional `from` and `to` dates. It defaults to the 90 days ending today
+(UTC) and clamps the range to 366 days. The payload includes `monthly` revenue/expenses/profit,
+`expensesByCategory`, `serviceMargins` (revenue, cost, margin, margin percent, jobs),
+`technicianRevenue`, `topCustomers` (revenue, jobs, open balance), `paymentCount`, and the workspace
+`currency`. Revenue and margins come from the payment ledger plus job line-item costs.
+
+Expense fields: `category` (`SUPPLIES`, `FUEL`, `PAYROLL`, `MARKETING`, `SOFTWARE`, `RENT`,
+`INSURANCE`, `EQUIPMENT`, `OTHER`), optional `vendor`, `description`, `amount`, `incurredAt`,
+optional `jobId`, optional `userId`, and optional `receiptUrl` (http/https only). Referenced jobs and
+users must belong to the workspace.
+
+### Automations
+
+| Method | Path                   | Role   | Purpose                                                                                                             |
+| ------ | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/automations`         | member | Paginated rules. Filters: `trigger`, `enabled=true\|false`, `q`; sort `name`, `runCount`, `lastRunAt`, `createdAt`. |
+| GET    | `/automations/runs`    | member | Paginated run history, newest first by default. Filters: `trigger`, `status`, `ruleId`.                             |
+| POST   | `/automations/run-due` | admin  | Evaluate overdue invoices and jobs in the next 24 hours against enabled rules. Returns `{ evaluated, run }`.        |
+| POST   | `/automations`         | admin  | Create a rule (201).                                                                                                |
+| GET    | `/automations/:id`     | member | One rule.                                                                                                           |
+| PATCH  | `/automations/:id`     | admin  | Update a rule.                                                                                                      |
+| DELETE | `/automations/:id`     | admin  | Delete a rule and its run history (204).                                                                            |
+
+Triggers are `JOB_CREATED`, `JOB_COMPLETED`, `JOB_CANCELED`, `JOB_NO_SHOW`, `INVOICE_OVERDUE`,
+`QUOTE_SENT`, `QUOTE_APPROVED`, `CUSTOMER_CREATED`, `APPOINTMENT_UPCOMING`. Conditions are optional:
+`minTotal` (cents), `customerTypes`, and `priorities`. A rule has 1-5 actions:
+
+- `CREATE_TASK` — `title`, optional `body`, `dueInHours` (default 24).
+- `SEND_MESSAGE` — `channel`, `intent`, optional `body`; without a body the local draft engine writes
+  one. The result is a logged `Communication` row, not a delivered message.
+- `ADD_TAG` — `tag`; skipped when already present.
+- `REQUEST_REVIEW` — `channel`; logs a review message and creates a 48-hour follow-up task.
+
+Runs record `SUCCESS`, `SKIPPED`, or `FAILED` with a detail string. The same rule cannot run twice
+for the same trigger and entity within 24 hours. Domain events are emitted after the triggering
+transaction commits; a failing rule is recorded and isolated from the write and from sibling rules.
+`run-due` is idempotent thanks to that dedupe window and only evaluates `SENT`/`PARTIAL` invoices past
+due with a balance, plus `SCHEDULED`/`DISPATCHED` jobs starting in the next 24 hours.
+
+### Intelligence
+
+| Method | Path                            | Role   | Purpose                                                                           |
+| ------ | ------------------------------- | ------ | --------------------------------------------------------------------------------- |
+| GET    | `/intelligence/summary`         | member | Recommendations, counts, forecast, health, and upsells for the workspace.         |
+| GET    | `/intelligence/recommendations` | member | Filtered recommendation feed. `kind` narrows the type; `limit` 1-50 (default 20). |
+| GET    | `/intelligence/brief`           | member | Plain-language headline, summary, bullets, and the top three focus items.         |
+
+Everything is computed locally from workspace data. No external model, queue, or third-party
+enrichment is involved, and every recommendation carries a `rationale`. Kinds are `CHURN_RISK`,
+`NO_SHOW_RISK`, `UPSELL`, `COLLECTIONS`, `REVIEW_REQUEST`, `STAFFING`, `REVENUE_FORECAST`,
+`QUOTE_FOLLOW_UP`, `ROUTE`; severities are `INFO`, `MEDIUM`, `HIGH`. The forecast reports
+`next30Days` with its `scheduled`, `pipelineWeighted`, and `recurring` components, a confidence band,
+and the assumptions used. `health` reports churn-risk customers, no-show-risk jobs, overdue amount,
+unassigned work today, unbilled jobs, and stale quotes.
+
+### Team
+
+| Method | Path                | Role   | Purpose                                                                                                     |
+| ------ | ------------------- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| GET    | `/team/performance` | member | Per-member jobs, revenue, margin, average ticket, utilization, ratings, open jobs, and upcoming minutes.    |
+| GET    | `/team/workload`    | member | One day's workload per member: jobs, scheduled minutes, capacity, utilization, next start, completed today. |
+
+`/team/performance` accepts `from`/`to` and defaults to the last 30 days, clamped to 366. It returns
+all members, including zero-activity rows, plus workspace totals. Utilization uses weekdays in the
+range at 480 minutes per day. Revenue is attributed through the invoice's job assignee; ratings are
+averaged from completed jobs when present. `/team/workload` accepts `date` (default today, UTC),
+counts all members, and reports unassigned jobs and total scheduled minutes. Capacity is 480 minutes
+per member.
 
 ### Insights
 
@@ -297,9 +452,12 @@ counts, `recentDeals`, `tasksDue`, and the workspace `currency`.
 The access token carries the workspace id. Every request re-reads the caller's membership, so role
 changes and removals apply immediately. Ids from another workspace return 404, not 403. Roles:
 
-- **MEMBER** — read everything; create/update companies, contacts, deals, activities; move stages.
+- **MEMBER** — read everything; create/update companies, contacts, deals, activities, jobs,
+  estimates, and invoices; log communications; record invoice payments; assign dispatch work; read
+  finance summaries, payments, expenses, automations, intelligence, and team reports.
 - **ADMIN** — member rights plus workspace settings, invitations, member changes, audit, permanent
-  deletion, pipeline/stage management.
+  deletion, pipeline/stage management, automation rule changes and the due sweep, expense
+  mutations, and communication deletion.
 - **OWNER** — admin rights plus authority over other owners. The last owner cannot be removed or
   demoted, and ownership transfer is not exposed.
 

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -16,14 +16,15 @@ permissions:
 
 env:
   DATABASE_URL: file:./test.db
-  JWT_SECRET: ci-only-secret-please-replace-with-a-40-plus-character-value
+  JWT_SECRET: ci-test-only-secret-not-used-in-production-0123456789
   NODE_ENV: test
+  CI: true
 
 jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -38,6 +39,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Critical-only on purpose: the outstanding high advisories in this repo are
+      # dev-only Prisma tooling that never reaches runtime, and zod is already patched.
+      # Failing on high would block on those while making it easy to wave through a
+      # real runtime critical; this gate fails on any critical production dependency.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Format check
+        run: npm run format:check
+
       - name: Generate Prisma client
         run: npm run db:generate -w @meridian/api
 
@@ -47,14 +58,22 @@ jobs:
       - name: Run contracts tests
         run: npm run test -w @meridian/contracts
 
-      - name: Run API tests
-        run: npm run test -w @meridian/api -- --passWithNoTests
+      - name: Run API tests with coverage
+        run: npm run test:coverage -w @meridian/api
 
-      - name: Typecheck
-        run: npm run typecheck
+      # Typecheck API and web one at a time: each pulls in the whole package graph,
+      # and running both concurrently on a 2 vCPU runner just thrashes memory.
+      - name: Typecheck API
+        run: npm run typecheck -w @meridian/api
 
-      - name: Build
-        run: npm run build
+      - name: Typecheck web
+        run: npm run typecheck -w @meridian/web
+
+      - name: Build API
+        run: npm run build -w @meridian/api
+
+      - name: Build web
+        run: npm run build -w @meridian/web
 
       - name: Upload web build
         uses: actions/upload-artifact@v4
@@ -63,3 +82,12 @@ jobs:
           path: apps/web/dist
           retention-days: 7
           if-no-files-found: error
+
+      - name: Upload API coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: apps/api/coverage
+          retention-days: 7
+          if-no-files-found: warn

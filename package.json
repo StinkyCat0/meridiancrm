@@ -17,11 +17,14 @@
     "build": "npm run build -w @meridian/api && npm run build -w @meridian/web",
     "start": "npm run start -w @meridian/api",
     "test": "npm run test -w @meridian/contracts && npm run test -w @meridian/api",
+    "test:coverage": "npm run test -w @meridian/contracts && npm run test:coverage -w @meridian/api",
     "db:setup": "npm run db:setup -w @meridian/api",
     "seed": "npm run seed -w @meridian/api",
     "verify": "npm run test && npm run build",
+    "verify:ci": "npm run format:check && npm run test:coverage && npm run typecheck && npm run build",
     "typecheck": "npm run typecheck -w @meridian/api && npm run typecheck -w @meridian/web",
-    "format": "prettier --write \"**/*.{ts,tsx,css,md,json}\" --ignore-path .gitignore"
+    "format": "prettier --write \"**/*.{ts,tsx,css,md,json}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,md,json}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.7",

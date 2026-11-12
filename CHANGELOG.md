@@ -14,6 +14,8 @@ and the project adheres to semantic versioning for public contracts.
 - SQLite backup/restore scripts, a scheduled automation due-sweep workflow, Postgres migration
   runbook, and the carrier/mailbox adapter boundary ADR.
 - Download actions for invoice, customer, payment and expense CSV exports.
+- An end-to-end product walkthrough covering setup, estimates, jobs, dispatch, inbox, billing,
+  finance, pipeline, automations, intelligence, team, and administration against the demo seed.
 
 Service-provider suite: dispatch, a local inbox, automations, finance and margins, intelligence,
 team performance, a payment ledger, and the review fixes that make the service operations

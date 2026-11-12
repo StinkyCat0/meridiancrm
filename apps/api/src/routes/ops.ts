@@ -1,5 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { opsQuerySchema, type OpsSummary } from "@meridian/contracts";
+import {
+  OPEN_JOB_STATUSES,
+  opsQuerySchema,
+  type OpsSummary,
+} from "@meridian/contracts";
 import { authenticate, getAuth } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
 import { badRequest, notFound, parseOrThrow } from "../lib/http.js";
@@ -50,12 +54,7 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
       const weekEnd = new Date(
         Math.max(now.getTime(), start.getTime()) + 7 * DAY_MS,
       );
-      const openStatuses = [
-        "UNSCHEDULED",
-        "SCHEDULED",
-        "DISPATCHED",
-        "IN_PROGRESS",
-      ];
+      const openStatuses = [...OPEN_JOB_STATUSES];
 
       const workspace = await prisma.workspace.findUnique({
         where: { id: auth.workspaceId },

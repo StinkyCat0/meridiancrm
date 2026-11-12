@@ -346,6 +346,7 @@ model Location {
   @@index([workspaceId, customerId])
   @@index([workspaceId, customerId, isPrimary])
   @@index([workspaceId, archived])
+  @@index([workspaceId, updatedAt])
 }
 
 model ServiceItem {
@@ -419,6 +420,7 @@ model Job {
   @@index([workspaceId, scheduledStart])
   @@index([workspaceId, scheduledStart, assigneeId])
   @@index([workspaceId, customerId])
+  @@index([workspaceId, locationId])
   @@index([workspaceId, assigneeId])
   @@index([workspaceId, updatedAt])
   @@index([workspaceId, completedAt])
@@ -468,7 +470,7 @@ model Estimate {
   location  Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
   contact   Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
   owner     User?              @relation("EstimateOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  job       Job?               @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  job       Job?               @relation(fields: [jobId], references: [id], onDelete: Restrict)
   lineItems EstimateLineItem[]
 
   @@unique([workspaceId, number])
@@ -477,6 +479,7 @@ model Estimate {
   @@index([workspaceId, customerId])
   @@index([workspaceId, jobId])
   @@index([workspaceId, createdAt])
+  @@index([workspaceId, updatedAt])
   @@index([workspaceId, expiresAt])
 }
 

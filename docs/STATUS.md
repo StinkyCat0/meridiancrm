@@ -63,9 +63,8 @@ Verified on branch `feat/service-provider-suite`:
 
 CI runs these same gates on every pull request: format check, Prisma client generation and
 migrations, contracts tests, API tests with coverage, sequential API then web typechecks, both
-builds, and artifact upload. Separate workflows run CodeQL `security-extended` and Dependency Review
-(failing new high-severity dependencies); the Verify job also audits production dependencies at
-critical severity.
+builds, and artifact upload. A separate workflow runs CodeQL `security-extended`; the Verify job audits production
+dependencies at critical severity and Dependabot keeps updates grouped.
 
 ## Known limits (current)
 

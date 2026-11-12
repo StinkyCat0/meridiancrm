@@ -93,7 +93,7 @@ export async function buildApp(
         title: "Meridian CRM API",
         description:
           "REST API for Meridian CRM. Multi-tenant, role-based, JSON over HTTPS. `Authorization: Bearer <access token>`.",
-        version: "0.1.0",
+        version: "0.2.0",
       },
       servers: [{ url: "/api/v1", description: "Current deployment" }],
       components: {
@@ -146,15 +146,15 @@ export async function buildApp(
       cacheControl: false,
       setHeaders(response, filePath) {
         if (filePath.includes("/assets/")) {
-          response.setHeader(
+          response.header(
             "Cache-Control",
             "public, max-age=31536000, immutable",
           );
         } else {
-          response.setHeader("Cache-Control", "no-cache");
+          response.header("Cache-Control", "no-cache");
         }
         if (filePath.endsWith(".html")) {
-          response.setHeader("Content-Security-Policy", STATIC_CSP);
+          response.header("Content-Security-Policy", STATIC_CSP);
         }
       },
     });

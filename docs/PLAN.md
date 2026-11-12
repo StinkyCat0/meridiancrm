@@ -26,7 +26,7 @@ operations consistent.
 6. **Review fixes** — invoice state, job status paths, overdue balance, numbering and ordering,
    primary-location invariant, seed/tax polish.
 7. **Gates and docs** — format check, contracts tests, API coverage, sequential typechecks, builds,
-   CodeQL, dependency review, and this documentation set.
+   CodeQL, a critical production-dependency audit, and this documentation set.
 
 ## Verification plan
 

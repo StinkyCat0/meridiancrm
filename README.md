@@ -185,7 +185,7 @@ Every pull request runs:
 - Prettier format check, contracts tests, API integration tests with the coverage floor, sequential
   API and web typechecks, and both production builds.
 - CodeQL `security-extended` analysis for JavaScript/TypeScript.
-- Dependency Review on pull requests, failing new high-severity dependencies.
+- Dependabot alerts/updates, CodeQL `security-extended`, and a production-dependency audit at critical severity.
 - `npm audit --omit=dev --audit-level=critical` for runtime dependencies.
 
 The suite on this branch is verified by 90 API integration tests and 17 contract tests, with both

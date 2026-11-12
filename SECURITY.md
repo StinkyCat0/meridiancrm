@@ -86,9 +86,7 @@ Only the latest released minor receives fixes.
 - **Invites.** Random 256-bit tokens stored hashed, 7-day expiry, single-use, revocable, and tied to
   the invited email and role.
 - **CI security gates.** CodeQL `security-extended` runs on pull requests, pushes to `main`, and a
-  weekly schedule. Dependency Review fails pull requests that introduce high-severity vulnerable
-  dependencies and comments the summary. The Verify job runs `npm audit --omit=dev
---audit-level=critical`, a Prettier check, contracts tests, API tests with a coverage floor,
+  weekly schedule. The Verify job runs `npm audit --omit=dev --audit-level=critical`, a Prettier check, contracts tests, API tests with a coverage floor,
   sequential typechecks, and both builds.
 - **Secrets and files.** Environment-only secrets; no secrets in the repository; `.env` files are
   gitignored. The container runs non-root with a restrictive umask and creates `/data` mode 700, so

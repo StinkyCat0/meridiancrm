@@ -32,7 +32,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
     return reply.status(database === "up" ? 200 : 503).send({
       status: database === "up" ? "ok" : "degraded",
-      version: "0.1.0",
+      version: "0.2.0",
       uptime: Math.round(process.uptime()),
       database,
     });

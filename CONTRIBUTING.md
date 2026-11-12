@@ -59,8 +59,8 @@ order, including Prisma client generation and migrations before the tests.
 - **Builds:** `npm run build -w @meridian/api` and `-w @meridian/web`.
 - **CodeQL:** the `CodeQL` workflow analyzes JavaScript/TypeScript with `security-extended` on pull
   requests, pushes to `main`, and a weekly schedule.
-- **Dependency Review:** pull requests introducing high-severity vulnerable dependencies fail and
-  receive a summary comment.
+- **Dependency audit:** the Verify job fails on any critical production-dependency advisory;
+  Dependabot opens grouped update PRs. Dev-only tooling advisories are tracked, not hidden.
 - **Production audit:** `npm audit --omit=dev --audit-level=critical` in the Verify job.
 - **CI:** the Verify job also uploads the web build and API coverage artifacts.
 

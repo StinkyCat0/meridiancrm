@@ -69,6 +69,7 @@ export const ERROR_CODES = {
   RATE_LIMITED: "RATE_LIMITED",
   INTERNAL: "INTERNAL",
   BAD_REQUEST: "BAD_REQUEST",
+  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
 } as const;
 
 export const emptyToNull = (value: unknown): unknown =>

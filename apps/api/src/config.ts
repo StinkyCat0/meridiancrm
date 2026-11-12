@@ -77,4 +77,7 @@ export const config = {
   refreshCookieName: "meridian_refresh",
   seedDemo: process.env.SEED_DEMO !== "0",
   webAppUrl: process.env.WEB_APP_URL ?? "http://localhost:5173",
+  websiteIntakeSecret: (process.env.WEBSITE_INTAKE_SECRET ?? "").trim(),
+  websiteIntakeWorkspaceSlug:
+    process.env.WEBSITE_INTAKE_WORKSPACE_SLUG ?? "meridian-studio",
 } as const;

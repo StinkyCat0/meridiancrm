@@ -22,6 +22,7 @@ import { automationRoutes } from "./automations.js";
 import { intelligenceRoutes } from "./intelligence.js";
 import { teamRoutes } from "./team.js";
 import { exportsRoutes } from "./exports.js";
+import { publicRoutes } from "./public.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get("/health", { schema: { hide: true } }, async (_request, reply) => {
@@ -61,4 +62,5 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(intelligenceRoutes);
   await app.register(teamRoutes);
   await app.register(exportsRoutes);
+  await app.register(publicRoutes);
 }

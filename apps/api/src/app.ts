@@ -150,6 +150,10 @@ export async function buildApp(
         },
         { name: "team", description: "Technician performance and workload" },
         { name: "exports", description: "CSV exports for reconciliation" },
+        {
+          name: "public",
+          description: "Unauthenticated server-to-server intake",
+        },
       ],
     },
   });

@@ -13,8 +13,8 @@ import {
   UserRound,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -52,6 +52,9 @@ export function JobDetailModal({
   const currency = workspace?.currency ?? "USD";
   const [canceling, setCanceling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [invoicePage, setInvoicePage] = useState(1);
+
+  const INVOICE_PAGE_SIZE = 8;
 
   const jobQuery = useQuery({
     queryKey: queryKeys.jobs.detail(jobId),
@@ -60,19 +63,28 @@ export function JobDetailModal({
   });
 
   const estimatesQuery = useQuery({
-    queryKey: queryKeys.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 20 }),
-    queryFn: () => api.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 20 }),
+    queryKey: queryKeys.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 50 }),
+    queryFn: () => api.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 50 }),
     enabled: Boolean(jobQuery.data?.customer.id),
   });
 
+  const invoiceListQuery = {
+    jobId,
+    page: invoicePage,
+    pageSize: INVOICE_PAGE_SIZE,
+  };
+
   const invoicesQuery = useQuery({
-    queryKey: queryKeys.invoices.list({ jobId, pageSize: 20 }),
-    queryFn: () => api.invoices.list({ jobId, pageSize: 20 }),
+    queryKey: queryKeys.invoices.list(invoiceListQuery),
+    queryFn: () => api.invoices.list(invoiceListQuery),
   });
 
   function invalidate(job: Job) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.detail(job.id) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
     void queryClient.invalidateQueries({ queryKey: ["ops"] });
     void queryClient.invalidateQueries({ queryKey: ["insights"] });
     void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
@@ -107,6 +119,20 @@ export function JobDetailModal({
   const linkedEstimates = (estimatesQuery.data?.data ?? []).filter(
     (estimate) => estimate.jobId === job?.id,
   );
+  const invoiceTotal = invoicesQuery.data?.meta.total ?? 0;
+  const invoiceTotalPages = invoicesQuery.data?.meta.totalPages ?? 1;
+  const invoicePageSize = invoicesQuery.data?.meta.pageSize ?? INVOICE_PAGE_SIZE;
+  const invoiceCurrentPage = invoicesQuery.data?.meta.page ?? invoicePage;
+  const invoiceRangeStart = invoiceTotal === 0 ? 0 : (invoiceCurrentPage - 1) * invoicePageSize + 1;
+  const invoiceRangeEnd = Math.min(invoiceCurrentPage * invoicePageSize, invoiceTotal);
+
+  useEffect(() => {
+    setInvoicePage(1);
+  }, [jobId]);
+
+  useEffect(() => {
+    if (invoicePage > invoiceTotalPages) setInvoicePage(invoiceTotalPages);
+  }, [invoicePage, invoiceTotalPages]);
 
   function createInvoice() {
     if (!job) return;
@@ -397,47 +423,125 @@ export function JobDetailModal({
             </div>
             {invoicesQuery.isPending ? (
               <Skeleton className="h-12" />
-            ) : openInvoices.length === 0 ? (
+            ) : invoicesQuery.isError ? (
+              <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
+                <p className="font-medium text-danger">Could not load invoices.</p>
+                <p className="mt-1 text-muted">{apiErrorMessage(invoicesQuery.error)}</p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => void invoicesQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : invoiceTotal === 0 ? (
               <p className="rounded-card border border-dashed border-border px-4 py-4 text-sm text-muted">
                 No invoices on this job yet.
               </p>
             ) : (
-              <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
-                {openInvoices.map((invoice) => (
-                  <li key={invoice.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm text-fg">{invoice.number}</span>
-                      <span className="block truncate text-xs text-muted">
-                        Issued {formatDate(invoice.issuedAt)}
+              <>
+                <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+                  {openInvoices.map((invoice) => (
+                    <li key={invoice.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-fg">{invoice.number}</span>
+                        <span className="block truncate text-xs text-muted">
+                          Issued {formatDate(invoice.issuedAt)}
+                        </span>
                       </span>
+                      <span className="flex items-center gap-2">
+                        <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
+                        <span className="num text-sm text-fg">{formatMoney(invoice.amount, currency)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="num text-xs text-muted">
+                    Showing {invoiceRangeStart}–{invoiceRangeEnd} of {invoiceTotal}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setInvoicePage((current) => Math.max(1, current - 1))}
+                      disabled={invoiceCurrentPage <= 1}
+                      aria-label="Previous invoice page"
+                    >
+                      Previous
+                    </Button>
+                    <span className="num text-xs text-muted">
+                      Page {invoiceCurrentPage} of {invoiceTotalPages}
                     </span>
-                    <span className="flex items-center gap-2">
-                      <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
-                      <span className="num text-sm text-fg">{formatMoney(invoice.amount, currency)}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        setInvoicePage((current) => Math.min(invoiceTotalPages, current + 1))
+                      }
+                      disabled={invoiceCurrentPage >= invoiceTotalPages}
+                      aria-label="Next invoice page"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
-            {(linkedEstimates).length ? (
-              <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
-                {linkedEstimates.slice(0, 3).map((estimate) => (
-                  <li key={estimate.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm text-fg">
-                        {estimate.number} · {estimate.title}
+            {estimatesQuery.isError ? (
+              <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
+                <p className="font-medium text-danger">Could not load estimates.</p>
+                <p className="mt-1 text-muted">{apiErrorMessage(estimatesQuery.error)}</p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => void estimatesQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : linkedEstimates.length ? (
+              <div className="space-y-2">
+                <p className="num text-xs text-muted">
+                  Linked estimates · {linkedEstimates.length}
+                </p>
+                <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+                  {linkedEstimates.map((estimate) => (
+                    <li key={estimate.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-fg">
+                          {estimate.number} · {estimate.title}
+                        </span>
+                        <span className="block truncate text-xs text-muted">Estimate</span>
                       </span>
-                      <span className="block truncate text-xs text-muted">Estimate</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <EstimateStatusBadge status={estimate.status} />
-                      <span className="num text-sm text-fg">
-                        {formatMoney(estimate.total, currency)}
+                      <span className="flex items-center gap-2">
+                        <EstimateStatusBadge status={estimate.status} />
+                        <span className="num text-sm text-fg">
+                          {formatMoney(estimate.total, currency)}
+                        </span>
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+                {estimatesQuery.data &&
+                estimatesQuery.data.meta.total > linkedEstimates.length ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="num text-xs text-muted">
+                      Showing {linkedEstimates.length} linked of{" "}
+                      {estimatesQuery.data.meta.total} customer estimates
+                    </p>
+                    <Link
+                      to="/app/estimates"
+                      className="text-xs font-medium text-accent transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      View estimates
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
           </section>
 

@@ -42,8 +42,23 @@ export function LocationFormModal({
   const [gateCode, setGateCode] = useState(location?.gateCode ?? "");
   const [contactName, setContactName] = useState(location?.contactName ?? "");
   const [contactPhone, setContactPhone] = useState(location?.contactPhone ?? "");
+  const [latitude, setLatitude] = useState(
+    location?.latitude !== null && location?.latitude !== undefined
+      ? String(location.latitude)
+      : "",
+  );
+  const [longitude, setLongitude] = useState(
+    location?.longitude !== null && location?.longitude !== undefined
+      ? String(location.longitude)
+      : "",
+  );
   const [isPrimary, setIsPrimary] = useState(location?.isPrimary ?? false);
-  const [errors, setErrors] = useState<{ line1?: string; city?: string }>({});
+  const [errors, setErrors] = useState<{
+    line1?: string;
+    city?: string;
+    latitude?: string;
+    longitude?: string;
+  }>({});
 
   const save = useMutation({
     mutationFn: (input: CreateLocationInput) =>
@@ -53,6 +68,15 @@ export function LocationFormModal({
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.timeline(customerId),
+      });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dispatch.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.ops.summary() });
+      void queryClient.invalidateQueries({ queryKey: ["insights"] });
       toast.success(location ? "Location updated" : "Location added");
       onSaved(saved);
     },
@@ -65,6 +89,35 @@ export function LocationFormModal({
     const nextErrors: typeof errors = {};
     if (!line1.trim()) nextErrors.line1 = "Street address is required.";
     if (!city.trim()) nextErrors.city = "City is required.";
+
+    const latitudeInput = latitude.trim();
+    const longitudeInput = longitude.trim();
+    let latitudeValue: number | null = null;
+    let longitudeValue: number | null = null;
+    if (latitudeInput) {
+      const parsed = Number(latitudeInput);
+      if (!Number.isFinite(parsed) || parsed < -90 || parsed > 90) {
+        nextErrors.latitude = "Latitude must be between -90 and 90.";
+      } else {
+        latitudeValue = parsed;
+      }
+    }
+    if (longitudeInput) {
+      const parsed = Number(longitudeInput);
+      if (!Number.isFinite(parsed) || parsed < -180 || parsed > 180) {
+        nextErrors.longitude = "Longitude must be between -180 and 180.";
+      } else {
+        longitudeValue = parsed;
+      }
+    }
+    if (!nextErrors.latitude && !nextErrors.longitude) {
+      if (latitudeInput && !longitudeInput) {
+        nextErrors.longitude = "Set longitude when latitude is provided.";
+      } else if (longitudeInput && !latitudeInput) {
+        nextErrors.latitude = "Set latitude when longitude is provided.";
+      }
+    }
+
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
@@ -83,6 +136,8 @@ export function LocationFormModal({
       gateCode: gateCode.trim() || null,
       contactName: contactName.trim() || null,
       contactPhone: contactPhone.trim() || null,
+      latitude: latitudeValue,
+      longitude: longitudeValue,
       isPrimary,
     });
   }
@@ -182,6 +237,49 @@ export function LocationFormModal({
               onChange={(event) => setCountry(event.target.value)}
               maxLength={80}
               placeholder="United States"
+            />
+          </Field>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Latitude"
+            htmlFor={id("latitude")}
+            error={errors.latitude}
+            hint="Optional. Enables dispatch routing and the map link."
+          >
+            <Input
+              id={id("latitude")}
+              inputMode="decimal"
+              value={latitude}
+              onChange={(event) => {
+                setLatitude(event.target.value);
+                if (errors.latitude) {
+                  setErrors((current) => ({ ...current, latitude: undefined }));
+                }
+              }}
+              invalid={Boolean(errors.latitude)}
+              placeholder="30.2672"
+            />
+          </Field>
+          <Field
+            label="Longitude"
+            htmlFor={id("longitude")}
+            error={errors.longitude}
+            hint="Optional. Must be set together with latitude."
+          >
+            <Input
+              id={id("longitude")}
+              inputMode="decimal"
+              value={longitude}
+              onChange={(event) => {
+                setLongitude(event.target.value);
+                if (errors.longitude) {
+                  setErrors((current) => ({ ...current, longitude: undefined }));
+                }
+              }}
+              invalid={Boolean(errors.longitude)}
+              placeholder="-97.7431"
             />
           </Field>
         </div>

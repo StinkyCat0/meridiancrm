@@ -1,7 +1,7 @@
 import { api, type Invoice, type InvoiceStatus } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Plus, Receipt, Search } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -17,6 +17,8 @@ import { apiErrorMessage } from "../companies/lib";
 import { InvoiceStatusBadge } from "../operations/shared";
 import { InvoiceDetailModal } from "./InvoiceDetailModal";
 import { InvoiceFormModal } from "./InvoiceFormModal";
+
+const PAGE_SIZE = 25;
 
 const STATUS_TABS: { value: InvoiceStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -38,32 +40,51 @@ export default function InvoicesPage() {
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Invoice | null>(null);
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 250);
 
+  // Paid invoices can never be overdue: the status wins over the toggle.
+  const overdueFilter: "true" | undefined =
+    overdueOnly && status !== "PAID" ? "true" : undefined;
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, status, overdueOnly]);
+
+  const listQuery = {
+    status: status === "ALL" ? undefined : status,
+    overdue: overdueFilter,
+    q: debouncedSearch.trim() || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    sort: "dueAt",
+    order: "asc" as const,
+  };
+
   const invoicesQuery = useQuery({
-    queryKey: queryKeys.invoices.list({
-      status: status === "ALL" ? undefined : status,
-      overdue: overdueOnly ? "true" : undefined,
-      q: debouncedSearch.trim() || undefined,
-      pageSize: 100,
-      sort: "dueAt",
-      order: "asc",
-    }),
-    queryFn: () =>
-      api.invoices.list({
-        status: status === "ALL" ? undefined : status,
-        overdue: overdueOnly ? "true" : undefined,
-        q: debouncedSearch.trim() || undefined,
-        pageSize: 100,
-        sort: "dueAt",
-        order: "asc",
-      }),
+    queryKey: queryKeys.invoices.list(listQuery),
+    queryFn: () => api.invoices.list(listQuery),
     placeholderData: keepPreviousData,
   });
 
+  useEffect(() => {
+    const totalPages = invoicesQuery.data?.meta.totalPages;
+    if (totalPages && page > totalPages) setPage(totalPages);
+  }, [invoicesQuery.data, page]);
+
   const invoices = invoicesQuery.data?.data ?? [];
   const total = invoicesQuery.data?.meta.total ?? 0;
+  const totalPages = invoicesQuery.data?.meta.totalPages ?? 1;
+  const pageSize = invoicesQuery.data?.meta.pageSize ?? PAGE_SIZE;
+  const currentPage = invoicesQuery.data?.meta.page ?? page;
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
   const hasFilters = Boolean(search.trim()) || status !== "ALL" || overdueOnly;
+
+  function changeStatus(next: InvoiceStatus | "ALL") {
+    setStatus(next);
+    if (next === "PAID") setOverdueOnly(false);
+  }
 
   function setParam(name: string, value: string | null) {
     const next = new URLSearchParams(params);
@@ -119,9 +140,15 @@ export default function InvoicesPage() {
             <button
               type="button"
               aria-pressed={overdueOnly}
+              disabled={status === "PAID"}
+              title={
+                status === "PAID"
+                  ? "Paid invoices are never overdue."
+                  : "Only show invoices past their due date."
+              }
               onClick={() => setOverdueOnly((current) => !current)}
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-input border px-3 text-xs font-medium transition-colors",
+                "inline-flex h-9 items-center gap-1.5 rounded-input border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 overdueOnly
                   ? "border-danger/40 bg-danger/10 text-danger"
                   : "border-border bg-surface text-muted hover:text-fg",
@@ -143,7 +170,7 @@ export default function InvoicesPage() {
           ariaLabel="Invoice status"
           items={STATUS_TABS.map((item) => ({ value: item.value, label: item.label }))}
           value={status}
-          onChange={(value) => setStatus(value as InvoiceStatus | "ALL")}
+          onChange={(value) => changeStatus(value as InvoiceStatus | "ALL")}
           className="border-0"
         />
       </Card>
@@ -297,6 +324,35 @@ export default function InvoicesPage() {
                 </div>
               </button>
             ))}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p aria-live="polite" className="num text-xs text-muted">
+              Showing {rangeStart}–{rangeEnd} of {total}
+            </p>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={currentPage <= 1}
+                aria-label="Previous page"
+              >
+                Previous
+              </Button>
+              <span className="num text-xs text-muted">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={currentPage >= totalPages}
+                aria-label="Next page"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </>
       )}

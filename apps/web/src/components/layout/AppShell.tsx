@@ -7,7 +7,7 @@ import { openCommandPalette } from "../command/events";
 import { Avatar } from "../ui/Avatar";
 import { IconButton } from "../ui/IconButton";
 import { LogoLockup } from "./Logo";
-import { MOBILE_NAV_ITEMS, NAV_ITEMS } from "./nav";
+import { MOBILE_NAV_ITEMS, NAV_GROUPS, type NavItem } from "./nav";
 import { TopBar } from "./TopBar";
 import { UserMenu } from "./UserMenu";
 
@@ -19,7 +19,7 @@ function SidebarLink({
 }: {
   to: string;
   label: string;
-  icon: (typeof NAV_ITEMS)[number]["icon"];
+  icon: NavItem["icon"];
   end?: boolean;
 }) {
   return (
@@ -88,15 +88,22 @@ export function AppShell() {
           </div>
         </div>
 
-        <nav aria-label="Primary" className="mt-6 flex-1 space-y-1 px-3">
-          {NAV_ITEMS.map((item) => (
-            <SidebarLink
-              key={item.to}
-              to={item.to}
-              label={item.label}
-              icon={item.icon}
-              end={item.end}
-            />
+        <nav aria-label="Primary" className="mt-6 flex-1 space-y-5 overflow-y-auto px-3">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="label-micro px-3 pb-1.5">{group.label}</p>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <SidebarLink
+                    key={item.to}
+                    to={item.to}
+                    label={item.label}
+                    icon={item.icon}
+                    end={item.end}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

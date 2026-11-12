@@ -54,7 +54,11 @@ export function InvoiceDetailModal({
   function invalidate(updated?: Invoice) {
     if (updated) queryClient.setQueryData(queryKeys.invoices.detail(invoiceId), updated);
     void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
-    void queryClient.invalidateQueries({ queryKey: ["ops"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.finance.summary() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.ops.summary() });
     void queryClient.invalidateQueries({ queryKey: ["insights"] });
   }
 

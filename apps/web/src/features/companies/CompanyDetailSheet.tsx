@@ -1,25 +1,38 @@
 import { api, type Company, type Deal, type Job, type Location } from "@meridian/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Activity as ActivityIcon,
   Archive,
   ArrowUpRight,
+  ExternalLink,
+  FileText,
   Globe2,
   MapPin,
+  MessageSquare,
+  Navigation,
   Pencil,
   Phone,
   Plus,
+  Receipt,
   RotateCcw,
+  Wallet,
   Wrench,
+  type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { CUSTOMER_TYPE_META } from "@meridian/contracts";
+import {
+  CUSTOMER_TYPE_META,
+  type TimelineEntry,
+  type TimelineEntryKind,
+} from "@meridian/contracts";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge, type BadgeTone } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Skeleton } from "../../components/ui/Skeleton";
+import { Tabs } from "../../components/ui/Tabs";
 import { useAuth } from "../../lib/auth";
 import { cn, formatDate, formatDateTime, formatMoney, relativeTime } from "../../lib/utils";
 import { queryKeys } from "../../lib/query";
@@ -58,8 +71,21 @@ export function CompanyDetailSheet({
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [locationFormOpen, setLocationFormOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [tab, setTab] = useState<"overview" | "interactions">("overview");
+  const [jobPage, setJobPage] = useState(1);
+  const [locationPage, setLocationPage] = useState(1);
+  const [contactPage, setContactPage] = useState(1);
+  const [dealPage, setDealPage] = useState(1);
   const detailKey = queryKeys.companies.detail(companyId);
   const currency = workspace?.currency ?? "USD";
+
+  useEffect(() => {
+    setJobPage(1);
+    setLocationPage(1);
+    setContactPage(1);
+    setDealPage(1);
+    setTab("overview");
+  }, [companyId]);
 
   const companyQuery = useQuery({
     queryKey: detailKey,
@@ -68,39 +94,88 @@ export function CompanyDetailSheet({
     retry: false,
   });
 
+  const contactListQuery = {
+    companyId,
+    page: contactPage,
+    pageSize: 8,
+    archive: "active" as const,
+  };
+
   const contactsQuery = useQuery({
-    queryKey: queryKeys.contacts.list({ companyId, pageSize: 100, archive: "active" }),
-    queryFn: () => api.contacts.list({ companyId, pageSize: 100, archive: "active" }),
+    queryKey: queryKeys.contacts.list(contactListQuery),
+    queryFn: () => api.contacts.list(contactListQuery),
   });
+
+  const dealListQuery = {
+    companyId,
+    page: dealPage,
+    pageSize: 8,
+  };
 
   const dealsQuery = useQuery({
-    queryKey: queryKeys.deals.list({ companyId, pageSize: 100 }),
-    queryFn: () => api.deals.list({ companyId, pageSize: 100 }),
+    queryKey: queryKeys.deals.list(dealListQuery),
+    queryFn: () => api.deals.list(dealListQuery),
   });
+
+  const locationListQuery = {
+    customerId: companyId,
+    page: locationPage,
+    pageSize: 8,
+    archive: "active" as const,
+  };
 
   const locationsQuery = useQuery({
-    queryKey: queryKeys.locations.list({ customerId: companyId, pageSize: 50, archive: "active" }),
-    queryFn: () =>
-      api.locations.list({ customerId: companyId, pageSize: 50, archive: "active" }),
+    queryKey: queryKeys.locations.list(locationListQuery),
+    queryFn: () => api.locations.list(locationListQuery),
   });
 
+  const jobListQuery = {
+    customerId: companyId,
+    page: jobPage,
+    pageSize: 8,
+    scope: "all" as const,
+    sort: "scheduledStart",
+    order: "desc" as const,
+  };
+
   const jobsQuery = useQuery({
-    queryKey: queryKeys.jobs.list({
-      customerId: companyId,
-      pageSize: 20,
-      scope: "all",
-      sort: "scheduledStart",
-      order: "desc",
-    }),
-    queryFn: () =>
-      api.jobs.list({
-        customerId: companyId,
-        pageSize: 20,
-        scope: "all",
-        sort: "scheduledStart",
-        order: "desc",
-      }),
+    queryKey: queryKeys.jobs.list(jobListQuery),
+    queryFn: () => api.jobs.list(jobListQuery),
   });
+
+  useEffect(() => {
+    const totalPages = locationsQuery.data?.meta.totalPages;
+    if (totalPages && locationPage > totalPages) setLocationPage(totalPages);
+  }, [locationsQuery.data, locationPage]);
+
+  useEffect(() => {
+    const totalPages = jobsQuery.data?.meta.totalPages;
+    if (totalPages && jobPage > totalPages) setJobPage(totalPages);
+  }, [jobsQuery.data, jobPage]);
+
+  useEffect(() => {
+    const totalPages = contactsQuery.data?.meta.totalPages;
+    if (totalPages && contactPage > totalPages) setContactPage(totalPages);
+  }, [contactsQuery.data, contactPage]);
+
+  useEffect(() => {
+    const totalPages = dealsQuery.data?.meta.totalPages;
+    if (totalPages && dealPage > totalPages) setDealPage(totalPages);
+  }, [dealsQuery.data, dealPage]);
+
+  function invalidateCustomerData() {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.companies.timeline(companyId) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.dispatch.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.ops.summary() });
+    void queryClient.invalidateQueries({ queryKey: ["insights"] });
+  }
 
   const archive = useMutation({
     mutationFn: () => api.companies.archive(companyId),
@@ -108,10 +183,7 @@ export function CompanyDetailSheet({
       queryClient.setQueryData<Company>(detailKey, (current) =>
         current ? { ...current, archived: true } : current,
       );
-      void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
-      void queryClient.invalidateQueries({ queryKey: ["insights"] });
+      invalidateCustomerData();
       setConfirmArchive(false);
       toast.success("Company archived");
     },
@@ -124,10 +196,7 @@ export function CompanyDetailSheet({
     mutationFn: () => api.companies.restore(companyId),
     onSuccess: (restored) => {
       queryClient.setQueryData(detailKey, restored);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
-      void queryClient.invalidateQueries({ queryKey: ["insights"] });
+      invalidateCustomerData();
       toast.success("Company restored");
     },
     onError: (error) => {
@@ -138,8 +207,7 @@ export function CompanyDetailSheet({
   const archiveLocation = useMutation({
     mutationFn: (id: string) => api.locations.archive(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+      invalidateCustomerData();
       toast.success("Location archived");
     },
     onError: (error) => toast.error(apiErrorMessage(error)),
@@ -150,6 +218,36 @@ export function CompanyDetailSheet({
   const deals = dealsQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
   const jobs = jobsQuery.data?.data ?? [];
+
+  const locationTotal = locationsQuery.data?.meta.total ?? 0;
+  const locationTotalPages = locationsQuery.data?.meta.totalPages ?? 1;
+  const locationPageSize = locationsQuery.data?.meta.pageSize ?? 8;
+  const locationCurrentPage = locationsQuery.data?.meta.page ?? locationPage;
+  const locationRangeStart =
+    locationTotal === 0 ? 0 : (locationCurrentPage - 1) * locationPageSize + 1;
+  const locationRangeEnd = Math.min(locationCurrentPage * locationPageSize, locationTotal);
+
+  const jobTotal = jobsQuery.data?.meta.total ?? 0;
+  const jobTotalPages = jobsQuery.data?.meta.totalPages ?? 1;
+  const jobPageSize = jobsQuery.data?.meta.pageSize ?? 8;
+  const jobCurrentPage = jobsQuery.data?.meta.page ?? jobPage;
+  const jobRangeStart = jobTotal === 0 ? 0 : (jobCurrentPage - 1) * jobPageSize + 1;
+  const jobRangeEnd = Math.min(jobCurrentPage * jobPageSize, jobTotal);
+
+  const contactTotal = contactsQuery.data?.meta.total ?? 0;
+  const contactTotalPages = contactsQuery.data?.meta.totalPages ?? 1;
+  const contactPageSize = contactsQuery.data?.meta.pageSize ?? 8;
+  const contactCurrentPage = contactsQuery.data?.meta.page ?? contactPage;
+  const contactRangeStart =
+    contactTotal === 0 ? 0 : (contactCurrentPage - 1) * contactPageSize + 1;
+  const contactRangeEnd = Math.min(contactCurrentPage * contactPageSize, contactTotal);
+
+  const dealTotal = dealsQuery.data?.meta.total ?? 0;
+  const dealTotalPages = dealsQuery.data?.meta.totalPages ?? 1;
+  const dealPageSize = dealsQuery.data?.meta.pageSize ?? 8;
+  const dealCurrentPage = dealsQuery.data?.meta.page ?? dealPage;
+  const dealRangeStart = dealTotal === 0 ? 0 : (dealCurrentPage - 1) * dealPageSize + 1;
+  const dealRangeEnd = Math.min(dealCurrentPage * dealPageSize, dealTotal);
 
   return (
     <Modal
@@ -206,7 +304,7 @@ export function CompanyDetailSheet({
                   {company.archived ? <Badge tone="warning">Archived</Badge> : null}
                 </div>
                 <p className="mt-0.5 truncate text-sm text-muted">
-                  {company.industry ?? "No industry"}
+                  {company.industry ?? "No vertical"}
                   {company.domain ? ` · ${company.domain}` : ""}
                 </p>
               </div>
@@ -271,6 +369,21 @@ export function CompanyDetailSheet({
             </div>
           ) : null}
 
+          <Tabs
+            ariaLabel="Customer detail sections"
+            items={[
+              { value: "overview", label: "Overview" },
+              { value: "interactions", label: "Interactions" },
+            ]}
+            value={tab}
+            onChange={(value) =>
+              setTab(value === "interactions" ? "interactions" : "overview")
+            }
+            className="border-0"
+          />
+
+          {tab === "overview" ? (
+            <>
           <dl className="grid gap-4 rounded-card border border-border bg-surface-2/40 p-4 sm:grid-cols-2">
             <div className="min-w-0">
               <dt className="label-micro">Domain</dt>
@@ -283,7 +396,7 @@ export function CompanyDetailSheet({
               </dd>
             </div>
             <div className="min-w-0">
-              <dt className="label-micro">Industry</dt>
+              <dt className="label-micro">Vertical</dt>
               <dd className="mt-1 truncate text-sm text-fg">{company.industry ?? "—"}</dd>
             </div>
             <div className="min-w-0">
@@ -471,6 +584,18 @@ export function CompanyDetailSheet({
                           {location.gateCode ? ` · gate ${location.gateCode}` : ""}
                           {location.contactPhone ? ` · ${location.contactPhone}` : ""}
                         </p>
+                        {location.latitude !== null && location.longitude !== null ? (
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}#map=16/${location.latitude}/${location.longitude}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-accent transition-colors hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                          >
+                            <Navigation className="size-3.5" aria-hidden="true" />
+                            Open map
+                            <ExternalLink className="size-3" aria-hidden="true" />
+                          </a>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1.5">
@@ -499,6 +624,40 @@ export function CompanyDetailSheet({
                 ))}
               </ul>
             )}
+            {locationTotal > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="num text-xs text-muted">
+                  Showing {locationRangeStart}–{locationRangeEnd} of {locationTotal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setLocationPage((current) => Math.max(1, current - 1))}
+                    disabled={locationCurrentPage <= 1}
+                    aria-label="Previous locations page"
+                  >
+                    Previous
+                  </Button>
+                  <span className="num text-xs text-muted">
+                    Page {locationCurrentPage} of {locationTotalPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setLocationPage((current) =>
+                        Math.min(locationTotalPages, current + 1),
+                      )
+                    }
+                    disabled={locationCurrentPage >= locationTotalPages}
+                    aria-label="Next locations page"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section aria-labelledby="company-jobs-heading" className="space-y-3">
@@ -570,6 +729,38 @@ export function CompanyDetailSheet({
                 ))}
               </ul>
             )}
+            {jobTotal > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="num text-xs text-muted">
+                  Showing {jobRangeStart}–{jobRangeEnd} of {jobTotal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setJobPage((current) => Math.max(1, current - 1))}
+                    disabled={jobCurrentPage <= 1}
+                    aria-label="Previous jobs page"
+                  >
+                    Previous
+                  </Button>
+                  <span className="num text-xs text-muted">
+                    Page {jobCurrentPage} of {jobTotalPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setJobPage((current) => Math.min(jobTotalPages, current + 1))
+                    }
+                    disabled={jobCurrentPage >= jobTotalPages}
+                    aria-label="Next jobs page"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section aria-labelledby="company-contacts-heading" className="space-y-3">
@@ -628,6 +819,38 @@ export function CompanyDetailSheet({
                 ))}
               </ul>
             )}
+            {contactTotal > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="num text-xs text-muted">
+                  Showing {contactRangeStart}–{contactRangeEnd} of {contactTotal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setContactPage((current) => Math.max(1, current - 1))}
+                    disabled={contactCurrentPage <= 1}
+                    aria-label="Previous contacts page"
+                  >
+                    Previous
+                  </Button>
+                  <span className="num text-xs text-muted">
+                    Page {contactCurrentPage} of {contactTotalPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setContactPage((current) => Math.min(contactTotalPages, current + 1))
+                    }
+                    disabled={contactCurrentPage >= contactTotalPages}
+                    aria-label="Next contacts page"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section aria-labelledby="company-deals-heading" className="space-y-3">
@@ -692,9 +915,45 @@ export function CompanyDetailSheet({
                 ))}
               </ul>
             )}
+            {dealTotal > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="num text-xs text-muted">
+                  Showing {dealRangeStart}–{dealRangeEnd} of {dealTotal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setDealPage((current) => Math.max(1, current - 1))}
+                    disabled={dealCurrentPage <= 1}
+                    aria-label="Previous deals page"
+                  >
+                    Previous
+                  </Button>
+                  <span className="num text-xs text-muted">
+                    Page {dealCurrentPage} of {dealTotalPages}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setDealPage((current) => Math.min(dealTotalPages, current + 1))
+                    }
+                    disabled={dealCurrentPage >= dealTotalPages}
+                    aria-label="Next deals page"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <CompanyActivityTimeline companyId={company.id} />
+            </>
+          ) : (
+            <CompanyInteractions companyId={company.id} currency={currency} />
+          )}
 
           {locationFormOpen ? (
             <LocationFormModal
@@ -714,5 +973,167 @@ export function CompanyDetailSheet({
         </div>
       ) : null}
     </Modal>
+  );
+}
+
+const TIMELINE_ICON: Record<TimelineEntryKind, LucideIcon> = {
+  activity: ActivityIcon,
+  communication: MessageSquare,
+  job: Wrench,
+  estimate: FileText,
+  invoice: Receipt,
+  payment: Wallet,
+};
+
+function timelineHref(entry: TimelineEntry): string | null {
+  if (entry.href) return entry.href;
+  if (!entry.entityId) return null;
+  const id = encodeURIComponent(entry.entityId);
+  switch (entry.kind) {
+    case "activity":
+      return `/app/activities?activity=${id}`;
+    case "communication":
+      return `/app/inbox?communication=${id}`;
+    case "job":
+      return `/app/schedule?job=${id}`;
+    case "estimate":
+      return `/app/estimates?estimate=${id}`;
+    case "invoice":
+    case "payment":
+      return `/app/invoices?invoice=${id}`;
+    default:
+      return null;
+  }
+}
+
+function CompanyInteractions({
+  companyId,
+  currency,
+}: {
+  companyId: string;
+  currency: string;
+}) {
+  const timelineQuery = useQuery({
+    queryKey: queryKeys.companies.timeline(companyId),
+    queryFn: () => api.companies.timeline(companyId, 200),
+  });
+
+  const items = timelineQuery.data?.items ?? [];
+  const totalEntries = timelineQuery.data
+    ? Object.values(timelineQuery.data.counts).reduce((sum, count) => sum + count, 0)
+    : 0;
+
+  return (
+    <section aria-labelledby="company-interactions-heading" className="space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 id="company-interactions-heading" className="text-sm font-medium text-fg">
+            Interactions
+          </h3>
+          <p className="mt-0.5 text-xs text-muted">
+            Calls, visits, quotes and money in one history.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/app/inbox"
+            className="inline-flex h-8 items-center gap-1.5 rounded-input border border-border bg-surface-2 px-3 text-xs font-medium text-fg transition-colors hover:border-white/15 hover:bg-surface-2/70"
+          >
+            <MessageSquare className="size-3.5" aria-hidden="true" />
+            Inbox
+          </Link>
+          <Link
+            to="/app/schedule"
+            className="inline-flex h-8 items-center gap-1.5 rounded-input border border-border bg-surface-2 px-3 text-xs font-medium text-fg transition-colors hover:border-white/15 hover:bg-surface-2/70"
+          >
+            <Wrench className="size-3.5" aria-hidden="true" />
+            Schedule
+          </Link>
+        </div>
+      </div>
+
+      {timelineQuery.isPending ? (
+        <div className="space-y-2" role="status" aria-label="Loading interactions">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+        </div>
+      ) : timelineQuery.isError ? (
+        <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
+          <p className="font-medium text-danger">Could not load interactions.</p>
+          <p className="mt-1 text-muted">{apiErrorMessage(timelineQuery.error)}</p>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="mt-3"
+            onClick={() => void timelineQuery.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : items.length === 0 ? (
+        <p className="rounded-card border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+          No interactions yet. Calls, jobs and invoices will appear here.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+          {items.map((entry) => {
+            const Icon = TIMELINE_ICON[entry.kind];
+            const href = timelineHref(entry);
+            const content = (
+              <>
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-input border border-border bg-surface-2 text-muted">
+                  <Icon className="size-4" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="block truncate text-sm text-fg">{entry.title}</span>
+                    {entry.status ? <Badge tone="neutral">{entry.status}</Badge> : null}
+                  </span>
+                  {entry.detail ? (
+                    <span className="mt-0.5 block truncate text-xs text-muted">
+                      {entry.detail}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="shrink-0 text-right">
+                  {entry.amount !== null ? (
+                    <span className="num block text-sm text-fg">
+                      {formatMoney(entry.amount, currency)}
+                    </span>
+                  ) : null}
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {relativeTime(entry.at)}
+                  </span>
+                </span>
+                {href ? (
+                  <ArrowUpRight className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                ) : null}
+              </>
+            );
+
+            return (
+              <li key={`${entry.kind}-${entry.id}`}>
+                {href ? (
+                  <Link
+                    to={href}
+                    className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <div className="flex items-start gap-3 px-4 py-3">{content}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {items.length < totalEntries ? (
+        <p className="num text-xs text-muted">
+          Showing the latest {items.length} of {totalEntries} interactions.
+        </p>
+      ) : null}
+    </section>
   );
 }

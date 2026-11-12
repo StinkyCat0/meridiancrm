@@ -85,14 +85,21 @@ const QUICK_ACTIONS: readonly ActionSeed[] = [
 ];
 
 const NAVIGATION: readonly ActionSeed[] = [
-  { label: "Overview", sublabel: "Dispatch and pipeline", to: "/app", keywords: "dashboard home" },
-  { label: "Schedule", sublabel: "Jobs and dispatch", to: "/app/schedule", keywords: "jobs work orders calendar route" },
+  { label: "Overview", sublabel: "Your day, revenue and priorities", to: "/app", keywords: "dashboard home" },
+  { label: "Dispatch", sublabel: "Map, board and route", to: "/app/dispatch", keywords: "map route assign technicians" },
+  { label: "Calendar", sublabel: "Week view", to: "/app/calendar", keywords: "appointments schedule week" },
+  { label: "Jobs", sublabel: "Work orders", to: "/app/schedule", keywords: "jobs work orders" },
   { label: "Customers", sublabel: "People, sites and accounts", to: "/app/companies", keywords: "clients accounts" },
-  { label: "Estimates", sublabel: "Quotes", to: "/app/estimates", keywords: "proposals quotes" },
+  { label: "Inbox", sublabel: "Calls, texts and follow-ups", to: "/app/inbox", keywords: "messages sms email calls conversations" },
+  { label: "Quotes", sublabel: "Estimates", to: "/app/estimates", keywords: "proposals quotes" },
   { label: "Invoices", sublabel: "Receivables", to: "/app/invoices", keywords: "billing payments" },
-  { label: "Services", sublabel: "Price book", to: "/app/services", keywords: "pricing catalog" },
+  { label: "Revenue", sublabel: "Margins and expenses", to: "/app/revenue", keywords: "finance money profit" },
+  { label: "Automations", sublabel: "Workflow rules", to: "/app/automations", keywords: "rules triggers workflow" },
+  { label: "Intelligence", sublabel: "Recommendations and forecast", to: "/app/intelligence", keywords: "ai insights churn upsell" },
+  { label: "Team", sublabel: "Performance and workload", to: "/app/team", keywords: "technicians staff" },
+  { label: "Price book", sublabel: "Services", to: "/app/services", keywords: "pricing catalog" },
   { label: "Contacts", sublabel: "People", to: "/app/contacts", keywords: "people" },
-  { label: "Deals", sublabel: "Pipeline", to: "/app/deals", keywords: "opportunities revenue" },
+  { label: "Leads", sublabel: "Pipeline", to: "/app/deals", keywords: "opportunities deals" },
   { label: "Activities", sublabel: "Calls, email, meetings, tasks", to: "/app/activities", keywords: "tasks notes" },
   { label: "Settings", sublabel: "Workspace and team", to: "/app/settings", keywords: "admin members" },
 ];

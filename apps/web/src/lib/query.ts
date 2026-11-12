@@ -29,6 +29,7 @@ export const queryKeys = {
     all: ["companies"] as const,
     list: (query?: unknown) => ["companies", "list", query ?? null] as const,
     detail: (id: string) => ["companies", "detail", id] as const,
+    timeline: (id: string) => ["companies", "timeline", id] as const,
   },
   contacts: {
     all: ["contacts"] as const,
@@ -79,5 +80,42 @@ export const queryKeys = {
   insights: {
     dashboard: (months?: number) => ["insights", "dashboard", months ?? null] as const,
     search: (q: string) => ["insights", "search", q] as const,
+  },
+  communications: {
+    all: ["communications"] as const,
+    list: (query?: unknown) => ["communications", "list", query ?? null] as const,
+    threads: (query?: unknown) => ["communications", "threads", query ?? null] as const,
+    stats: ["communications", "stats"] as const,
+    detail: (id: string) => ["communications", "detail", id] as const,
+  },
+  dispatch: {
+    all: ["dispatch"] as const,
+    board: (query?: unknown) => ["dispatch", "board", query ?? null] as const,
+    map: (query?: unknown) => ["dispatch", "map", query ?? null] as const,
+    route: (query?: unknown) => ["dispatch", "route", query ?? null] as const,
+  },
+  finance: {
+    all: ["finance"] as const,
+    summary: (query?: unknown) => ["finance", "summary", query ?? null] as const,
+    payments: (query?: unknown) => ["finance", "payments", query ?? null] as const,
+    expenses: (query?: unknown) => ["finance", "expenses", query ?? null] as const,
+  },
+  automations: {
+    all: ["automations"] as const,
+    list: (query?: unknown) => ["automations", "list", query ?? null] as const,
+    detail: (id: string) => ["automations", "detail", id] as const,
+    runs: (query?: unknown) => ["automations", "runs", query ?? null] as const,
+  },
+  intelligence: {
+    all: ["intelligence"] as const,
+    summary: ["intelligence", "summary"] as const,
+    recommendations: (query?: unknown) =>
+      ["intelligence", "recommendations", query ?? null] as const,
+    brief: ["intelligence", "brief"] as const,
+  },
+  team: {
+    all: ["team"] as const,
+    performance: (query?: unknown) => ["team", "performance", query ?? null] as const,
+    workload: (date?: string) => ["team", "workload", date ?? "today"] as const,
   },
 };

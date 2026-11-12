@@ -164,10 +164,10 @@ export default function CompaniesPage() {
             <Select
               value={industry}
               onChange={(event) => setIndustry(toIndustry(event.target.value))}
-              aria-label="Filter by industry"
+              aria-label="Filter by vertical"
               className="sm:w-40"
             >
-              <option value="">All industries</option>
+              <option value="">All verticals</option>
               {INDUSTRIES.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -252,7 +252,7 @@ export default function CompaniesPage() {
                       Type
                     </th>
                     <th scope="col" className="label-micro px-4 py-3">
-                      Industry
+                      Vertical
                     </th>
                     <th scope="col" className="label-micro px-4 py-3">
                       Contacts
@@ -289,7 +289,7 @@ export default function CompaniesPage() {
                               ) : null}
                             </div>
                             <p className="truncate text-xs text-muted">
-                              {company.domain ?? "No domain"}
+                              {company.address ?? "No address on file"}
                             </p>
                           </div>
                         </div>
@@ -341,10 +341,10 @@ export default function CompaniesPage() {
                       {company.archived ? <Badge tone="warning">Archived</Badge> : null}
                     </div>
                     <p className="truncate text-xs text-muted">
-                      {company.domain ?? "No domain"}
+                      {company.address ?? "No address on file"}
                     </p>
                     <p className="mt-1 truncate text-xs text-muted">
-                      {company.industry ?? "No industry"}
+                      {company.industry ?? "No vertical"}
                     </p>
                   </div>
                 </div>

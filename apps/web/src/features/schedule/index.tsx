@@ -1,7 +1,7 @@
 import { api, type Job } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CalendarClock, MapPin, Plus, Search, Wrench } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
@@ -20,6 +20,8 @@ import { apiErrorMessage } from "../companies/lib";
 import { JobStatusBadge } from "../operations/shared";
 import { JobDetailModal } from "./JobDetailModal";
 import { JobFormModal } from "./JobFormModal";
+
+const PAGE_SIZE = 25;
 
 const SCOPES: { value: JobScope; label: string }[] = [
   { value: "today", label: "Today" },
@@ -43,29 +45,40 @@ export default function SchedulePage() {
   });
   const [search, setSearch] = useState("");
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 250);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, scope]);
+
+  const listQuery = {
+    scope,
+    q: debouncedSearch.trim() || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    sort: "scheduledStart",
+    order: "asc" as const,
+  };
+
   const jobsQuery = useQuery({
-    queryKey: queryKeys.jobs.list({
-      scope,
-      q: debouncedSearch.trim() || undefined,
-      pageSize: 100,
-      sort: "scheduledStart",
-      order: "asc",
-    }),
-    queryFn: () =>
-      api.jobs.list({
-        scope,
-        q: debouncedSearch.trim() || undefined,
-        pageSize: 100,
-        sort: "scheduledStart",
-        order: "asc",
-      }),
+    queryKey: queryKeys.jobs.list(listQuery),
+    queryFn: () => api.jobs.list(listQuery),
     placeholderData: keepPreviousData,
   });
 
+  useEffect(() => {
+    const totalPages = jobsQuery.data?.meta.totalPages;
+    if (totalPages && page > totalPages) setPage(totalPages);
+  }, [jobsQuery.data, page]);
+
   const jobs = jobsQuery.data?.data ?? [];
   const total = jobsQuery.data?.meta.total ?? 0;
+  const totalPages = jobsQuery.data?.meta.totalPages ?? 1;
+  const pageSize = jobsQuery.data?.meta.pageSize ?? PAGE_SIZE;
+  const currentPage = jobsQuery.data?.meta.page ?? page;
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
   const hasFilters = Boolean(search.trim()) || scope !== "week";
 
   function setParam(name: string, value: string | null) {
@@ -308,6 +321,35 @@ export default function SchedulePage() {
                 </p>
               </button>
             ))}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p aria-live="polite" className="num text-xs text-muted">
+              Showing {rangeStart}–{rangeEnd} of {total}
+            </p>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={currentPage <= 1}
+                aria-label="Previous page"
+              >
+                Previous
+              </Button>
+              <span className="num text-xs text-muted">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={currentPage >= totalPages}
+                aria-label="Next page"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </>
       )}

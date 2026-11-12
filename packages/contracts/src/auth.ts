@@ -20,6 +20,11 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const websiteExchangeSchema = z.object({
+  token: z.string().min(20).max(4000),
+});
+export type WebsiteExchange = z.infer<typeof websiteExchangeSchema>;
+
 export const acceptInviteSchema = z.object({
   token: z.string().min(20).max(500),
   name: z.string().trim().min(2).max(80).optional(),

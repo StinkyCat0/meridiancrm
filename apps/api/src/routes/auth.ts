@@ -7,6 +7,7 @@ import {
   loginSchema,
   registerSchema,
   updateProfileSchema,
+  websiteExchangeSchema,
   type AuthSession,
   type MeResponse,
   type PublicUser,
@@ -30,11 +31,17 @@ import {
   AppError,
   badRequest,
   conflict,
+  forbidden,
   notFound,
   parseOrThrow,
   unauthorized,
 } from "../lib/http.js";
 import { prisma } from "../lib/db.js";
+import {
+  WebsiteSsoError,
+  verifyWebsiteToken,
+  type WebsiteTokenClaims,
+} from "../lib/website-sso.js";
 
 type UserRecord = {
   id: string;
@@ -268,6 +275,90 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         userAgentOf(request),
       );
       setRefreshCookie(reply, tokens.refreshToken);
+
+      return reply
+        .status(200)
+        .send(sessionBody(tokens, user, membership.workspace, role));
+    },
+  );
+
+  app.post(
+    "/auth/website",
+    {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Exchange a Meridian website session for a CRM session",
+      },
+    },
+    async (request, reply) => {
+      if (!config.websiteJwtSecret) {
+        throw new AppError(
+          503,
+          ERROR_CODES.SERVICE_UNAVAILABLE,
+          "Website SSO is not configured",
+        );
+      }
+
+      const body = parseOrThrow(websiteExchangeSchema, request.body);
+
+      let claims: WebsiteTokenClaims;
+      try {
+        claims = await verifyWebsiteToken(body.token, config.websiteJwtSecret);
+      } catch (error) {
+        if (error instanceof WebsiteSsoError) {
+          if (error.reason === "unconfigured") {
+            throw new AppError(
+              503,
+              ERROR_CODES.SERVICE_UNAVAILABLE,
+              "Website SSO is not configured",
+            );
+          }
+          if (error.reason === "forbidden") {
+            throw forbidden(
+              "This website account is not allowed to use the CRM",
+            );
+          }
+          throw unauthorized("This website session is invalid or expired");
+        }
+        throw error;
+      }
+
+      const email = claims.email.trim().toLowerCase();
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: {
+          memberships: {
+            include: { workspace: true },
+            orderBy: { createdAt: "asc" },
+            take: 1,
+          },
+        },
+      });
+      const membership = user?.memberships[0];
+      if (!user || !membership) {
+        throw unauthorized(
+          "This website account is not linked to a CRM workspace",
+        );
+      }
+
+      const role = membership.role as Role;
+      const tokens = await createSession(
+        user,
+        membership.workspaceId,
+        role,
+        userAgentOf(request),
+      );
+      setRefreshCookie(reply, tokens.refreshToken);
+
+      await audit({
+        workspaceId: membership.workspaceId,
+        actorId: user.id,
+        action: "auth.website_sso",
+        entityType: "user",
+        entityId: user.id,
+        metadata: { websiteUserId: claims.websiteUserId },
+      });
 
       return reply
         .status(200)

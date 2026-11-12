@@ -8,6 +8,8 @@ export default defineConfig({
       NODE_ENV: "test",
       DATABASE_URL: "file:./test.db",
       JWT_SECRET: "test-secret-that-is-long-enough-for-hs256-signing",
+      WEBSITE_JWT_SECRET:
+        "test-website-secret-that-is-long-enough-for-hs256-signing",
       SEED_DEMO: "0",
       WEBSITE_INTAKE_SECRET: "test-website-intake-secret",
       WEBSITE_INTAKE_WORKSPACE_SLUG: "test-intake-workspace",

@@ -60,6 +60,8 @@ export const config = {
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   databaseUrl: process.env.DATABASE_URL ?? "file:./dev.db",
   jwtSecret: resolveJwtSecret(),
+  /** Shared secret with the Meridian website; empty disables website SSO. */
+  websiteJwtSecret: (process.env.WEBSITE_JWT_SECRET ?? "").trim(),
   jwtIssuer: "meridian-crm",
   accessTokenTtl: int(process.env.ACCESS_TOKEN_TTL, 900),
   refreshTokenTtl: int(process.env.REFRESH_TOKEN_TTL, 60 * 60 * 24 * 30),

@@ -16,6 +16,8 @@ and the project adheres to semantic versioning for public contracts.
 - Download actions for invoice, customer, payment and expense CSV exports.
 - An end-to-end product walkthrough covering setup, estimates, jobs, dispatch, inbox, billing,
   finance, pipeline, automations, intelligence, team, and administration against the demo seed.
+- A first-sign-in walkthrough toast and an in-app **Walkthrough** page reachable from the user menu
+  and command palette, with seven steps that open the real surfaces.
 
 Service-provider suite: dispatch, a local inbox, automations, finance and margins, intelligence,
 team performance, a payment ledger, and the review fixes that make the service operations

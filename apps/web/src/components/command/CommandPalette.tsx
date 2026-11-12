@@ -182,6 +182,12 @@ const NAVIGATION: readonly ActionSeed[] = [
     keywords: "tasks notes",
   },
   {
+    label: "Walkthrough",
+    sublabel: "Guided product tour",
+    to: "/app/walkthrough",
+    keywords: "guide help onboarding tour tutorial",
+  },
+  {
     label: "Settings",
     sublabel: "Workspace and team",
     to: "/app/settings",
@@ -322,23 +328,25 @@ export function CommandPalette() {
       onSelect: () => go(seed.to),
     }));
 
+    const navigation = NAVIGATION.filter(
+      (seed) =>
+        normalized.length === 0 ||
+        `${seed.label} ${seed.sublabel} ${seed.keywords}`
+          .toLowerCase()
+          .includes(normalized),
+    ).map<CommandItem>((seed) => ({
+      id: `nav-${seed.to}`,
+      group: "Navigation",
+      label: seed.label,
+      sublabel: seed.sublabel,
+      icon: ArrowRight,
+      onSelect: () => go(seed.to),
+    }));
+
     const built: CommandGroup[] = [];
     if (actions.length > 0) built.push({ label: "Actions", items: actions });
-
-    if (trimmedQuery.length === 0) {
-      built.push({
-        label: "Navigation",
-        items: NAVIGATION.map((seed) => ({
-          id: `nav-${seed.to}`,
-          group: "Navigation",
-          label: seed.label,
-          sublabel: seed.sublabel,
-          icon: ArrowRight,
-          onSelect: () => go(seed.to),
-        })),
-      });
-      return built;
-    }
+    if (navigation.length > 0)
+      built.push({ label: "Navigation", items: navigation });
 
     if (trimmedQuery.length < 2) return built;
 

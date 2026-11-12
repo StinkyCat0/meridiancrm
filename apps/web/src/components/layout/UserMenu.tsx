@@ -1,4 +1,4 @@
-import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { BookOpen, ChevronDown, LogOut, Settings, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -110,6 +110,18 @@ export function UserMenu({ compact = false, placement = "up" }: UserMenuProps) {
             {role ? <p className="label-micro mt-1.5">{role}</p> : null}
           </div>
           <Separator className="my-1" />
+          <button
+            type="button"
+            role="menuitem"
+            className={menuItemClasses}
+            onClick={() => {
+              setOpen(false);
+              navigate("/app/walkthrough");
+            }}
+          >
+            <BookOpen className="size-4" aria-hidden="true" />
+            Walkthrough
+          </button>
           <button
             type="button"
             role="menuitem"

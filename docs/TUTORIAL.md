@@ -1,9 +1,13 @@
 # Meridian CRM walkthrough
 
-This is the guided tour for the shipped application. It follows the seeded **Meridian Home
-Services** workspace through one complete operating cycle: a customer and site, a priced quote, the
-job, the dispatch day, the invoice, the payment, and the reporting that follows. Every screen named
-here exists in the demo seed, so you can follow the whole tour without inventing data.
+This is the full guided tour for the shipped application. The in-app **Walkthrough** page condenses
+it into seven screens and is reachable from the user menu, the command palette, or the first-sign-in
+toast. This document adds the seeded records, edge cases, and troubleshooting behind those screens.
+
+It follows the seeded **Meridian Home Services** workspace through one complete operating cycle: a
+customer and site, a priced quote, the job, the dispatch day, the invoice, the payment, and the
+reporting that follows. Every screen named here exists in the demo seed, so you can follow the whole
+tour without inventing data.
 
 The tour takes about 30–45 minutes. Run it against a disposable local database, not against real
 data.

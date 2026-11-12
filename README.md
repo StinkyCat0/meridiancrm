@@ -116,8 +116,9 @@ The seed also creates member accounts for role checks and a realistic Austin, TX
 with customers, locations, jobs, estimates, invoices, payments, expenses, logged communications, and
 automation rules.
 
-New to the app? Follow the [end-to-end walkthrough](docs/TUTORIAL.md), which uses this demo workspace
-to move from a customer and quote through dispatch, invoicing, payment, and reporting.
+New to the app? The **Walkthrough** page — reachable from the user menu, ⌘K, or the first-sign-in
+toast — gives a seven-step tour. The [end-to-end walkthrough](docs/TUTORIAL.md) is the full reference
+behind it, with the seeded records, edge cases, and troubleshooting.
 
 A `500 Internal Server Error` on sign-in means the request never reached a healthy API: the dev
 server proxies `/api` to port 4000, so check that `npm run dev:api` (or `npm run dev`) is running

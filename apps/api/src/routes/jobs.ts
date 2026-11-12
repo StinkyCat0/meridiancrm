@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   JOB_STATUSES,
+  OPEN_JOB_STATUSES,
   jobDuplicateSchema,
   jobInputSchema,
   jobPatchSchema,
@@ -106,7 +107,7 @@ const listQuerySchema = paginationSchema.extend({
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(64) });
 
-const OPEN_STATUSES = ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"];
+const OPEN_STATUSES = [...OPEN_JOB_STATUSES];
 
 function parseBoundary(value: string | undefined): Date | undefined {
   if (!value) return undefined;
@@ -188,26 +189,34 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         ...(query.assigneeId ? { assigneeId: query.assigneeId } : {}),
       };
 
+      const scheduleFilters: Prisma.JobWhereInput[] = [];
       if (query.scope === "open") where.status = { in: OPEN_STATUSES };
       if (query.scope === "unscheduled") where.status = "UNSCHEDULED";
       if (query.scope === "today") {
-        where.scheduledStart = { gte: todayStart, lt: addDays(todayStart, 1) };
+        scheduleFilters.push({
+          scheduledStart: { gte: todayStart, lt: addDays(todayStart, 1) },
+        });
       }
       if (query.scope === "week") {
-        where.scheduledStart = { gte: todayStart, lt: addDays(todayStart, 7) };
+        scheduleFilters.push({
+          scheduledStart: { gte: todayStart, lt: addDays(todayStart, 7) },
+        });
       }
       if (query.scope === "upcoming") {
-        where.scheduledStart = { gte: now };
+        scheduleFilters.push({ scheduledStart: { gte: now } });
       }
 
       const from = parseBoundary(query.from);
       const to = parseBoundary(query.to);
       if (from || to) {
-        where.scheduledStart = {
-          ...(from ? { gte: from } : {}),
-          ...(to ? { lte: addDays(to, 1) } : {}),
-        };
+        scheduleFilters.push({
+          scheduledStart: {
+            ...(from ? { gte: from } : {}),
+            ...(to ? { lte: to } : {}),
+          },
+        });
       }
+      if (scheduleFilters.length > 0) where.AND = scheduleFilters;
 
       if (query.q) {
         where.OR = [

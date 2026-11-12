@@ -171,11 +171,8 @@ export interface LineItemDraft {
   unitPrice: string;
 }
 
-let lineKey = 0;
-
 function nextKey(): string {
-  lineKey += 1;
-  return `line-${lineKey}`;
+  return crypto.randomUUID();
 }
 
 export function emptyLine(): LineItemDraft {

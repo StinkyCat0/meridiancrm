@@ -44,21 +44,23 @@ estimates, invoices, payments, expenses, logged communications, and automation r
   technician revenue, and top customers.
 - Intelligence: local recommendations, forecast, health, upsells, and assistant brief.
 - Team performance and workload with utilization, ratings, revenue, and margin.
+- Website bridge: secret-gated contact intake into the lead pipeline and optional website-token SSO;
+  see [WEBSITE_INTEGRATION.md](WEBSITE_INTEGRATION.md).
 - Operations dashboard, dashboard analytics, global search, ⌘K/Ctrl+K palette, settings, audit,
   installable PWA, and documented REST API.
 
 ## Verification evidence
 
-Verified on branch `feat/service-provider-suite`:
+Verified on `main` after the website-bridge merges (2026-11-12):
 
-- **API integration tests:** 90 passing across auth, CRM, service operations, communications,
+- **API integration tests:** 134 passing across auth, CRM, service operations, communications,
   dispatch, finance, automations, intelligence, and team suites.
 - **Contract tests:** 17 passing (momentum, formatters, route optimization, message drafts, invoice
   rules, scoring).
 - **Typechecks:** `npm run typecheck` clean for API and web, run sequentially as CI does.
 - **Builds:** `@meridian/api` (`tsup`) and `@meridian/web` (`vite build`) both succeed.
-- **Coverage:** `npm run test:coverage` satisfies the configured floor (statements 20, branches 15,
-  functions 20, lines 20).
+- **Coverage:** `npm run test:coverage` satisfies the configured floor; the merged `main` run
+  reports 82.68% statements and 82.68% lines (statements/branches/functions/lines floors: 20/15/20/20).
 - **Formatting:** Prettier check clean across the repository.
 
 CI runs these same gates on every pull request: format check, Prisma client generation and
@@ -82,7 +84,7 @@ dependencies at critical severity and Dependabot keeps updates grouped.
 - **Payments are a ledger.** Meridian records receipts and adjustments; it is not a payment
   processor.
 - No email delivery for invites or password resets; invite links are copied manually.
-- No billing, SSO/SAML, MFA, or reporting exports yet.
+- No billing, SAML, MFA, or reporting exports yet. Website-token SSO is the only SSO path.
 - One workspace per account at a time.
 
 ## Next

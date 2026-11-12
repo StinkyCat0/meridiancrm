@@ -52,6 +52,29 @@ function resolveJwtSecret(): string {
   return randomBytes(48).toString("base64url");
 }
 
+function resolveIntakeSecret(): string {
+  const candidate = (process.env.WEBSITE_INTAKE_SECRET ?? "").trim();
+  const weak =
+    candidate.length < 32 ||
+    WEAK_SECRET_MARKERS.some((marker) =>
+      candidate.toLowerCase().includes(marker),
+    );
+
+  if (!weak) return candidate;
+
+  if (isProduction) {
+    throw new Error(
+      "WEBSITE_INTAKE_SECRET must be set to a random value of at least 32 characters (openssl rand -base64 48)",
+    );
+  }
+  if (candidate) {
+    console.warn(
+      "[config] Ignoring weak WEBSITE_INTAKE_SECRET; website intake is disabled.",
+    );
+  }
+  return "";
+}
+
 export const config = {
   env: process.env.NODE_ENV ?? "development",
   isProduction,
@@ -77,7 +100,7 @@ export const config = {
   refreshCookieName: "meridian_refresh",
   seedDemo: process.env.SEED_DEMO !== "0",
   webAppUrl: process.env.WEB_APP_URL ?? "http://localhost:5173",
-  websiteIntakeSecret: (process.env.WEBSITE_INTAKE_SECRET ?? "").trim(),
+  websiteIntakeSecret: resolveIntakeSecret(),
   websiteIntakeWorkspaceSlug:
     process.env.WEBSITE_INTAKE_WORKSPACE_SLUG ?? "meridian-studio",
 } as const;

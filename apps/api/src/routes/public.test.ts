@@ -82,7 +82,8 @@ async function defaultPipeline() {
 
 describe("POST /public/intake", () => {
   it("rejects a wrong intake secret", async () => {
-    const response = await submit(validPayload, "not-the-right-secret");
+    const wrongSecret = "x".repeat(intakeSecret.length);
+    const response = await submit(validPayload, wrongSecret);
 
     expect(response.statusCode).toBe(401);
     expect(await prisma.deal.count()).toBe(0);
@@ -217,6 +218,22 @@ describe("POST /public/intake", () => {
 
     expect(response.statusCode).toBe(400);
     expect(await prisma.deal.count()).toBe(0);
+  });
+
+  it("returns SERVICE_UNAVAILABLE when intake is not configured", async () => {
+    const mutableConfig = config as { websiteIntakeSecret: string };
+    const original = mutableConfig.websiteIntakeSecret;
+    mutableConfig.websiteIntakeSecret = "";
+    try {
+      const response = await submit();
+      const body = response.json() as { error: { code: string } };
+
+      expect(response.statusCode).toBe(503);
+      expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
+      expect(await prisma.deal.count()).toBe(0);
+    } finally {
+      mutableConfig.websiteIntakeSecret = original;
+    }
   });
 
   it("returns SERVICE_UNAVAILABLE when the intake workspace is missing", async () => {

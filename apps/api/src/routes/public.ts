@@ -24,7 +24,7 @@ function splitName(name: string): { firstName: string; lastName: string } {
   const [first = name, ...rest] = name.split(/\s+/).filter(Boolean);
   return {
     firstName: first.slice(0, 80),
-    lastName: rest.join(" ") || "-",
+    lastName: (rest.join(" ") || "-").slice(0, 80),
   };
 }
 

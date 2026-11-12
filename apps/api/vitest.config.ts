@@ -9,7 +9,7 @@ export default defineConfig({
       DATABASE_URL: "file:./test.db",
       JWT_SECRET: "test-secret-that-is-long-enough-for-hs256-signing",
       SEED_DEMO: "0",
-      WEBSITE_INTAKE_SECRET: "test-website-intake-secret",
+      WEBSITE_INTAKE_SECRET: "test-website-intake-secret-4f8a1c9e2b7d",
       WEBSITE_INTAKE_WORKSPACE_SLUG: "test-intake-workspace",
     },
     // SQLite has a single writer; keep suites serial and deterministic.

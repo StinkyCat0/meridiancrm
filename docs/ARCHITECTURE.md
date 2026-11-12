@@ -131,6 +131,17 @@ body, optional customer/contact/job links, author, `provider`, `externalId`, `ai
 `provider: "log"` and automation rows use `provider: "automation"`, both with `externalId: null`.
 `aiGenerated` marks copy produced by the local template engine, not by a remote model.
 
+#### Carrier and mailbox boundary (not implemented)
+
+No provider is called today. A future adapter has three responsibilities: outbound `send` after an
+outbox row is persisted with an idempotency key, inbound webhook verification (HMAC over the raw body,
+timestamp window, event/message dedupe before writing), and delivery-status normalization into an
+ordered set that never regresses. `provider` and `externalId` identify the adapter and provider
+message; `SENT` continues to mean recorded locally until a real send succeeds. Inbound tenancy comes
+from endpoint configuration and the verified secret, never from the payload. ADR-014 fixes the
+contract, secret handling, and failure semantics; keeping the local log as the default and fallback
+is part of the boundary.
+
 ### Automation
 
 `AutomationRule` stores the trigger, JSON conditions, JSON actions, enabled flag, run count, and last
@@ -164,8 +175,22 @@ SQLite has one writer. The app leans on four layers rather than pretending other
 4. **Deterministic ordering.** List queries append `id` to the `orderBy`, because SQLite timestamps
    have one-second resolution and non-unique sorts make offset pagination skip or repeat rows.
 
-Multi-instance deployment is not supported. Postgres is a provider swap plus migration review, not
-an application rewrite; the per-workspace queue is the one place that assumes a single process.
+Multi-instance deployment is not supported. Postgres removes the single-writer limit but is a
+migration project rather than a configuration toggle: it needs a Postgres baseline migration, a
+database sequence (or row lock) for document numbers in place of this queue, explicit search
+collation handling, and an index review. ADR-013 and the migration runbook in `docs/DEPLOYMENT.md`
+cover the cutover and rollback. Until then one process remains the correctness boundary.
+
+### Snapshots and restore
+
+The supported backup path is `scripts/backup-sqlite.sh`, which uses `sqlite3 ".backup"` when
+available and otherwise runs `VACUUM INTO` through Prisma. Both read a consistent snapshot while the
+API writes, including WAL content; a plain filesystem copy of a live database does not. The script
+verifies `PRAGMA integrity_check` before an atomic rename and stores the file mode 600.
+`scripts/restore-sqlite.sh` validates the snapshot, refuses to run without `--force`, refuses when
+`lsof` shows an open handle or journal files remain, and moves the current database to a
+`.pre-restore.<timestamp>` sibling before installing the copy. Backups are unencrypted copies of all
+workspace data and must be protected at rest.
 
 ## Event flow
 
@@ -182,6 +207,12 @@ dedupe check on `(rule, trigger, entity)`. A rule writes one `AutomationRun` and
 match, executes its contained actions: create a task, log a message (optionally with locally drafted
 copy), add a tag, or request a review (a logged review message plus a follow-up task). One failing
 rule never blocks its siblings; a thrown rule error is recorded as `FAILED`.
+
+The admin due sweep is also callable from CI: `.github/workflows/automations.yml` POSTs
+`/automations/run-due` hourly with an ADMIN token and on manual dispatch. It sweeps one workspace per
+call, and the 24-hour dedupe on `(rule, trigger, entity)` means a scheduled run, a manual rerun, and
+a retry converge on the same outcome. The workflow itself holds no repository permissions and skips
+with a notice when its URL or token is unset (see the deployment runbook).
 
 ```mermaid
 sequenceDiagram

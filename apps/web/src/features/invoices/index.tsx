@@ -1,8 +1,9 @@
 import { api, type Invoice, type InvoiceStatus } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Plus, Receipt, Search } from "lucide-react";
+import { AlertTriangle, Download, Plus, Receipt, Search } from "lucide-react";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -12,6 +13,7 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { Tabs } from "../../components/ui/Tabs";
 import {
   cn,
+  downloadCsv,
   formatDate,
   formatMoney,
   useDebouncedValue,
@@ -46,6 +48,7 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Invoice | null>(null);
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 250);
 
   // Paid invoices can never be overdue: the status wins over the toggle.
@@ -105,6 +108,24 @@ export default function InvoicesPage() {
     setParams(next, { replace: true });
   }
 
+  async function exportInvoices() {
+    setExporting(true);
+    try {
+      const blob = await api.exports.invoices({
+        status: status === "ALL" ? undefined : status,
+        overdue: overdueFilter,
+        q: debouncedSearch.trim() || undefined,
+      });
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(blob, `invoices-${stamp}.csv`);
+      toast.success("Invoices exported");
+    } catch (error) {
+      toast.error(apiErrorMessage(error));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -119,10 +140,22 @@ export default function InvoicesPage() {
         }
         description="Receivables from completed work — sent, collected and reconciled."
         actions={
-          <Button variant="primary" onClick={() => setParam("new", "1")}>
-            <Plus className="size-4" aria-hidden="true" />
-            New invoice
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => void exportInvoices()}
+              loading={exporting}
+            >
+              {exporting ? null : (
+                <Download className="size-4" aria-hidden="true" />
+              )}
+              Export CSV
+            </Button>
+            <Button variant="primary" onClick={() => setParam("new", "1")}>
+              <Plus className="size-4" aria-hidden="true" />
+              New invoice
+            </Button>
+          </div>
         }
       />
 

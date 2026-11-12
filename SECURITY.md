@@ -23,6 +23,14 @@ Only the latest released minor receives fixes.
   connected. Logging a message writes a `Communication` row with `provider: "log"`; automation
   messages use `provider: "automation"`. Both keep `externalId: null`. A status of `SENT` means
   recorded in the workspace, not delivered. No outbound network call is made for a message.
+- **Carrier/mailbox adapter (not implemented).** No provider credential, outbound send path, or
+  webhook route exists. ADR-014 fixes the boundary before one ships: verify the provider HMAC over
+  the raw body with a constant-time compare and a five-minute timestamp window, deduplicate on
+  provider event/message ids before writing, persist an outbox row with an idempotency key before
+  sending, map delivery states without regressions, bind inbound tenancy to endpoint configuration
+  and the verified secret rather than the payload, and keep per-provider secrets outside the
+  database, client, and logs. Enabling a provider also requires consent/opt-out handling and a
+  retention review.
 - **Assistant and intelligence are local engines.** Message drafts and recommendations come from
   deterministic templates and rules in the repository. No customer data is sent to a model provider,
   and no model API key exists in the deployment.
@@ -91,16 +99,31 @@ Only the latest released minor receives fixes.
 - **Secrets and files.** Environment-only secrets; no secrets in the repository; `.env` files are
   gitignored. The container runs non-root with a restrictive umask and creates `/data` mode 700, so
   SQLite files are owner-only.
+- **Backup and restore safety.** `scripts/backup-sqlite.sh` takes a WAL-safe snapshot
+  (`sqlite3 ".backup"` or `VACUUM INTO`), verifies `PRAGMA integrity_check`, writes mode 600, and
+  renames atomically. `scripts/restore-sqlite.sh` verifies the snapshot, requires `--force`, refuses
+  to run while `lsof` reports an open database or journal files remain, keeps the previous database
+  as a mode-600 `.pre-restore.<timestamp>` copy, and installs the verified file atomically. Neither
+  script prints `DATABASE_URL` or credentials. Snapshots are unencrypted; protect them at rest.
+- **Scheduled sweep workflow.** `.github/workflows/automations.yml` calls the ADMIN-only due sweep
+  with a token held in an Actions secret, passed through the environment (never interpolated into a
+  logged command), with bash tracing disabled. The job has no repository permissions, checks out no
+  code, serializes concurrent runs, has a five-minute timeout, and logs a notice instead of calling
+  the API when the URL or secret is unset.
 
 ## Known limits
 
 - No carrier or mailbox: the inbox cannot deliver, receive, or verify email/SMS, and there are no
-  provider webhooks or consent workflows to secure yet.
+  provider webhooks or consent workflows to secure yet. Any future integration must implement the
+  ADR-014 boundary (verified webhooks, replay window, idempotent outbox, delivery-state mapping,
+  consent, and secret storage) before it is enabled; the current deployment calls no provider.
 - No external model: draft and recommendation quality is bounded by local rules, but there is also
   no provider data-processing surface.
 - No MFA, SSO/SAML, or password-reset email flow. Password changes require the current password.
 - SQLite is single-writer and file-based; backups and the volume must be protected at the host level.
-  There is no encryption at rest unless the volume provides it. The document-number queue is
+  There is no encryption at rest unless the volume provides it, and `scripts/backup-sqlite.sh`
+  produces unencrypted snapshots of every workspace record: restrict directory permissions, encrypt
+  or store them on an encrypted volume, and keep copies off the host. The document-number queue is
   in-process, so multiple API instances are unsupported.
 - No file uploads; only receipt URLs are stored, with no scanning surface.
 - The dispatch map depends on public OpenStreetMap tiles. Tile requests disclose IP and approximate

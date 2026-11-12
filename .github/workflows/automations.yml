@@ -1,0 +1,98 @@
+name: Automations sweep
+
+# Calls POST /api/v1/automations/run-due so overdue invoices and upcoming
+# appointments are evaluated even when nobody has the admin UI open.
+#
+# Required repository configuration (Settings -> Secrets and variables ->
+# Actions):
+#   variable MERIDIAN_API_URL     Public API origin, e.g. https://crm.example.com
+#   secret   MERIDIAN_CRON_TOKEN  Access token for an ADMIN service user
+#                                 (never printed; see docs/DEPLOYMENT.md).
+#
+# When either value is absent the job logs a notice and succeeds without
+# calling the API. The endpoint is idempotent (24-hour run dedupe), so a retry
+# or an overlapping manual dispatch cannot double-run a rule.
+on:
+  workflow_dispatch:
+  schedule:
+    # Hourly at minute 7; offset from other schedules to avoid the top of hour.
+    - cron: "7 * * * *"
+
+# Never cancel an in-flight sweep; a queued run waits for the current one.
+concurrency:
+  group: automations-run-due
+  cancel-in-progress: false
+
+# The job needs no repository permissions and checks out no code.
+permissions: {}
+
+jobs:
+  run-due:
+    name: Run due automations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check configuration
+        id: config
+        env:
+          API_URL: ${{ vars.MERIDIAN_API_URL }}
+          TOKEN: ${{ secrets.MERIDIAN_CRON_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "${API_URL:-}" ] || [ -z "${TOKEN:-}" ]; then
+            echo "::notice::MERIDIAN_API_URL or MERIDIAN_CRON_TOKEN is not configured; skipping the automation sweep."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$API_URL" in
+            https://* | http://localhost | http://localhost:* | http://127.0.0.1 | http://127.0.0.1:*) ;;
+            *)
+              echo "::error::MERIDIAN_API_URL must be an https:// origin (http:// is allowed only for localhost)."
+              exit 1
+              ;;
+          esac
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Call run-due
+        if: steps.config.outputs.skip == 'false'
+        env:
+          API_URL: ${{ vars.MERIDIAN_API_URL }}
+          TOKEN: ${{ secrets.MERIDIAN_CRON_TOKEN }}
+        run: |
+          set -eu
+          # Never enable xtrace here: it would print the Authorization header.
+          body="$RUNNER_TEMP/run-due.json"
+          : > "$body"
+          http=""
+          rc=0
+          http=$(curl --silent --show-error --fail-with-body \
+            --max-time 30 --retry 3 --retry-delay 5 --retry-connrefused \
+            --request POST \
+            --output "$body" --write-out '%{http_code}' \
+            --header "authorization: Bearer ${TOKEN}" \
+            --header "accept: application/json" \
+            "${API_URL%/}/api/v1/automations/run-due") || rc=$?
+
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 22 ]; then
+            echo "::error::curl failed with exit code $rc; the API was not reached."
+            exit 1
+          fi
+
+          case "$http" in
+            2??)
+              echo "Automation sweep succeeded (HTTP $http)."
+              [ ! -s "$body" ] || cat "$body"
+              printf '\n'
+              ;;
+            401 | 403)
+              echo "::error::Run-due rejected the token (HTTP $http). MERIDIAN_CRON_TOKEN is invalid, expired, or the user is not an ADMIN of the target workspace."
+              [ ! -s "$body" ] || cat "$body"
+              exit 1
+              ;;
+            *)
+              echo "::error::Run-due failed with HTTP ${http:-unknown}."
+              [ ! -s "$body" ] || cat "$body"
+              exit 1
+              ;;
+          esac

@@ -224,11 +224,12 @@ const NO_REFRESH_PATHS: Record<string, true> = {
   "/auth/accept-invite": true,
 };
 
-async function execute<T>(
+async function sendRequest(
   path: string,
-  options: RequestOptions = {},
-): Promise<T> {
-  const headers = new Headers({ Accept: "application/json" });
+  options: RequestOptions,
+  accept: string,
+): Promise<Response> {
+  const headers = new Headers({ Accept: accept });
   if (options.body !== undefined)
     headers.set("Content-Type", "application/json");
   if (!options.skipAuth && accessToken)
@@ -273,15 +274,36 @@ async function execute<T>(
       // session (and emitted expiry); never clear a login that raced it.
       throw await toApiError(response);
     }
-    return execute<T>(path, { ...options, refreshed: true });
+    return sendRequest(path, { ...options, refreshed: true }, accept);
   }
 
+  return response;
+}
+
+async function execute<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await sendRequest(path, options, "application/json");
   if (!response.ok) throw await toApiError(response);
 
   if (response.status === 204) return undefined as T;
   const text = await response.text();
   if (!text) return undefined as T;
   return JSON.parse(text) as T;
+}
+
+/**
+ * Fetches a non-JSON download (CSV exports) with the same bearer token,
+ * single 401 refresh retry and ApiError surface as JSON requests.
+ */
+async function executeBlob(
+  path: string,
+  options: RequestOptions = {},
+): Promise<Blob> {
+  const response = await sendRequest(path, options, "text/csv");
+  if (!response.ok) throw await toApiError(response);
+  return response.blob();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -696,6 +718,37 @@ export interface PaymentListQuery extends ListParams {
   to?: string;
   customerId?: string;
   invoiceId?: string;
+}
+
+export interface InvoiceExportQuery {
+  status?: InvoiceStatus;
+  customerId?: string;
+  jobId?: string;
+  overdue?: "true" | "false";
+  q?: string;
+}
+
+export interface PaymentExportQuery {
+  from?: string;
+  to?: string;
+  customerId?: string;
+  invoiceId?: string;
+  q?: string;
+}
+
+export interface ExpenseExportQuery {
+  category?: ExpenseCategory;
+  jobId?: string;
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+export interface CustomerExportQuery {
+  archive?: ArchiveFilter;
+  industry?: Industry;
+  customerType?: CustomerType;
+  q?: string;
 }
 
 export interface AutomationListQuery extends ListParams {
@@ -1181,6 +1234,17 @@ const finance = {
     }),
 };
 
+const exportsApi = {
+  invoices: (query?: InvoiceExportQuery): Promise<Blob> =>
+    executeBlob("/exports/invoices.csv", { query }),
+  payments: (query?: PaymentExportQuery): Promise<Blob> =>
+    executeBlob("/exports/payments.csv", { query }),
+  expenses: (query?: ExpenseExportQuery): Promise<Blob> =>
+    executeBlob("/exports/expenses.csv", { query }),
+  customers: (query?: CustomerExportQuery): Promise<Blob> =>
+    executeBlob("/exports/customers.csv", { query }),
+};
+
 const automations = {
   list: (query?: AutomationListQuery): Promise<Page<AutomationRule>> =>
     execute<Page<AutomationRule>>("/automations", { query }),
@@ -1270,6 +1334,7 @@ export const api = {
   communications,
   dispatch,
   finance,
+  exports: exportsApi,
   automations,
   intelligence,
   team,

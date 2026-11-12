@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   BadgeDollarSign,
   Banknote,
+  Download,
   Plus,
   Receipt,
   RefreshCw,
@@ -63,6 +64,7 @@ import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
 import {
   cn,
+  downloadCsv,
   formatDate,
   formatMoney,
   fromCents,
@@ -599,6 +601,9 @@ export default function RevenuePage() {
   const [customTo, setCustomTo] = useState(isoDate(new Date()));
   const [editing, setEditing] = useState<Expense | null>(null);
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState<"payments" | "expenses" | null>(
+    null,
+  );
   const [confirmingDelete, setConfirmingDelete] = useState<Expense | null>(
     null,
   );
@@ -662,6 +667,25 @@ export default function RevenuePage() {
     void paymentsQuery.refetch();
     void expensesQuery.refetch();
     void intelligenceQuery.refetch();
+  }
+
+  async function exportRange(kind: "payments" | "expenses") {
+    setExporting(kind);
+    try {
+      const blob =
+        kind === "payments"
+          ? await api.exports.payments(range)
+          : await api.exports.expenses(range);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(blob, `${kind}-${stamp}.csv`);
+      toast.success(
+        kind === "payments" ? "Payments exported" : "Expenses exported",
+      );
+    } catch (error) {
+      toast.error(apiErrorMessage(error));
+    } finally {
+      setExporting(null);
+    }
   }
 
   return (
@@ -966,12 +990,25 @@ export default function RevenuePage() {
             title="Payments"
             description="Collected payments in the selected range."
             action={
-              <Link
-                to="/app/invoices"
-                className="text-xs font-medium text-accent hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                All invoices
-              </Link>
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void exportRange("payments")}
+                  loading={exporting === "payments"}
+                >
+                  {exporting === "payments" ? null : (
+                    <Download className="size-4" aria-hidden="true" />
+                  )}
+                  Export CSV
+                </Button>
+                <Link
+                  to="/app/invoices"
+                  className="text-xs font-medium text-accent hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  All invoices
+                </Link>
+              </div>
             }
           >
             {paymentsQuery.isError ? (
@@ -1025,18 +1062,31 @@ export default function RevenuePage() {
             title="Expenses"
             description="Costs recorded in the selected range."
             action={
-              canManage ? (
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => setCreating(true)}
+                  onClick={() => void exportRange("expenses")}
+                  loading={exporting === "expenses"}
                 >
-                  <Plus className="size-4" aria-hidden="true" />
-                  Add expense
+                  {exporting === "expenses" ? null : (
+                    <Download className="size-4" aria-hidden="true" />
+                  )}
+                  Export CSV
                 </Button>
-              ) : (
-                <Badge tone="neutral">View only</Badge>
-              )
+                {canManage ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setCreating(true)}
+                  >
+                    <Plus className="size-4" aria-hidden="true" />
+                    Add expense
+                  </Button>
+                ) : (
+                  <Badge tone="neutral">View only</Badge>
+                )}
+              </div>
             }
           >
             {expensesQuery.isError ? (

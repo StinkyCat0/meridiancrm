@@ -133,3 +133,61 @@ come from outside the team, and secret scanning must stay clean because history 
 supersedes only the visibility sentence of ADR-006; the licensing decision stands. Contributions
 still require maintainer approval, and security reports should go to the private address rather than
 a public issue.
+
+## ADR-013: Postgres readiness is a migration project, not a config flip
+
+**Context.** SQLite keeps one instance reliable, but it blocks horizontal scaling, has no managed
+backups, and forces the document-number queue and retry classifier into application memory. The
+schema was written provider-neutral so a move would be possible, yet "change the provider string" is
+not enough: SQLite migrations are not portable, document numbers would race between instances, and
+`LIKE` collation differs. **Decision.** Treat Postgres as a deliberate, rehearsed migration with its
+own baseline migration directory, a database sequence (or row lock) for document numbers, explicit
+search-collation handling, index review with `EXPLAIN`, and a cutover/rollback runbook in
+[`docs/DEPLOYMENT.md`](DEPLOYMENT.md#moving-to-postgres). Keep the schema provider-neutral until the
+migration is committed; do not add Postgres-only column types or indexes speculatively. The SQLite
+backup/restore scripts remain the supported backup path until `pg_dump` replaces them. **Consequences.**
+Postgres unlocks multiple API instances and read replicas, but only after the in-process write queue
+is removed and serialization retries cover Postgres error codes. The cutover has a write-freeze
+window, no dual-write fallback, and rollback loses writes made after the switch. Single-instance
+SQLite remains the default and needs no changes.
+
+## ADR-014: Carrier and mailbox adapter boundary
+
+**Context.** Communications are local records: `provider: "log"` or `"automation"`, no `externalId`,
+and `SENT` means recorded, not delivered (ADR-008). Adding SMS, email, or a mailbox later must not
+overload those meanings or smuggle an unverified network path into the current deployment. There are
+no provider credentials, delivery webhooks, or consent flows today. **Decision.** Integrate a
+provider only through an explicit adapter contract, and ship no provider enabled by default.
+
+- **Outbound.** `send(workspace, draft)` persists the intent first (an outbox row keyed by a
+  client-generated idempotency key), then calls the provider and stores the provider message id,
+  accepted timestamp, and normalized status. The adapter never sends without a persisted row; a crash
+  after send is retried with the same provider idempotency key.
+- **Inbound webhooks.** Verify the provider's HMAC over the raw request body before parsing, with a
+  per-endpoint secret and a timestamp header. Reject signatures that fail a constant-time compare and
+  timestamps outside a five-minute window (replay protection). Deduplicate on provider event id plus
+  message id with a unique constraint before writing, so a redelivery is a no-op 2xx. Return 2xx only
+  after the event is durably recorded; unknown workspaces or message ids are acknowledged without
+  leaking whether they exist.
+- **Delivery status.** Normalize provider states into a small ordered set (queued, sent, delivered,
+  failed, bounced) and only move forward; late or contradictory events are recorded without
+  regressing the visible status. `FAILED` carries a sanitized reason, never a raw provider payload.
+- **Communication mapping.** Outbound and inbound rows set `provider` to the adapter name and
+  `externalId` to the provider message id. Inbound creates the row with the provider's timestamp and
+  direction; delivery updates status and timestamps on that row rather than creating duplicates.
+  Local logging stays the default and the fallback when no provider is configured.
+- **Secrets and consent.** Credentials and webhook secrets live in environment/secret storage, never
+  in the database, client bundle, logs, or audit metadata; they are per-provider and rotatable.
+  Enforce opt-out/consent before outbound sends and record it per customer/channel. Provider calls
+  are time-bounded and retried with bounded backoff; a provider outage records a failed attempt and
+  never rolls back a CRM write.
+- **Failure semantics.** The adapter reports transport failure separately from provider rejection.
+  A missing configuration fails closed for outbound sending and leaves the local log path intact.
+  Inbound handlers never trust a payload to establish tenancy; the endpoint is bound to a workspace
+  by configuration and verified secret.
+
+**Consequences.** The inbox can later become a real channel without changing the meaning of existing
+rows or calling a provider today. Until an adapter exists, no network call, webhook route, or
+credential is required, and the security notes continue to state that no carrier or mailbox is
+connected. Enabling one is a deployment decision that requires consent, retention, webhook
+verification, and a delivery-status review before it ships.

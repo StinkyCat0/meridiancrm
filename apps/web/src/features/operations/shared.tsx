@@ -423,12 +423,28 @@ export function CustomerLocationFields({
   const locationsQuery = useCustomerLocations(customerId);
   const customers = customersQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
+  const activeLocationIds = new Set(locations.map((location) => location.id));
+  const currentLocationQuery = useQuery({
+    queryKey: queryKeys.locations.detail(locationId),
+    queryFn: () => api.locations.get(locationId),
+    enabled: Boolean(locationId) && !activeLocationIds.has(locationId),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const archivedLocation =
+    locationId &&
+    !activeLocationIds.has(locationId) &&
+    currentLocationQuery.data?.id === locationId
+      ? currentLocationQuery.data
+      : null;
   const prefix = useId();
 
   useEffect(() => {
     if (!customerId) return;
     if (locations.length === 0) return;
-    if (locations.some((location) => location.id === locationId)) return;
+    // An existing selection that is no longer active must stay visible rather
+    // than silently moving the job to another site. Only fill an empty value.
+    if (locationId !== "") return;
     const primary =
       locations.find((location) => location.isPrimary) ?? locations[0];
     if (primary) onChange({ customerId, locationId: primary.id });
@@ -484,6 +500,12 @@ export function CustomerLocationFields({
                 ? "Loading locations…"
                 : "Select a location"}
           </option>
+          {archivedLocation ? (
+            <option value={archivedLocation.id}>
+              {archivedLocation.label} · {archivedLocation.line1},{" "}
+              {archivedLocation.city} (archived)
+            </option>
+          ) : null}
           {locations.map((location) => (
             <option key={location.id} value={location.id}>
               {location.label} · {location.line1}, {location.city}
@@ -491,6 +513,12 @@ export function CustomerLocationFields({
           ))}
         </Select>
       </Field>
+      {archivedLocation ? (
+        <p className="text-xs text-warning sm:col-span-2">
+          This job's location is archived. Pick an active location to move it,
+          or restore the site on the customer record.
+        </p>
+      ) : null}
       {customerId ? (
         <p className="text-xs text-muted sm:col-span-2">
           {workspace?.currency ?? "USD"} · addresses are managed on the customer

@@ -30,7 +30,9 @@ beforeEach(async () => {
   account = await registerAccount(app);
 });
 
-async function getSummary(target: TestAccount = account): Promise<IntelligenceSummary> {
+async function getSummary(
+  target: TestAccount = account,
+): Promise<IntelligenceSummary> {
   const response = await app.inject({
     method: "GET",
     url: "/api/v1/intelligence/summary",
@@ -44,13 +46,24 @@ function tag(): string {
   return crypto.randomUUID().slice(0, 8);
 }
 
-async function seedCustomer(name = `Customer ${tag()}`, workspaceId = account.workspaceId) {
+async function seedCustomer(
+  name = `Customer ${tag()}`,
+  workspaceId = account.workspaceId,
+) {
   return prisma.company.create({
-    data: { workspaceId, name, phone: "503-555-0100", customerType: "RESIDENTIAL" },
+    data: {
+      workspaceId,
+      name,
+      phone: "503-555-0100",
+      customerType: "RESIDENTIAL",
+    },
   });
 }
 
-async function seedLocation(customerId: string, workspaceId = account.workspaceId) {
+async function seedLocation(
+  customerId: string,
+  workspaceId = account.workspaceId,
+) {
   return prisma.location.create({
     data: {
       workspaceId,
@@ -95,7 +108,9 @@ describe("intelligence recommendations", () => {
     });
 
     const summary = await getSummary();
-    const recommendation = summary.recommendations.find((row) => row.kind === "CHURN_RISK");
+    const recommendation = summary.recommendations.find(
+      (row) => row.kind === "CHURN_RISK",
+    );
 
     expect(recommendation).toBeDefined();
     expect(recommendation?.customer?.id).toBe(customer.id);
@@ -122,7 +137,9 @@ describe("intelligence recommendations", () => {
     });
 
     const summary = await getSummary();
-    const recommendation = summary.recommendations.find((row) => row.kind === "NO_SHOW_RISK");
+    const recommendation = summary.recommendations.find(
+      (row) => row.kind === "NO_SHOW_RISK",
+    );
 
     expect(recommendation).toBeDefined();
     expect(recommendation?.jobId).toBe(upcoming.id);
@@ -154,7 +171,9 @@ describe("intelligence recommendations", () => {
     });
 
     const summary = await getSummary();
-    const recommendation = summary.recommendations.find((row) => row.kind === "UPSELL");
+    const recommendation = summary.recommendations.find(
+      (row) => row.kind === "UPSELL",
+    );
 
     expect(recommendation).toBeDefined();
     expect(recommendation?.serviceId).toBe(service.id);
@@ -182,7 +201,9 @@ describe("intelligence recommendations", () => {
     });
 
     const summary = await getSummary();
-    const recommendation = summary.recommendations.find((row) => row.kind === "COLLECTIONS");
+    const recommendation = summary.recommendations.find(
+      (row) => row.kind === "COLLECTIONS",
+    );
 
     expect(recommendation).toBeDefined();
     expect(recommendation?.severity).toBe("HIGH");
@@ -198,9 +219,9 @@ describe("intelligence recommendations", () => {
       headers: authHeaders(account),
     });
     expect(filtered.statusCode).toBe(200);
-    expect((filtered.json() as { kind: string }[]).map((row) => row.kind)).toEqual([
-      "COLLECTIONS",
-    ]);
+    expect(
+      (filtered.json() as { kind: string }[]).map((row) => row.kind),
+    ).toEqual(["COLLECTIONS"]);
   });
 
   it("builds an explainable forecast from scheduled, pipeline and recurring data", async () => {
@@ -248,7 +269,9 @@ describe("intelligence recommendations", () => {
     expect(summary.forecast.pipelineWeighted).toBe(expectedPipeline);
     expect(summary.forecast.recurring).toBe(20_000);
     expect(summary.forecast.next30Days).toBe(
-      summary.forecast.scheduled + summary.forecast.pipelineWeighted + summary.forecast.recurring,
+      summary.forecast.scheduled +
+        summary.forecast.pipelineWeighted +
+        summary.forecast.recurring,
     );
     expect(summary.forecast.assumptions.length).toBeGreaterThanOrEqual(3);
     expect(["low", "medium", "high"]).toContain(summary.forecast.confidence);
@@ -296,12 +319,16 @@ describe("intelligence recommendations", () => {
     const ownerSummary = await getSummary();
     expect(ownerSummary.recommendations.length).toBeGreaterThan(0);
 
-    const other = await registerAccount(app, { email: `other-${tag()}@example.com` });
+    const other = await registerAccount(app, {
+      email: `other-${tag()}@example.com`,
+    });
     const otherSummary = await getSummary(other);
 
     expect(otherSummary.recommendations).toEqual([]);
     expect(otherSummary.upsells).toEqual([]);
-    expect(Object.values(otherSummary.counts).every((count) => count === 0)).toBe(true);
+    expect(
+      Object.values(otherSummary.counts).every((count) => count === 0),
+    ).toBe(true);
     expect(otherSummary.health.overdueAmount).toBe(0);
     expect(otherSummary.health.churnRiskCustomers).toBe(0);
 

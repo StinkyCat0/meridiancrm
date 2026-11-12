@@ -1,4 +1,8 @@
-import { api, type CreateEstimateInput, type Estimate } from "@meridian/api-client";
+import {
+  api,
+  type CreateEstimateInput,
+  type Estimate,
+} from "@meridian/api-client";
 import {
   ESTIMATE_STATUSES,
   ESTIMATE_STATUS_META,
@@ -47,7 +51,9 @@ export function EstimateFormModal({
   const [title, setTitle] = useState(estimate?.title ?? "");
   const [customerId, setCustomerId] = useState(estimate?.customer.id ?? "");
   const [locationId, setLocationId] = useState(estimate?.location.id ?? "");
-  const [status, setStatus] = useState<EstimateStatus>(estimate?.status ?? "DRAFT");
+  const [status, setStatus] = useState<EstimateStatus>(
+    estimate?.status ?? "DRAFT",
+  );
   const [issuedAt, setIssuedAt] = useState(toDateInput(estimate?.issuedAt));
   const [expiresAt, setExpiresAt] = useState(toDateInput(estimate?.expiresAt));
   const [taxRate, setTaxRate] = useState(String(estimate?.taxRate ?? 0));
@@ -55,11 +61,15 @@ export function EstimateFormModal({
   const [lines, setLines] = useState<LineItemDraft[]>(
     estimate ? draftFromItems(estimate.lineItems) : [emptyLine()],
   );
-  const [errors, setErrors] = useState<{ title?: string; location?: string }>({});
+  const [errors, setErrors] = useState<{ title?: string; location?: string }>(
+    {},
+  );
 
   const save = useMutation({
     mutationFn: (input: CreateEstimateInput) =>
-      estimate ? api.estimates.update(estimate.id, input) : api.estimates.create(input),
+      estimate
+        ? api.estimates.update(estimate.id, input)
+        : api.estimates.create(input),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
       void queryClient.invalidateQueries({ queryKey: ["ops"] });
@@ -111,21 +121,37 @@ export function EstimateFormModal({
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {estimate ? "Save estimate" : "Create estimate"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-5">
-        <Field label="Estimate title" htmlFor={id("title")} required error={errors.title}>
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-5"
+      >
+        <Field
+          label="Estimate title"
+          htmlFor={id("title")}
+          required
+          error={errors.title}
+        >
           <Input
             id={id("title")}
             data-autofocus
             value={title}
             onChange={(event) => {
               setTitle(event.target.value);
-              if (errors.title) setErrors((current) => ({ ...current, title: undefined }));
+              if (errors.title)
+                setErrors((current) => ({ ...current, title: undefined }));
             }}
             invalid={Boolean(errors.title)}
             maxLength={160}
@@ -139,7 +165,8 @@ export function EstimateFormModal({
           onChange={(next) => {
             setCustomerId(next.customerId);
             setLocationId(next.locationId);
-            if (errors.location) setErrors((current) => ({ ...current, location: undefined }));
+            if (errors.location)
+              setErrors((current) => ({ ...current, location: undefined }));
           }}
         />
         {errors.location ? (
@@ -153,7 +180,9 @@ export function EstimateFormModal({
             <Select
               id={id("status")}
               value={status}
-              onChange={(event) => setStatus(event.target.value as EstimateStatus)}
+              onChange={(event) =>
+                setStatus(event.target.value as EstimateStatus)
+              }
             >
               {ESTIMATE_STATUSES.map((value) => (
                 <option key={value} value={value}>
@@ -192,7 +221,11 @@ export function EstimateFormModal({
           />
         </Field>
 
-        <LineItemsEditor lines={lines} onChange={setLines} currency={currency} />
+        <LineItemsEditor
+          lines={lines}
+          onChange={setLines}
+          currency={currency}
+        />
         <TotalsPreview lines={lines} taxRate={taxRate} currency={currency} />
 
         <Field label="Notes" htmlFor={id("notes")}>

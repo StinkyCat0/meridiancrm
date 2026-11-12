@@ -5,12 +5,12 @@
 
 ## Running now
 
-| Surface | URL | Notes |
-| --- | --- | --- |
-| Web app | http://localhost:5173 | Vite dev server |
-| API | http://localhost:4000/api/v1 | Fastify |
-| API docs | http://localhost:4000/docs | OpenAPI 3.0 |
-| Health | http://localhost:4000/api/v1/health | includes DB check |
+| Surface  | URL                                 | Notes             |
+| -------- | ----------------------------------- | ----------------- |
+| Web app  | http://localhost:5173               | Vite dev server   |
+| API      | http://localhost:4000/api/v1        | Fastify           |
+| API docs | http://localhost:4000/docs          | OpenAPI 3.0       |
+| Health   | http://localhost:4000/api/v1/health | includes DB check |
 
 Demo workspace: **Meridian Studio** — `demo@meridian.studio` / `Meridian2026!` (OWNER).
 Second seeded account: `member@meridian.studio` / `Meridian2026!` (MEMBER, for role checks).

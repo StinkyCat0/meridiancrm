@@ -26,7 +26,11 @@ export function tagsToInput(tags: string[]): string {
 }
 
 function validationDetails(details: unknown): string | null {
-  if (typeof details !== "object" || details === null || !("fieldErrors" in details)) {
+  if (
+    typeof details !== "object" ||
+    details === null ||
+    !("fieldErrors" in details)
+  ) {
     return null;
   }
   const fieldErrors: unknown = details.fieldErrors;

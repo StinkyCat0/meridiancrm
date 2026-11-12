@@ -27,7 +27,13 @@ const include = {
   customer: { select: customerSelect },
   _count: {
     select: {
-      jobs: { where: { status: { in: ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"] } } },
+      jobs: {
+        where: {
+          status: {
+            in: ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"],
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.LocationInclude;
@@ -40,7 +46,9 @@ const listQuerySchema = paginationSchema.extend({
 });
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(64) });
-const deleteQuerySchema = z.object({ permanent: z.enum(["true", "false"]).optional() });
+const deleteQuerySchema = z.object({
+  permanent: z.enum(["true", "false"]).optional(),
+});
 
 function toLocation(row: LocationRow): Location {
   return {
@@ -67,7 +75,10 @@ function toLocation(row: LocationRow): Location {
   };
 }
 
-async function loadLocationRow(workspaceId: string, id: string): Promise<LocationRow> {
+async function loadLocationRow(
+  workspaceId: string,
+  id: string,
+): Promise<LocationRow> {
   const row = await prisma.location.findFirst({
     where: { id, workspaceId },
     include,
@@ -118,7 +129,12 @@ async function promoteReplacementPrimary(
       "Add another active location before this one stops being the primary",
     );
   }
-  await clearOtherPrimaries(tx, existing.workspaceId, existing.customerId, replacement.id);
+  await clearOtherPrimaries(
+    tx,
+    existing.workspaceId,
+    existing.customerId,
+    replacement.id,
+  );
   await tx.location.update({
     where: { id: replacement.id },
     data: { isPrimary: true },
@@ -141,7 +157,9 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       const query = parseOrThrow(listQuerySchema, request.query);
       const where: Prisma.LocationWhereInput = {
         workspaceId: auth.workspaceId,
-        ...(query.archive === "all" ? {} : { archived: query.archive === "archived" }),
+        ...(query.archive === "all"
+          ? {}
+          : { archived: query.archive === "archived" }),
         ...(query.customerId ? { customerId: query.customerId } : {}),
         ...(query.q
           ? {
@@ -200,7 +218,12 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
         // The partial unique index allows one primary per customer, so existing
         // primaries must be cleared before the new row is inserted.
         if (isPrimary) {
-          await clearOtherPrimaries(tx, auth.workspaceId, input.customerId, null);
+          await clearOtherPrimaries(
+            tx,
+            auth.workspaceId,
+            input.customerId,
+            null,
+          );
         }
         const row = await tx.location.create({
           data: {
@@ -274,7 +297,9 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       const input = parseOrThrow(locationPatchSchema, request.body);
 
       const archived = input.archived ?? existing.archived;
-      const isPrimary = archived ? false : (input.isPrimary ?? existing.isPrimary);
+      const isPrimary = archived
+        ? false
+        : (input.isPrimary ?? existing.isPrimary);
       const losingPrimary = existing.isPrimary && !isPrimary;
 
       const data: Prisma.LocationUncheckedUpdateInput = {};
@@ -283,14 +308,19 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
       if (input.line2 !== undefined) data.line2 = input.line2 ?? null;
       if (input.city !== undefined) data.city = input.city;
       if (input.state !== undefined) data.state = input.state ?? null;
-      if (input.postalCode !== undefined) data.postalCode = input.postalCode ?? null;
+      if (input.postalCode !== undefined)
+        data.postalCode = input.postalCode ?? null;
       if (input.country !== undefined) data.country = input.country ?? null;
-      if (input.accessNotes !== undefined) data.accessNotes = input.accessNotes ?? null;
+      if (input.accessNotes !== undefined)
+        data.accessNotes = input.accessNotes ?? null;
       if (input.gateCode !== undefined) data.gateCode = input.gateCode ?? null;
-      if (input.contactName !== undefined) data.contactName = input.contactName ?? null;
-      if (input.contactPhone !== undefined) data.contactPhone = input.contactPhone ?? null;
+      if (input.contactName !== undefined)
+        data.contactName = input.contactName ?? null;
+      if (input.contactPhone !== undefined)
+        data.contactPhone = input.contactPhone ?? null;
       if (input.latitude !== undefined) data.latitude = input.latitude ?? null;
-      if (input.longitude !== undefined) data.longitude = input.longitude ?? null;
+      if (input.longitude !== undefined)
+        data.longitude = input.longitude ?? null;
       if (input.isPrimary !== undefined || archived !== existing.archived) {
         data.isPrimary = isPrimary;
       }
@@ -301,7 +331,12 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
           await promoteReplacementPrimary(tx, existing);
         }
         if (isPrimary) {
-          await clearOtherPrimaries(tx, auth.workspaceId, existing.customerId, existing.id);
+          await clearOtherPrimaries(
+            tx,
+            auth.workspaceId,
+            existing.customerId,
+            existing.id,
+          );
         }
         return tx.location.update({
           where: { id: existing.id },
@@ -326,7 +361,11 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
     "/locations/:id/restore",
     {
       preHandler: authenticate,
-      schema: { tags: ["locations"], summary: "Restore a location", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["locations"],
+        summary: "Restore a location",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -346,11 +385,19 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
         // Restoring the only active location makes it the primary; restoring a
         // former primary demotes any duplicate primary that appeared meanwhile.
         if (existing.isPrimary || !activePrimary) {
-          await clearOtherPrimaries(tx, auth.workspaceId, existing.customerId, existing.id);
+          await clearOtherPrimaries(
+            tx,
+            auth.workspaceId,
+            existing.customerId,
+            existing.id,
+          );
         }
         return tx.location.update({
           where: { id: existing.id },
-          data: { archived: false, ...(activePrimary ? {} : { isPrimary: true }) },
+          data: {
+            archived: false,
+            ...(activePrimary ? {} : { isPrimary: true }),
+          },
           include,
         });
       });
@@ -392,7 +439,9 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
             tx.invoice.count({ where: { locationId: existing.id } }),
           ]);
           if (jobs + estimates + invoices > 0) {
-            throw badRequest("Move or archive this location's jobs, estimates and invoices first");
+            throw badRequest(
+              "Move or archive this location's jobs, estimates and invoices first",
+            );
           }
           if (existing.isPrimary && !existing.archived) {
             const replacement = await tx.location.findFirst({
@@ -402,11 +451,20 @@ export async function locationRoutes(app: FastifyInstance): Promise<void> {
                 archived: false,
                 id: { not: existing.id },
               },
-              orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+              orderBy: [
+                { isPrimary: "desc" },
+                { createdAt: "asc" },
+                { id: "asc" },
+              ],
               select: { id: true },
             });
             if (replacement) {
-              await clearOtherPrimaries(tx, auth.workspaceId, existing.customerId, replacement.id);
+              await clearOtherPrimaries(
+                tx,
+                auth.workspaceId,
+                existing.customerId,
+                replacement.id,
+              );
               await tx.location.update({
                 where: { id: replacement.id },
                 data: { isPrimary: true },

@@ -10,7 +10,12 @@ import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { Tabs } from "../../components/ui/Tabs";
-import { cn, formatDate, formatMoney, useDebouncedValue } from "../../lib/utils";
+import {
+  cn,
+  formatDate,
+  formatMoney,
+  useDebouncedValue,
+} from "../../lib/utils";
 import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
 import { apiErrorMessage } from "../companies/lib";
@@ -168,7 +173,10 @@ export default function InvoicesPage() {
         </div>
         <Tabs
           ariaLabel="Invoice status"
-          items={STATUS_TABS.map((item) => ({ value: item.value, label: item.label }))}
+          items={STATUS_TABS.map((item) => ({
+            value: item.value,
+            label: item.label,
+          }))}
           value={status}
           onChange={(value) => changeStatus(value as InvoiceStatus | "ALL")}
           className="border-0"
@@ -183,7 +191,9 @@ export default function InvoicesPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load invoices.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load invoices.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(invoicesQuery.error)}
             </p>
@@ -199,7 +209,9 @@ export default function InvoicesPage() {
       ) : invoices.length === 0 ? (
         <EmptyState
           icon={<Receipt />}
-          title={hasFilters ? "No invoices match those filters." : "No invoices yet."}
+          title={
+            hasFilters ? "No invoices match those filters." : "No invoices yet."
+          }
           description={
             hasFilters
               ? "Try another status or clear the overdue filter."
@@ -244,10 +256,16 @@ export default function InvoicesPage() {
                     <th scope="col" className="label-micro px-4 py-3">
                       Due
                     </th>
-                    <th scope="col" className="label-micro px-4 py-3 text-right">
+                    <th
+                      scope="col"
+                      className="label-micro px-4 py-3 text-right"
+                    >
                       Amount
                     </th>
-                    <th scope="col" className="label-micro px-4 py-3 text-right">
+                    <th
+                      scope="col"
+                      className="label-micro px-4 py-3 text-right"
+                    >
                       Balance
                     </th>
                   </tr>
@@ -260,27 +278,38 @@ export default function InvoicesPage() {
                       aria-label={`Open ${invoice.number}`}
                       onClick={() => setParam("invoice", invoice.id)}
                       onKeyDown={(event) =>
-                        handleRowKeyDown(event, invoice.id, (id) => setParam("invoice", id))
+                        handleRowKeyDown(event, invoice.id, (id) =>
+                          setParam("invoice", id),
+                        )
                       }
                       className="cursor-pointer border-b border-border/70 transition-colors last:border-0 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <td className="px-4 py-3">
-                        <p className="num text-xs text-accent">{invoice.number}</p>
+                        <p className="num text-xs text-accent">
+                          {invoice.number}
+                        </p>
                         <p className="max-w-[260px] truncate font-medium text-fg">
                           {invoice.title}
                         </p>
                         {invoice.jobNumber ? (
-                          <p className="num text-[11px] text-muted">Job {invoice.jobNumber}</p>
+                          <p className="num text-[11px] text-muted">
+                            Job {invoice.jobNumber}
+                          </p>
                         ) : null}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="max-w-[180px] truncate text-fg">{invoice.customer.name}</p>
+                        <p className="max-w-[180px] truncate text-fg">
+                          {invoice.customer.name}
+                        </p>
                         <p className="max-w-[180px] truncate text-xs text-muted">
                           {invoice.location?.city ?? "No location"}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
+                        <InvoiceStatusBadge
+                          status={invoice.status}
+                          overdue={invoice.overdue}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-muted">
                         {invoice.dueAt ? formatDate(invoice.dueAt) : "—"}
@@ -309,14 +338,23 @@ export default function InvoicesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="num text-xs text-accent">{invoice.number}</p>
-                    <p className="truncate font-medium text-fg">{invoice.title}</p>
-                    <p className="truncate text-xs text-muted">{invoice.customer.name}</p>
+                    <p className="truncate font-medium text-fg">
+                      {invoice.title}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {invoice.customer.name}
+                    </p>
                   </div>
-                  <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
+                  <InvoiceStatusBadge
+                    status={invoice.status}
+                    overdue={invoice.overdue}
+                  />
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs">
                   <span className="text-muted">
-                    {invoice.dueAt ? `Due ${formatDate(invoice.dueAt)}` : "No due date"}
+                    {invoice.dueAt
+                      ? `Due ${formatDate(invoice.dueAt)}`
+                      : "No due date"}
                   </span>
                   <span className="num text-fg">
                     {formatMoney(invoice.balance, currency)} due
@@ -346,7 +384,9 @@ export default function InvoicesPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
                 disabled={currentPage >= totalPages}
                 aria-label="Next page"
               >
@@ -421,7 +461,10 @@ function ListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="mt-2 h-3 w-2/3" />
           </div>

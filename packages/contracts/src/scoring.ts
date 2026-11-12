@@ -12,7 +12,8 @@ export interface ChurnSignals {
 
 export function churnRiskScore(signals: ChurnSignals): number {
   if (signals.hasUpcoming) return 0;
-  if (signals.daysSinceLastJob === null || signals.completedJobsLastYear === 0) return 0;
+  if (signals.daysSinceLastJob === null || signals.completedJobsLastYear === 0)
+    return 0;
   let score = Math.min(70, Math.round((signals.daysSinceLastJob / 180) * 70));
   if (signals.completedJobsLastYear >= 4) score += 15;
   else if (signals.completedJobsLastYear >= 2) score += 8;

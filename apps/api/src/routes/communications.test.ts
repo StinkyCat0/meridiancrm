@@ -51,7 +51,10 @@ async function createCustomer(
   return response.json();
 }
 
-async function createContact(companyId: string, extra: Record<string, unknown> = {}) {
+async function createContact(
+  companyId: string,
+  extra: Record<string, unknown> = {},
+) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/contacts",
@@ -69,7 +72,10 @@ async function createContact(companyId: string, extra: Record<string, unknown> =
   return response.json();
 }
 
-async function createLocation(customerId: string, extra: Record<string, unknown> = {}) {
+async function createLocation(
+  customerId: string,
+  extra: Record<string, unknown> = {},
+) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/locations",
@@ -111,7 +117,10 @@ async function createJob(
   return response.json();
 }
 
-async function createInvoice(customerId: string, extra: Record<string, unknown> = {}) {
+async function createInvoice(
+  customerId: string,
+  extra: Record<string, unknown> = {},
+) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/invoices",
@@ -153,7 +162,10 @@ async function createEstimate(
   return response.json();
 }
 
-async function logCommunication(payload: Record<string, unknown>, target: TestAccount = account) {
+async function logCommunication(
+  payload: Record<string, unknown>,
+  target: TestAccount = account,
+) {
   return app.inject({
     method: "POST",
     url: "/api/v1/communications",
@@ -188,8 +200,15 @@ describe("communications inbox", () => {
     const smsBody = sms.json();
     expect(smsBody.status).toBe("RECEIVED");
     expect(smsBody.provider).toBe("log");
-    expect(smsBody.customer).toMatchObject({ id: customer.id, name: customer.name });
-    expect(smsBody.contact).toMatchObject({ id: contact.id, firstName: "Dana", phone: contact.phone });
+    expect(smsBody.customer).toMatchObject({
+      id: customer.id,
+      name: customer.name,
+    });
+    expect(smsBody.contact).toMatchObject({
+      id: contact.id,
+      firstName: "Dana",
+      phone: contact.phone,
+    });
     expect(smsBody.user.id).toBe(account.userId);
     expect(smsBody.readAt).toBeNull();
 
@@ -220,24 +239,37 @@ describe("communications inbox", () => {
     const list = await listCommunications(`?customerId=${customer.id}`);
     expect(list.statusCode).toBe(200);
     const body = list.json();
-    expect(body.meta).toMatchObject({ total: 3, page: 1, pageSize: 25, totalPages: 1 });
+    expect(body.meta).toMatchObject({
+      total: 3,
+      page: 1,
+      pageSize: 25,
+      totalPages: 1,
+    });
     expect(body.data.map((row: { id: string }) => row.id)).toEqual([
       email.json().id,
       call.json().id,
       sms.json().id,
     ]);
 
-    const paged = await listCommunications(`?customerId=${customer.id}&page=2&pageSize=2`);
+    const paged = await listCommunications(
+      `?customerId=${customer.id}&page=2&pageSize=2`,
+    );
     expect(paged.json().data).toHaveLength(1);
     expect(paged.json().data[0].id).toBe(sms.json().id);
 
-    const unread = await listCommunications(`?customerId=${customer.id}&unread=true`);
-    expect(unread.json().data.map((row: { id: string }) => row.id)).toEqual([sms.json().id]);
+    const unread = await listCommunications(
+      `?customerId=${customer.id}&unread=true`,
+    );
+    expect(unread.json().data.map((row: { id: string }) => row.id)).toEqual([
+      sms.json().id,
+    ]);
 
     const filtered = await listCommunications(
       `?customerId=${customer.id}&channel=EMAIL&direction=OUTBOUND&q=confirmed`,
     );
-    expect(filtered.json().data.map((row: { id: string }) => row.id)).toEqual([email.json().id]);
+    expect(filtered.json().data.map((row: { id: string }) => row.id)).toEqual([
+      email.json().id,
+    ]);
 
     const read = await app.inject({
       method: "PATCH",
@@ -249,7 +281,9 @@ describe("communications inbox", () => {
     expect(read.json().sentiment).toBe("POSITIVE");
     expect(read.json().readAt).toBe("2026-01-04T09:00:00.000Z");
 
-    const afterRead = await listCommunications(`?customerId=${customer.id}&unread=true`);
+    const afterRead = await listCommunications(
+      `?customerId=${customer.id}&unread=true`,
+    );
     expect(afterRead.json().data).toHaveLength(0);
 
     const detail = await app.inject({
@@ -264,11 +298,18 @@ describe("communications inbox", () => {
   it("rejects messages without a link and links that cross customers", async () => {
     const customer = await createCustomer("Alder House");
     const other = await createCustomer("Birch Barn");
-    const otherContact = await createContact(other.id, { firstName: "Milo", lastName: "Hart" });
+    const otherContact = await createContact(other.id, {
+      firstName: "Milo",
+      lastName: "Hart",
+    });
     const location = await createLocation(customer.id);
     const job = await createJob(customer.id, location.id);
 
-    const empty = await logCommunication({ channel: "SMS", direction: "OUTBOUND", body: "Hi" });
+    const empty = await logCommunication({
+      channel: "SMS",
+      direction: "OUTBOUND",
+      body: "Hi",
+    });
     expect(empty.statusCode).toBe(400);
 
     const mismatched = await logCommunication({
@@ -278,7 +319,10 @@ describe("communications inbox", () => {
     });
     expect(mismatched.statusCode).toBe(400);
 
-    const inferredFromJob = await logCommunication({ channel: "CALL", jobId: job.id });
+    const inferredFromJob = await logCommunication({
+      channel: "CALL",
+      jobId: job.id,
+    });
     expect(inferredFromJob.statusCode).toBe(201);
     expect(inferredFromJob.json().customer.id).toBe(customer.id);
     expect(inferredFromJob.json().jobId).toBe(job.id);
@@ -441,7 +485,11 @@ describe("communications inbox", () => {
       method: "POST",
       url: "/api/v1/activities",
       headers: headersFor(),
-      payload: { type: "TASK", title: "Follow up on quote", companyId: customer.id },
+      payload: {
+        type: "TASK",
+        title: "Follow up on quote",
+        companyId: customer.id,
+      },
     });
     expect(activity.statusCode).toBe(201);
 
@@ -570,7 +618,10 @@ describe("customer timeline", () => {
     expect(response.statusCode).toBe(200);
     const timeline = response.json();
 
-    expect(timeline.customer).toMatchObject({ id: customer.id, name: customer.name });
+    expect(timeline.customer).toMatchObject({
+      id: customer.id,
+      name: customer.name,
+    });
     expect(timeline.items.map((item: { kind: string }) => item.kind)).toEqual([
       "payment",
       "invoice",
@@ -616,10 +667,9 @@ describe("customer timeline", () => {
       url: `/api/v1/companies/${customer.id}/timeline?limit=2`,
       headers: headersFor(),
     });
-    expect(limited.json().items.map((item: { kind: string }) => item.kind)).toEqual([
-      "payment",
-      "invoice",
-    ]);
+    expect(
+      limited.json().items.map((item: { kind: string }) => item.kind),
+    ).toEqual(["payment", "invoice"]);
     expect(limited.json().counts.invoice).toBe(1);
 
     const capped = await app.inject({

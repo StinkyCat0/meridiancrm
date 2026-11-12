@@ -41,7 +41,9 @@ export function LocationFormModal({
   const [accessNotes, setAccessNotes] = useState(location?.accessNotes ?? "");
   const [gateCode, setGateCode] = useState(location?.gateCode ?? "");
   const [contactName, setContactName] = useState(location?.contactName ?? "");
-  const [contactPhone, setContactPhone] = useState(location?.contactPhone ?? "");
+  const [contactPhone, setContactPhone] = useState(
+    location?.contactPhone ?? "",
+  );
   const [latitude, setLatitude] = useState(
     location?.latitude !== null && location?.latitude !== undefined
       ? String(location.latitude)
@@ -156,15 +158,29 @@ export function LocationFormModal({
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {location ? "Save location" : "Add location"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4"
+      >
         <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
-          <Field label="Label" htmlFor={id("label")} hint="Main, Annex, Unit 4…">
+          <Field
+            label="Label"
+            htmlFor={id("label")}
+            hint="Main, Annex, Unit 4…"
+          >
             <Input
               id={id("label")}
               data-autofocus
@@ -173,13 +189,19 @@ export function LocationFormModal({
               maxLength={60}
             />
           </Field>
-          <Field label="Street address" htmlFor={id("line1")} required error={errors.line1}>
+          <Field
+            label="Street address"
+            htmlFor={id("line1")}
+            required
+            error={errors.line1}
+          >
             <Input
               id={id("line1")}
               value={line1}
               onChange={(event) => {
                 setLine1(event.target.value);
-                if (errors.line1) setErrors((current) => ({ ...current, line1: undefined }));
+                if (errors.line1)
+                  setErrors((current) => ({ ...current, line1: undefined }));
               }}
               invalid={Boolean(errors.line1)}
               maxLength={200}
@@ -205,7 +227,8 @@ export function LocationFormModal({
               value={city}
               onChange={(event) => {
                 setCity(event.target.value);
-                if (errors.city) setErrors((current) => ({ ...current, city: undefined }));
+                if (errors.city)
+                  setErrors((current) => ({ ...current, city: undefined }));
               }}
               invalid={Boolean(errors.city)}
               maxLength={120}
@@ -275,7 +298,10 @@ export function LocationFormModal({
               onChange={(event) => {
                 setLongitude(event.target.value);
                 if (errors.longitude) {
-                  setErrors((current) => ({ ...current, longitude: undefined }));
+                  setErrors((current) => ({
+                    ...current,
+                    longitude: undefined,
+                  }));
                 }
               }}
               invalid={Boolean(errors.longitude)}
@@ -306,7 +332,11 @@ export function LocationFormModal({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Gate code" htmlFor={id("gate")} hint="Kept with the location record.">
+          <Field
+            label="Gate code"
+            htmlFor={id("gate")}
+            hint="Kept with the location record."
+          >
             <Input
               id={id("gate")}
               value={gateCode}

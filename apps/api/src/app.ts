@@ -29,7 +29,9 @@ const STATIC_CSP = [
 const redactSensitiveUrl = (url: string): string =>
   url.replace(/\/invite\/[^/?#]+/gi, "/invite/[redacted]");
 
-export async function buildApp(options: { logger?: boolean } = {}): Promise<FastifyInstance> {
+export async function buildApp(
+  options: { logger?: boolean } = {},
+): Promise<FastifyInstance> {
   await configureDatabase();
   const app = Fastify({
     logger:
@@ -40,7 +42,10 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
             level: "info",
             transport: config.isProduction
               ? undefined
-              : { target: "pino-pretty", options: { colorize: true, translateTime: "HH:MM:ss" } },
+              : {
+                  target: "pino-pretty",
+                  options: { colorize: true, translateTime: "HH:MM:ss" },
+                },
             serializers: {
               req: (request: { method?: string; url?: string }) => ({
                 method: request.method,
@@ -56,7 +61,8 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
   registerErrorHandler(app);
 
   app.addHook("onSend", async (request, reply, payload) => {
-    if (request.url.startsWith("/api/v1/auth")) reply.header("Cache-Control", "no-store");
+    if (request.url.startsWith("/api/v1/auth"))
+      reply.header("Cache-Control", "no-store");
     return payload;
   });
 
@@ -74,7 +80,10 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
     max: 600,
     timeWindow: "1 minute",
     errorResponseBuilder: () => ({
-      error: { code: "RATE_LIMITED", message: "Too many requests. Try again shortly." },
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many requests. Try again shortly.",
+      },
     }),
   });
   await app.register(swagger, {
@@ -98,14 +107,26 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
         { name: "companies", description: "Company records" },
         { name: "contacts", description: "People" },
         { name: "deals", description: "Pipeline and revenue" },
-        { name: "activities", description: "Calls, emails, meetings, notes, tasks" },
+        {
+          name: "activities",
+          description: "Calls, emails, meetings, notes, tasks",
+        },
         { name: "pipelines", description: "Pipelines and stages" },
         { name: "insights", description: "Dashboard, search, audit" },
-        { name: "communications", description: "Calls, texts, email and customer timeline" },
-        { name: "dispatch", description: "Dispatch board, map and route planning" },
+        {
+          name: "communications",
+          description: "Calls, texts, email and customer timeline",
+        },
+        {
+          name: "dispatch",
+          description: "Dispatch board, map and route planning",
+        },
         { name: "finance", description: "Payments, expenses and margins" },
         { name: "automations", description: "Workflow rules and runs" },
-        { name: "intelligence", description: "Explainable recommendations and forecasts" },
+        {
+          name: "intelligence",
+          description: "Explainable recommendations and forecasts",
+        },
         { name: "team", description: "Technician performance and workload" },
       ],
     },
@@ -125,7 +146,10 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
       cacheControl: false,
       setHeaders(response, filePath) {
         if (filePath.includes("/assets/")) {
-          response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          response.setHeader(
+            "Cache-Control",
+            "public, max-age=31536000, immutable",
+          );
         } else {
           response.setHeader("Cache-Control", "no-cache");
         }
@@ -136,8 +160,13 @@ export async function buildApp(options: { logger?: boolean } = {}): Promise<Fast
     });
     app.setNotFoundHandler((request, reply) => {
       const pathname = request.url.split("?")[0] ?? "";
-      const looksLikeAsset = pathname.startsWith("/assets/") || /\.[a-z0-9]+$/i.test(pathname);
-      if (request.url.startsWith("/api/") || request.url.startsWith("/docs") || looksLikeAsset) {
+      const looksLikeAsset =
+        pathname.startsWith("/assets/") || /\.[a-z0-9]+$/i.test(pathname);
+      if (
+        request.url.startsWith("/api/") ||
+        request.url.startsWith("/docs") ||
+        looksLikeAsset
+      ) {
         return reply.status(404).send({
           error: { code: "NOT_FOUND", message: "Route not found" },
         });

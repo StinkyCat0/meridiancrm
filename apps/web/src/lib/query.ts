@@ -78,13 +78,16 @@ export const queryKeys = {
     summary: (date?: string) => ["ops", "summary", date ?? "today"] as const,
   },
   insights: {
-    dashboard: (months?: number) => ["insights", "dashboard", months ?? null] as const,
+    dashboard: (months?: number) =>
+      ["insights", "dashboard", months ?? null] as const,
     search: (q: string) => ["insights", "search", q] as const,
   },
   communications: {
     all: ["communications"] as const,
-    list: (query?: unknown) => ["communications", "list", query ?? null] as const,
-    threads: (query?: unknown) => ["communications", "threads", query ?? null] as const,
+    list: (query?: unknown) =>
+      ["communications", "list", query ?? null] as const,
+    threads: (query?: unknown) =>
+      ["communications", "threads", query ?? null] as const,
     stats: ["communications", "stats"] as const,
     detail: (id: string) => ["communications", "detail", id] as const,
   },
@@ -96,9 +99,12 @@ export const queryKeys = {
   },
   finance: {
     all: ["finance"] as const,
-    summary: (query?: unknown) => ["finance", "summary", query ?? null] as const,
-    payments: (query?: unknown) => ["finance", "payments", query ?? null] as const,
-    expenses: (query?: unknown) => ["finance", "expenses", query ?? null] as const,
+    summary: (query?: unknown) =>
+      ["finance", "summary", query ?? null] as const,
+    payments: (query?: unknown) =>
+      ["finance", "payments", query ?? null] as const,
+    expenses: (query?: unknown) =>
+      ["finance", "expenses", query ?? null] as const,
   },
   automations: {
     all: ["automations"] as const,
@@ -115,7 +121,8 @@ export const queryKeys = {
   },
   team: {
     all: ["team"] as const,
-    performance: (query?: unknown) => ["team", "performance", query ?? null] as const,
+    performance: (query?: unknown) =>
+      ["team", "performance", query ?? null] as const,
     workload: (date?: string) => ["team", "workload", date ?? "today"] as const,
   },
 };

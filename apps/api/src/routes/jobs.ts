@@ -94,7 +94,9 @@ export function toJob(row: JobRow): Job {
 
 const listQuerySchema = paginationSchema.extend({
   status: z.enum(JOB_STATUSES).optional(),
-  scope: z.enum(["all", "open", "today", "week", "unscheduled", "upcoming"]).default("all"),
+  scope: z
+    .enum(["all", "open", "today", "week", "unscheduled", "upcoming"])
+    .default("all"),
   customerId: z.string().trim().max(64).optional(),
   locationId: z.string().trim().max(64).optional(),
   assigneeId: z.string().trim().max(64).optional(),
@@ -114,20 +116,31 @@ function parseBoundary(value: string | undefined): Date | undefined {
 }
 
 function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 86_400_000);
 }
 
-export async function loadJobRow(workspaceId: string, id: string): Promise<JobRow> {
-  const row = await prisma.job.findFirst({ where: { id, workspaceId }, include: jobInclude });
+export async function loadJobRow(
+  workspaceId: string,
+  id: string,
+): Promise<JobRow> {
+  const row = await prisma.job.findFirst({
+    where: { id, workspaceId },
+    include: jobInclude,
+  });
   if (!row) throw notFound("Job");
   return row;
 }
 
-async function assertAssignable(workspaceId: string, assigneeId: string | null | undefined) {
+async function assertAssignable(
+  workspaceId: string,
+  assigneeId: string | null | undefined,
+) {
   if (assigneeId) await loadAssignee(workspaceId, assigneeId);
 }
 
@@ -139,7 +152,8 @@ function scheduleDefaults(input: {
   const start = input.scheduledStart ?? null;
   // With no start there is no meaningful window, so never leave an orphan end.
   const end = start
-    ? (input.scheduledEnd ?? new Date(start.getTime() + input.durationMinutes * 60_000))
+    ? (input.scheduledEnd ??
+      new Date(start.getTime() + input.durationMinutes * 60_000))
     : null;
   if (start && end && end.getTime() < start.getTime()) {
     throw badRequest("The job cannot end before it starts");
@@ -205,10 +219,16 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const orderBy: Prisma.JobOrderByWithRelationInput[] =
-        query.scope === "today" || query.scope === "week" || query.scope === "upcoming"
+        query.scope === "today" ||
+        query.scope === "week" ||
+        query.scope === "upcoming"
           ? [{ scheduledStart: "asc" }, { createdAt: "desc" }, { id: "asc" }]
           : query.sort === "scheduledStart"
-            ? [{ scheduledStart: query.order }, { createdAt: "desc" }, { id: "asc" }]
+            ? [
+                { scheduledStart: query.order },
+                { createdAt: "desc" },
+                { id: "asc" },
+              ]
             : query.sort === "total"
               ? [{ total: query.order }, { id: "asc" }]
               : [{ updatedAt: query.order }, { id: "asc" }];
@@ -244,12 +264,19 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const input = parseOrThrow(jobInputSchema, request.body);
-      await validateAssociation(auth.workspaceId, input.customerId, input.locationId, input.contactId);
+      await validateAssociation(
+        auth.workspaceId,
+        input.customerId,
+        input.locationId,
+        input.contactId,
+      );
       await validateServiceIds(auth.workspaceId, input.lineItems);
       await assertAssignable(auth.workspaceId, input.assigneeId);
 
       const { start, end } = scheduleDefaults(input);
-      const priced = priceLineItems(await applyServiceCosts(auth.workspaceId, input.lineItems));
+      const priced = priceLineItems(
+        await applyServiceCosts(auth.workspaceId, input.lineItems),
+      );
       const totals = totalsFor(priced.subtotal, taxRateToBps(input.taxRate));
       const stamps = jobStatusTimestamps(input.status);
       if (input.deposit > totals.total) {
@@ -317,7 +344,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         actorId: auth.userId,
         customerId: created.customerId,
         jobId: created.id,
-        payload: { number: created.number, title: created.title, status: created.status },
+        payload: {
+          number: created.number,
+          title: created.title,
+          status: created.status,
+        },
       });
 
       return reply.status(201).send(toJob(created));
@@ -328,7 +359,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     "/jobs/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["jobs"], summary: "Fetch a job", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["jobs"],
+        summary: "Fetch a job",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -341,7 +376,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     "/jobs/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["jobs"], summary: "Update a job", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["jobs"],
+        summary: "Update a job",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -351,7 +390,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
 
       const customerId = input.customerId ?? existing.customerId;
       const locationId = input.locationId ?? existing.locationId;
-      if (input.customerId !== undefined || input.locationId !== undefined || input.contactId !== undefined) {
+      if (
+        input.customerId !== undefined ||
+        input.locationId !== undefined ||
+        input.contactId !== undefined
+      ) {
         await validateAssociation(
           auth.workspaceId,
           customerId,
@@ -372,16 +415,23 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       if (input.source !== undefined) data.source = input.source ?? null;
       if (input.customerId !== undefined) data.customerId = input.customerId;
       if (input.locationId !== undefined) data.locationId = input.locationId;
-      if (input.contactId !== undefined) data.contactId = input.contactId ?? null;
-      if (input.assigneeId !== undefined) data.assigneeId = input.assigneeId ?? null;
+      if (input.contactId !== undefined)
+        data.contactId = input.contactId ?? null;
+      if (input.assigneeId !== undefined)
+        data.assigneeId = input.assigneeId ?? null;
       if (input.notes !== undefined) data.notes = input.notes ?? null;
-      if (input.recurrence !== undefined) data.recurrence = input.recurrence ?? null;
-      if (input.recurrenceUntil !== undefined) data.recurrenceUntil = input.recurrenceUntil ?? null;
-      if (input.durationMinutes !== undefined) data.durationMinutes = input.durationMinutes;
+      if (input.recurrence !== undefined)
+        data.recurrence = input.recurrence ?? null;
+      if (input.recurrenceUntil !== undefined)
+        data.recurrenceUntil = input.recurrenceUntil ?? null;
+      if (input.durationMinutes !== undefined)
+        data.durationMinutes = input.durationMinutes;
       if (input.deposit !== undefined) data.deposit = input.deposit;
       if (input.rating !== undefined) data.rating = input.rating ?? null;
-      if (input.ratingNote !== undefined) data.ratingNote = input.ratingNote ?? null;
-      if (input.cancelReason !== undefined) data.cancelReason = input.cancelReason ?? null;
+      if (input.ratingNote !== undefined)
+        data.ratingNote = input.ratingNote ?? null;
+      if (input.cancelReason !== undefined)
+        data.cancelReason = input.cancelReason ?? null;
 
       const scheduleChanged =
         input.scheduledStart !== undefined ||
@@ -391,8 +441,14 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
       let nextEnd = existing.scheduledEnd;
       if (scheduleChanged) {
         const { start, end } = scheduleDefaults({
-          scheduledStart: input.scheduledStart !== undefined ? input.scheduledStart : existing.scheduledStart,
-          scheduledEnd: input.scheduledEnd !== undefined ? input.scheduledEnd : existing.scheduledEnd,
+          scheduledStart:
+            input.scheduledStart !== undefined
+              ? input.scheduledStart
+              : existing.scheduledStart,
+          scheduledEnd:
+            input.scheduledEnd !== undefined
+              ? input.scheduledEnd
+              : existing.scheduledEnd,
           durationMinutes: input.durationMinutes ?? existing.durationMinutes,
         });
         nextStart = start;
@@ -401,22 +457,31 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         data.scheduledEnd = end;
       }
 
-      const taxRate = input.taxRate !== undefined ? taxRateToBps(input.taxRate) : existing.taxRate;
+      const taxRate =
+        input.taxRate !== undefined
+          ? taxRateToBps(input.taxRate)
+          : existing.taxRate;
       if (input.taxRate !== undefined) data.taxRate = taxRate;
 
       const pricedLines =
         input.lineItems !== undefined
-          ? priceLineItems(await applyServiceCosts(auth.workspaceId, input.lineItems))
+          ? priceLineItems(
+              await applyServiceCosts(auth.workspaceId, input.lineItems),
+            )
           : null;
       const nextStatus = input.status ?? (existing.status as JobStatus);
       const events: DomainEvent[] = [];
 
       const updated = await prisma.$transaction(async (tx) => {
-        const scheduleTouched = scheduleChanged || input.assigneeId !== undefined;
+        const scheduleTouched =
+          scheduleChanged || input.assigneeId !== undefined;
         if (scheduleTouched && !TERMINAL_STATUSES.includes(nextStatus)) {
           await assertNoScheduleConflict(tx, {
             workspaceId: auth.workspaceId,
-            assigneeId: input.assigneeId !== undefined ? (input.assigneeId ?? null) : existing.assigneeId,
+            assigneeId:
+              input.assigneeId !== undefined
+                ? (input.assigneeId ?? null)
+                : existing.assigneeId,
             start: nextStart,
             end: nextEnd,
             excludeJobId: existing.id,
@@ -442,7 +507,10 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           subtotal = pricedLines.subtotal;
           await tx.jobLineItem.deleteMany({ where: { jobId: existing.id } });
           await tx.jobLineItem.createMany({
-            data: pricedLines.lines.map((line) => ({ ...line, jobId: existing.id })),
+            data: pricedLines.lines.map((line) => ({
+              ...line,
+              jobId: existing.id,
+            })),
           });
         }
         const totals = totalsFor(subtotal, taxRate);
@@ -452,8 +520,12 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
           data.total = totals.total;
         }
 
-        const deposit = input.deposit !== undefined ? input.deposit : existing.deposit;
-        if (deposit > (typeof data.total === "number" ? data.total : existing.total)) {
+        const deposit =
+          input.deposit !== undefined ? input.deposit : existing.deposit;
+        if (
+          deposit >
+          (typeof data.total === "number" ? data.total : existing.total)
+        ) {
           throw badRequest("The deposit cannot exceed the job total");
         }
 
@@ -530,7 +602,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
     "/jobs/:id/duplicate",
     {
       preHandler: authenticate,
-      schema: { tags: ["jobs"], summary: "Copy a job", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["jobs"],
+        summary: "Copy a job",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request, reply) => {
       const auth = getAuth(request);
@@ -612,7 +688,11 @@ export async function jobRoutes(app: FastifyInstance): Promise<void> {
         actorId: auth.userId,
         customerId: created.customerId,
         jobId: created.id,
-        payload: { number: created.number, title: created.title, status: created.status },
+        payload: {
+          number: created.number,
+          title: created.title,
+          status: created.status,
+        },
       });
 
       return reply.status(201).send(toJob(created));

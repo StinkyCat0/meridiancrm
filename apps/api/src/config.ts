@@ -9,20 +9,33 @@ const int = (value: string | undefined, fallback: number): number => {
 const isProduction = process.env.NODE_ENV === "production";
 
 /** Never trust a client-supplied X-Forwarded-For unless an operator opts in. */
-function parseTrustProxy(value: string | undefined): boolean | string | string[] {
+function parseTrustProxy(
+  value: string | undefined,
+): boolean | string | string[] {
   const raw = value?.trim();
   if (!raw || raw === "0" || raw.toLowerCase() === "false") return false;
   if (raw.toLowerCase() === "true") return true;
-  return raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  return raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
-const WEAK_SECRET_MARKERS = ["change-me", "changeme", "local-development", "dev-secret", "example"];
+const WEAK_SECRET_MARKERS = [
+  "change-me",
+  "changeme",
+  "local-development",
+  "dev-secret",
+  "example",
+];
 
 function resolveJwtSecret(): string {
   const candidate = (process.env.JWT_SECRET ?? "").trim();
   const weak =
     candidate.length < 32 ||
-    WEAK_SECRET_MARKERS.some((marker) => candidate.toLowerCase().includes(marker));
+    WEAK_SECRET_MARKERS.some((marker) =>
+      candidate.toLowerCase().includes(marker),
+    );
 
   if (!weak) return candidate;
 
@@ -32,7 +45,9 @@ function resolveJwtSecret(): string {
     );
   }
   if (candidate) {
-    console.warn("[config] Ignoring weak JWT_SECRET; using a per-process random secret.");
+    console.warn(
+      "[config] Ignoring weak JWT_SECRET; using a per-process random secret.",
+    );
   }
   return randomBytes(48).toString("base64url");
 }

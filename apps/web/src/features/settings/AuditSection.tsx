@@ -1,5 +1,11 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, Shield } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Search,
+  Shield,
+} from "lucide-react";
 import { useState } from "react";
 import { api, ApiError } from "@meridian/api-client";
 import { atLeast } from "@meridian/contracts";
@@ -73,7 +79,11 @@ function AuditTable() {
       </CardHeader>
       <CardContent className="p-0">
         {query.isLoading ? (
-          <div className="divide-y divide-border" role="status" aria-label="Loading audit trail">
+          <div
+            className="divide-y divide-border"
+            role="status"
+            aria-label="Loading audit trail"
+          >
             {[0, 1, 2, 3, 4].map((row) => (
               <div key={row} className="flex items-center gap-3 px-4 py-3">
                 <Skeleton className="size-7 rounded-full" />
@@ -87,11 +97,17 @@ function AuditTable() {
 
         {query.isError ? (
           <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
-            <p className="text-sm font-medium text-fg">Could not load the audit trail</p>
+            <p className="text-sm font-medium text-fg">
+              Could not load the audit trail
+            </p>
             <p className="mt-1.5 text-sm text-muted">
               {messageFor(query.error, "Check your connection and try again.")}
             </p>
-            <Button variant="secondary" className="mt-4" onClick={() => void query.refetch()}>
+            <Button
+              variant="secondary"
+              className="mt-4"
+              onClick={() => void query.refetch()}
+            >
               <RefreshCw className="size-4" aria-hidden="true" />
               Try again
             </Button>
@@ -130,7 +146,9 @@ function AuditTable() {
                 {entries.map((entry) => (
                   <tr key={entry.id}>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
-                      <span title={entry.createdAt}>{formatDateTime(entry.createdAt)}</span>
+                      <span title={entry.createdAt}>
+                        {formatDateTime(entry.createdAt)}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -167,8 +185,8 @@ function AuditTable() {
         {meta ? (
           <div className="flex flex-col gap-2 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted">
-              {meta.total} {meta.total === 1 ? "event" : "events"} · page {meta.page} of{" "}
-              {Math.max(1, meta.totalPages)}
+              {meta.total} {meta.total === 1 ? "event" : "events"} · page{" "}
+              {meta.page} of {Math.max(1, meta.totalPages)}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -213,7 +231,8 @@ export function AuditSection() {
           </span>
           <p className="text-sm font-medium text-fg">Audit is admin-only</p>
           <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted">
-            Ask a workspace admin for the audit trail. Your current role is {role ?? "unknown"}.
+            Ask a workspace admin for the audit trail. Your current role is{" "}
+            {role ?? "unknown"}.
           </p>
         </div>
       </Card>

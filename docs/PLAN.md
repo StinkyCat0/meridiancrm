@@ -54,13 +54,13 @@ file uploads, reporting exports. These are v1.1+ and must not silently creep int
 
 ## Phases
 
-| # | Phase | Owner | Exit criteria |
-|---|-------|-------|---------------|
-| 0 | Foundations | orchestrator | repo, workspace configs, contracts, Prisma schema, plan docs, git + remote |
-| 1 | Parallel build | subagents: API core+CRM, web shell+auth, devops/docs | packages build; server boots; shell renders login |
-| 2 | Feature surface | subagents: contacts/companies, deals/kanban, dashboard/activities/settings | routes implemented against live API |
-| 3 | Hardening | orchestrator + fix-up agents | integration tests green, UX verified in browser, a11y pass |
-| 4 | Release | orchestrator | CI green config, Docker build, README, commit + push, app running locally |
+| #   | Phase           | Owner                                                                      | Exit criteria                                                              |
+| --- | --------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 0   | Foundations     | orchestrator                                                               | repo, workspace configs, contracts, Prisma schema, plan docs, git + remote |
+| 1   | Parallel build  | subagents: API core+CRM, web shell+auth, devops/docs                       | packages build; server boots; shell renders login                          |
+| 2   | Feature surface | subagents: contacts/companies, deals/kanban, dashboard/activities/settings | routes implemented against live API                                        |
+| 3   | Hardening       | orchestrator + fix-up agents                                               | integration tests green, UX verified in browser, a11y pass                 |
+| 4   | Release         | orchestrator                                                               | CI green config, Docker build, README, commit + push, app running locally  |
 
 ## Verified commands (avoid expensive full-tree typechecks)
 

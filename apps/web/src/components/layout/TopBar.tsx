@@ -13,9 +13,16 @@ export function TopBar() {
     <header className="sticky top-0 z-20 hidden border-b border-border bg-bg/70 backdrop-blur-xl lg:block">
       <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-6 px-10">
         <div className="flex min-w-0 items-center gap-2 text-xs">
-          <span className="truncate text-muted">{workspace?.name ?? "Workspace"}</span>
-          <ChevronRight className="size-3.5 shrink-0 text-muted/40" aria-hidden="true" />
-          <span className="truncate font-medium text-fg">{sectionLabel(pathname)}</span>
+          <span className="truncate text-muted">
+            {workspace?.name ?? "Workspace"}
+          </span>
+          <ChevronRight
+            className="size-3.5 shrink-0 text-muted/40"
+            aria-hidden="true"
+          />
+          <span className="truncate font-medium text-fg">
+            {sectionLabel(pathname)}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">

@@ -35,7 +35,9 @@ export function WorkspaceSection() {
   const queryClient = useQueryClient();
   const canManage = role ? atLeast(role, "ADMIN") : false;
   const [name, setName] = useState(workspace?.name ?? "");
-  const [currency, setCurrency] = useState<Currency>((workspace?.currency as Currency) ?? "USD");
+  const [currency, setCurrency] = useState<Currency>(
+    (workspace?.currency as Currency) ?? "USD",
+  );
   const [businessType, setBusinessType] = useState<BusinessType>(
     (workspace?.businessType as BusinessType) ?? "GENERAL",
   );
@@ -47,7 +49,8 @@ export function WorkspaceSection() {
       : "",
   );
   const [depotLongitude, setDepotLongitude] = useState(
-    workspace?.depotLongitude !== null && workspace?.depotLongitude !== undefined
+    workspace?.depotLongitude !== null &&
+      workspace?.depotLongitude !== undefined
       ? String(workspace.depotLongitude)
       : "",
   );
@@ -61,12 +64,14 @@ export function WorkspaceSection() {
     setTimezone(workspace?.timezone ?? "UTC");
     setServiceArea(workspace?.serviceArea ?? "");
     setDepotLatitude(
-      workspace?.depotLatitude !== null && workspace?.depotLatitude !== undefined
+      workspace?.depotLatitude !== null &&
+        workspace?.depotLatitude !== undefined
         ? String(workspace.depotLatitude)
         : "",
     );
     setDepotLongitude(
-      workspace?.depotLongitude !== null && workspace?.depotLongitude !== undefined
+      workspace?.depotLongitude !== null &&
+        workspace?.depotLongitude !== undefined
         ? String(workspace.depotLongitude)
         : "",
     );
@@ -107,7 +112,10 @@ export function WorkspaceSection() {
       }
       longitudeValue = parsed;
     }
-    if ((latitudeInput && !longitudeInput) || (!latitudeInput && longitudeInput)) {
+    if (
+      (latitudeInput && !longitudeInput) ||
+      (!latitudeInput && longitudeInput)
+    ) {
       setError("Set both depot latitude and longitude, or leave both blank.");
       return;
     }
@@ -124,10 +132,14 @@ export function WorkspaceSection() {
         depotLongitude: longitudeValue,
       });
       await refreshMe();
-      await queryClient.invalidateQueries({ queryKey: queryKeys.workspace.detail });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.workspace.detail,
+      });
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
       await queryClient.invalidateQueries({ queryKey: queryKeys.dispatch.all });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.ops.summary() });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.ops.summary(),
+      });
       toast.success("Workspace updated");
     } catch (cause) {
       const message = messageFor(cause, "Could not update the workspace.");
@@ -147,10 +159,17 @@ export function WorkspaceSection() {
             Identity, service defaults and the depot every route starts from.
           </CardDescription>
         </div>
-        {role ? <Badge tone={atLeast(role, "ADMIN") ? "accent" : "neutral"}>{role}</Badge> : null}
+        {role ? (
+          <Badge tone={atLeast(role, "ADMIN") ? "accent" : "neutral"}>
+            {role}
+          </Badge>
+        ) : null}
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+        <form
+          className="space-y-4"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name" htmlFor="workspace-name" required>
               <Input
@@ -161,12 +180,18 @@ export function WorkspaceSection() {
                 onChange={(event) => setName(event.target.value)}
               />
             </Field>
-            <Field label="Currency" htmlFor="workspace-currency" hint="Used for pipeline and revenue reporting.">
+            <Field
+              label="Currency"
+              htmlFor="workspace-currency"
+              hint="Used for pipeline and revenue reporting."
+            >
               <Select
                 id="workspace-currency"
                 value={currency}
                 disabled={!canManage}
-                onChange={(event) => setCurrency(event.target.value as Currency)}
+                onChange={(event) =>
+                  setCurrency(event.target.value as Currency)
+                }
               >
                 {CURRENCIES.map((option) => (
                   <option key={option} value={option}>
@@ -187,7 +212,9 @@ export function WorkspaceSection() {
                 id="workspace-business-type"
                 value={businessType}
                 disabled={!canManage}
-                onChange={(event) => setBusinessType(event.target.value as BusinessType)}
+                onChange={(event) =>
+                  setBusinessType(event.target.value as BusinessType)
+                }
               >
                 {BUSINESS_TYPES.map((option) => (
                   <option key={option} value={option}>
@@ -260,7 +287,12 @@ export function WorkspaceSection() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Slug" htmlFor="workspace-slug">
-              <Input id="workspace-slug" value={workspace?.slug ?? ""} readOnly className="opacity-60" />
+              <Input
+                id="workspace-slug"
+                value={workspace?.slug ?? ""}
+                readOnly
+                className="opacity-60"
+              />
             </Field>
             <Field label="Created" htmlFor="workspace-created">
               <Input
@@ -275,7 +307,8 @@ export function WorkspaceSection() {
           {!canManage ? (
             <p className="flex items-start gap-2 rounded-input border border-border bg-surface-2 px-3 py-2.5 text-xs leading-relaxed text-muted">
               <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-              Only workspace admins can change these settings. You can still review them here.
+              Only workspace admins can change these settings. You can still
+              review them here.
             </p>
           ) : null}
 

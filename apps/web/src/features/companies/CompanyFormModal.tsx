@@ -29,7 +29,11 @@ interface FormErrors {
   name?: string;
 }
 
-export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModalProps) {
+export function CompanyFormModal({
+  company,
+  onClose,
+  onSaved,
+}: CompanyFormModalProps) {
   const queryClient = useQueryClient();
   const formId = useId();
   const [name, setName] = useState(company?.name ?? "");
@@ -51,10 +55,14 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
 
   const save = useMutation({
     mutationFn: (input: CreateCompanyInput) =>
-      company ? api.companies.update(company.id, input) : api.companies.create(input),
+      company
+        ? api.companies.update(company.id, input)
+        : api.companies.create(input),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.companies.timeline(saved.id) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.timeline(saved.id),
+      });
       void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
@@ -110,13 +118,23 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {company ? "Save customer" : "Create customer"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4"
+      >
         <Field label="Name" htmlFor={id("name")} required error={errors.name}>
           <Input
             id={id("name")}
@@ -141,7 +159,9 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
             <Select
               id={id("customerType")}
               value={customerType}
-              onChange={(event) => setCustomerType(event.target.value as CustomerType)}
+              onChange={(event) =>
+                setCustomerType(event.target.value as CustomerType)
+              }
             >
               {CUSTOMER_TYPES.map((value) => (
                 <option key={value} value={value}>
@@ -150,7 +170,11 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
               ))}
             </Select>
           </Field>
-          <Field label="Vertical" htmlFor={id("industry")} hint="What kind of property or business is this?">
+          <Field
+            label="Vertical"
+            htmlFor={id("industry")}
+            hint="What kind of property or business is this?"
+          >
             <Select
               id={id("industry")}
               value={industry}
@@ -167,8 +191,8 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
         </div>
 
         <p className="rounded-input border border-border bg-surface-2/60 px-3 py-2.5 text-xs leading-relaxed text-muted">
-          Every record is a residential, commercial or property manager account — the board,
-          route and billing all use that distinction.
+          Every record is a residential, commercial or property manager account
+          — the board, route and billing all use that distinction.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -195,7 +219,11 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Website" htmlFor={id("website")} hint="Include https://">
+          <Field
+            label="Website"
+            htmlFor={id("website")}
+            hint="Include https://"
+          >
             <Input
               id={id("website")}
               type="url"
@@ -216,7 +244,11 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
           </Field>
         </div>
 
-        <Field label="Tags" htmlFor={id("tags")} hint="Comma separated, up to 12 tags.">
+        <Field
+          label="Tags"
+          htmlFor={id("tags")}
+          hint="Comma separated, up to 12 tags."
+        >
           <Input
             id={id("tags")}
             value={tags}

@@ -64,7 +64,9 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
 ];
 
-export const NAV_ITEMS: readonly NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
+export const NAV_ITEMS: readonly NavItem[] = NAV_GROUPS.flatMap(
+  (group) => group.items,
+);
 
 /**
  * The mobile tab bar must stay at five items. The rest remain reachable from
@@ -80,7 +82,9 @@ export const MOBILE_NAV_ITEMS: readonly NavItem[] = [
 
 export function sectionLabel(pathname: string): string {
   const match = [...NAV_ITEMS]
-    .filter((item) => (item.end ? pathname === item.to : pathname.startsWith(item.to)))
+    .filter((item) =>
+      item.end ? pathname === item.to : pathname.startsWith(item.to),
+    )
     .sort((a, b) => b.to.length - a.to.length)[0];
   if (match) return match.label;
   if (pathname.startsWith("/app/settings")) return "Settings";

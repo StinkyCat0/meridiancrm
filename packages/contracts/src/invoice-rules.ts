@@ -1,7 +1,10 @@
 import type { InvoiceStatus } from "./enums.js";
 
 /** Invoice transitions that preserve the payment ledger. */
-export const INVOICE_STATUS_TRANSITIONS: Record<InvoiceStatus, readonly InvoiceStatus[]> = {
+export const INVOICE_STATUS_TRANSITIONS: Record<
+  InvoiceStatus,
+  readonly InvoiceStatus[]
+> = {
   DRAFT: ["DRAFT", "SENT", "VOID"],
   SENT: ["SENT", "PARTIAL", "PAID", "VOID"],
   PARTIAL: ["PARTIAL", "PAID", "VOID"],
@@ -9,7 +12,10 @@ export const INVOICE_STATUS_TRANSITIONS: Record<InvoiceStatus, readonly InvoiceS
   VOID: ["VOID"],
 };
 
-export function canTransitionInvoice(from: InvoiceStatus, to: InvoiceStatus): boolean {
+export function canTransitionInvoice(
+  from: InvoiceStatus,
+  to: InvoiceStatus,
+): boolean {
   return INVOICE_STATUS_TRANSITIONS[from].includes(to);
 }
 
@@ -25,7 +31,8 @@ export function deriveInvoiceStatus(
 ): InvoiceStatus {
   if (current === "VOID") return "VOID";
   if (current === "DRAFT") {
-    if (amountPaid > 0) return amountPaid >= amount && amount > 0 ? "PAID" : "PARTIAL";
+    if (amountPaid > 0)
+      return amountPaid >= amount && amount > 0 ? "PAID" : "PARTIAL";
     return "DRAFT";
   }
   if (amount > 0 && amountPaid >= amount) return "PAID";
@@ -39,6 +46,7 @@ export function invoiceIsOverdue(
   dueAt: Date | null,
   now: Date,
 ): boolean {
-  if (status === "DRAFT" || status === "VOID" || status === "PAID") return false;
+  if (status === "DRAFT" || status === "VOID" || status === "PAID")
+    return false;
   return balance > 0 && dueAt !== null && dueAt.getTime() < now.getTime();
 }

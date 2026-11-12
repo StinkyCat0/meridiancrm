@@ -58,7 +58,10 @@ const LIST_LIMITS = {
 };
 
 function daysBetween(later: Date, earlier: Date): number {
-  return Math.max(0, Math.floor((later.getTime() - earlier.getTime()) / DAY_MS));
+  return Math.max(
+    0,
+    Math.floor((later.getTime() - earlier.getTime()) / DAY_MS),
+  );
 }
 
 function formatMoney(cents: number, currency: string): string {
@@ -74,7 +77,9 @@ function formatMoney(cents: number, currency: string): string {
 }
 
 function utcDayStart(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 function dayKey(date: Date): string {
@@ -87,17 +92,26 @@ function severityForScore(score: number): RecommendationSeverity {
   return "INFO";
 }
 
-function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
+function plural(
+  count: number,
+  singular: string,
+  pluralForm = `${singular}s`,
+): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
-function agreement(count: number, singular: string, pluralForm: string): string {
+function agreement(
+  count: number,
+  singular: string,
+  pluralForm: string,
+): string {
   return count === 1 ? singular : pluralForm;
 }
 
 function sortRecommendations(rows: Recommendation[]): Recommendation[] {
   return [...rows].sort((left, right) => {
-    const severity = SEVERITY_RANK[right.severity] - SEVERITY_RANK[left.severity];
+    const severity =
+      SEVERITY_RANK[right.severity] - SEVERITY_RANK[left.severity];
     if (severity !== 0) return severity;
     const value = (right.value ?? 0) - (left.value ?? 0);
     if (value !== 0) return value;
@@ -123,7 +137,9 @@ export function filterRecommendations(
   rows: Recommendation[],
   query: { kind?: RecommendationKind; limit: number },
 ): Recommendation[] {
-  const filtered = query.kind ? rows.filter((row) => row.kind === query.kind) : rows;
+  const filtered = query.kind
+    ? rows.filter((row) => row.kind === query.kind)
+    : rows;
   return filtered.slice(0, query.limit);
 }
 
@@ -151,7 +167,9 @@ export async function buildIntelligenceSummary(
 ): Promise<IntelligenceSummary> {
   const startOfToday = utcDayStart(now);
   const endOfToday = new Date(startOfToday.getTime() + DAY_MS);
-  const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const endOfMonth = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+  );
   const yearAgo = new Date(now.getTime() - YEAR_MS);
   const ninetyDaysAgo = new Date(now.getTime() - NINETY_DAYS_MS);
   const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS);
@@ -161,7 +179,10 @@ export async function buildIntelligenceSummary(
     workspaceId,
     status: "SENT",
     customer: { archived: false },
-    OR: [{ issuedAt: { lt: sevenDaysAgo } }, { issuedAt: null, createdAt: { lt: sevenDaysAgo } }],
+    OR: [
+      { issuedAt: { lt: sevenDaysAgo } },
+      { issuedAt: null, createdAt: { lt: sevenDaysAgo } },
+    ],
   };
 
   const [
@@ -188,7 +209,10 @@ export async function buildIntelligenceSummary(
     unassignedAggregate,
     scheduledAggregate,
   ] = await Promise.all([
-    prisma.workspace.findUnique({ where: { id: workspaceId }, select: { currency: true } }),
+    prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { currency: true },
+    }),
     prisma.invoice.findMany({
       where: {
         workspaceId,
@@ -313,7 +337,10 @@ export async function buildIntelligenceSummary(
         workspaceId,
         occurredAt: { gte: sevenDaysAgo },
         jobId: { not: null },
-        OR: [{ intent: { in: ["REMINDER", "RESCHEDULE"] } }, { status: "RECEIVED" }],
+        OR: [
+          { intent: { in: ["REMINDER", "RESCHEDULE"] } },
+          { status: "RECEIVED" },
+        ],
       },
       select: { jobId: true },
       take: LIST_LIMITS.recentCommunications,
@@ -420,9 +447,13 @@ export async function buildIntelligenceSummary(
 
   for (const [customerId, rows] of overdueByCustomer) {
     const sorted = [...rows].sort(
-      (left, right) => (left.dueAt?.getTime() ?? 0) - (right.dueAt?.getTime() ?? 0),
+      (left, right) =>
+        (left.dueAt?.getTime() ?? 0) - (right.dueAt?.getTime() ?? 0),
     );
-    const balance = rows.reduce((total, row) => total + row.amount - row.amountPaid, 0);
+    const balance = rows.reduce(
+      (total, row) => total + row.amount - row.amountPaid,
+      0,
+    );
     if (balance <= 0) continue;
     const oldest = sorted[0];
     const customer = oldest?.customer;
@@ -436,8 +467,10 @@ export async function buildIntelligenceSummary(
       .map((row) => row.number)
       .join(", ");
     const severityReasons: string[] = [];
-    if (balance > 50_000) severityReasons.push(`the balance exceeds ${money(50_000)}`);
-    if (daysPastDue > 30) severityReasons.push("it is more than 30 days past due");
+    if (balance > 50_000)
+      severityReasons.push(`the balance exceeds ${money(50_000)}`);
+    if (daysPastDue > 30)
+      severityReasons.push("it is more than 30 days past due");
     if (severityReasons.length === 0) {
       severityReasons.push(
         `the balance is under ${money(50_000)} and less than 30 days past due`,
@@ -479,7 +512,8 @@ export async function buildIntelligenceSummary(
     };
     rollup.completedCount += 1;
     rollup.revenueLastYear += job.total;
-    if (job.completedAt > rollup.lastCompletedAt) rollup.lastCompletedAt = job.completedAt;
+    if (job.completedAt > rollup.lastCompletedAt)
+      rollup.lastCompletedAt = job.completedAt;
     if (!rollup.lastServiceAt || job.completedAt > rollup.lastServiceAt) {
       rollup.lastServiceAt = job.completedAt;
     }
@@ -489,7 +523,8 @@ export async function buildIntelligenceSummary(
   const purchasedByCustomer = new Map<string, Set<string>>();
   for (const line of purchasedLineItems) {
     if (!line.serviceId) continue;
-    const purchased = purchasedByCustomer.get(line.job.customerId) ?? new Set<string>();
+    const purchased =
+      purchasedByCustomer.get(line.job.customerId) ?? new Set<string>();
     purchased.add(line.serviceId);
     purchasedByCustomer.set(line.job.customerId, purchased);
   }
@@ -497,7 +532,9 @@ export async function buildIntelligenceSummary(
   const lifetimeMap = new Map<string, number>(
     lifetimeCounts.map((row) => [row.customerId, row._count._all] as const),
   );
-  const upcomingCustomerIds = new Set(openCustomerRows.map((row) => row.customerId));
+  const upcomingCustomerIds = new Set(
+    openCustomerRows.map((row) => row.customerId),
+  );
 
   const openBalanceByCustomer = new Map<string, number>();
   for (const invoice of openInvoices) {
@@ -547,9 +584,15 @@ export async function buildIntelligenceSummary(
   }
 
   /* ------------------------------------------------------------ no-show risk */
-  const priorOutcomeMap = new Map<string, { noShows: number; cancellations: number }>();
+  const priorOutcomeMap = new Map<
+    string,
+    { noShows: number; cancellations: number }
+  >();
   for (const row of priorOutcomes) {
-    const entry = priorOutcomeMap.get(row.customerId) ?? { noShows: 0, cancellations: 0 };
+    const entry = priorOutcomeMap.get(row.customerId) ?? {
+      noShows: 0,
+      cancellations: 0,
+    };
     if (row.status === "NO_SHOW") entry.noShows += row._count._all;
     if (row.status === "CANCELED") entry.cancellations += row._count._all;
     priorOutcomeMap.set(row.customerId, entry);
@@ -590,7 +633,9 @@ export async function buildIntelligenceSummary(
       rationale: `No-show risk ${score}/100: ${prior.noShows} no-shows and ${
         prior.cancellations
       } cancellations on record, ${leadTimeHours}h lead time, ${
-        hasConfirmation ? "a reminder or confirmation is logged" : "no confirmation message is logged"
+        hasConfirmation
+          ? "a reminder or confirmation is logged"
+          : "no confirmation message is logged"
       }.`,
       value: job.total,
       customer: toCustomerSummary(job.customer),
@@ -610,7 +655,8 @@ export async function buildIntelligenceSummary(
     const daysSinceService = rollup.lastServiceAt
       ? daysBetween(now, rollup.lastServiceAt)
       : null;
-    const purchasedServiceIds = purchasedByCustomer.get(customerId) ?? new Set<string>();
+    const purchasedServiceIds =
+      purchasedByCustomer.get(customerId) ?? new Set<string>();
     for (const service of activeServices) {
       if (purchasedServiceIds.has(service.id)) continue;
       const marginPct =
@@ -626,7 +672,9 @@ export async function buildIntelligenceSummary(
       });
       if (score <= 0) continue;
       const reason = `${plural(lifetimeJobs, "lifetime job")}, last service ${
-        daysSinceService === null ? "not yet completed" : `${daysSinceService}d ago`
+        daysSinceService === null
+          ? "not yet completed"
+          : `${daysSinceService}d ago`
       }; ${service.name} has not been purchased.`;
       upsellCandidates.push({
         customer: rollup.customer,
@@ -643,7 +691,9 @@ export async function buildIntelligenceSummary(
   );
   const upsells = upsellCandidates.slice(0, 5);
 
-  for (const candidate of upsellCandidates.filter((row) => row.score >= 70).slice(0, 10)) {
+  for (const candidate of upsellCandidates
+    .filter((row) => row.score >= 70)
+    .slice(0, 10)) {
     recommendations.push({
       id: `upsell:${candidate.customer.id}:${candidate.serviceId}`,
       kind: "UPSELL",
@@ -813,7 +863,8 @@ export async function buildIntelligenceSummary(
   const stopsByDay = new Map<string, number>();
   for (const job of upcomingJobs) {
     if (!job.scheduledStart) continue;
-    if (job.scheduledStart < startOfToday || job.scheduledStart >= weekAhead) continue;
+    if (job.scheduledStart < startOfToday || job.scheduledStart >= weekAhead)
+      continue;
     const key = dayKey(job.scheduledStart);
     stopsByDay.set(key, (stopsByDay.get(key) ?? 0) + 1);
   }
@@ -840,18 +891,23 @@ export async function buildIntelligenceSummary(
   const sorted = capByKind(recommendations);
   const counts = Object.fromEntries(
     RECOMMENDATION_KINDS.map(
-      (kind) => [kind, sorted.filter((row) => row.kind === kind).length] as const,
+      (kind) =>
+        [kind, sorted.filter((row) => row.kind === kind).length] as const,
     ),
   ) as Record<RecommendationKind, number>;
 
   const overdueAmount = Math.max(
     0,
-    (overdueAggregate._sum.amount ?? 0) - (overdueAggregate._sum.amountPaid ?? 0),
+    (overdueAggregate._sum.amount ?? 0) -
+      (overdueAggregate._sum.amountPaid ?? 0),
   );
 
   const health: IntelligenceHealth = {
-    churnRiskCustomers: recommendations.filter((row) => row.kind === "CHURN_RISK").length,
-    noShowRiskJobs: recommendations.filter((row) => row.kind === "NO_SHOW_RISK").length,
+    churnRiskCustomers: recommendations.filter(
+      (row) => row.kind === "CHURN_RISK",
+    ).length,
+    noShowRiskJobs: recommendations.filter((row) => row.kind === "NO_SHOW_RISK")
+      .length,
     overdueAmount,
     unassignedToday,
     unbilledJobs,

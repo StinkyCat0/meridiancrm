@@ -107,8 +107,14 @@ const idParamsSchema = z.object({ id: z.string().min(1).max(64) });
 
 const OVERDUE_STATUSES: readonly InvoiceStatus[] = ["SENT", "PARTIAL"];
 
-async function loadInvoiceRow(workspaceId: string, id: string): Promise<InvoiceRow> {
-  const row = await prisma.invoice.findFirst({ where: { id, workspaceId }, include });
+async function loadInvoiceRow(
+  workspaceId: string,
+  id: string,
+): Promise<InvoiceRow> {
+  const row = await prisma.invoice.findFirst({
+    where: { id, workspaceId },
+    include,
+  });
   if (!row) throw notFound("Invoice");
   return row;
 }
@@ -146,7 +152,10 @@ async function recordPaymentDelta(
 
 function assertInvoiceMutable(status: InvoiceStatus): void {
   if (status === "VOID") {
-    throw conflict("Void invoices cannot be changed", { status, allowed: ["VOID"] });
+    throw conflict("Void invoices cannot be changed", {
+      status,
+      allowed: ["VOID"],
+    });
   }
 }
 
@@ -287,12 +296,14 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
         });
         locationId = primary?.id ?? null;
       }
-      if (locationId) await loadLocation(auth.workspaceId, locationId, resolvedCustomerId);
+      if (locationId)
+        await loadLocation(auth.workspaceId, locationId, resolvedCustomerId);
 
       if (input.status === "PAID" && amount <= 0) {
         throw badRequest("A zero-total invoice cannot be marked paid");
       }
-      const issuedAt = input.issuedAt ?? (input.status === "DRAFT" ? null : new Date());
+      const issuedAt =
+        input.issuedAt ?? (input.status === "DRAFT" ? null : new Date());
       const paidAt = input.status === "PAID" ? new Date() : null;
       const amountPaid = input.status === "PAID" ? amount : 0;
 
@@ -348,7 +359,11 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
     "/invoices/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["invoices"], summary: "Fetch an invoice", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["invoices"],
+        summary: "Fetch an invoice",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -361,7 +376,11 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
     "/invoices/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["invoices"], summary: "Update an invoice", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["invoices"],
+        summary: "Update an invoice",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -374,7 +393,9 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
       const amountPaid = input.amountPaid ?? existing.amountPaid;
 
       if (input.amount !== undefined && input.amount < existing.amountPaid) {
-        throw badRequest("The invoice amount cannot be less than the amount already paid");
+        throw badRequest(
+          "The invoice amount cannot be less than the amount already paid",
+        );
       }
       if (amountPaid > amount) {
         throw badRequest("Payments cannot exceed the invoice amount");
@@ -390,13 +411,21 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
           });
         }
         if (input.status === "PAID") {
-          if (amount <= 0) throw badRequest("A zero-total invoice cannot be marked paid");
+          if (amount <= 0)
+            throw badRequest("A zero-total invoice cannot be marked paid");
           if (amountPaid < amount) {
-            throw badRequest("Record the full payment before marking the invoice paid");
+            throw badRequest(
+              "Record the full payment before marking the invoice paid",
+            );
           }
         }
-        if (input.status === "VOID" && (amountPaid !== 0 || existing.amountPaid !== 0)) {
-          throw badRequest("Only invoices with no recorded payments can be voided");
+        if (
+          input.status === "VOID" &&
+          (amountPaid !== 0 || existing.amountPaid !== 0)
+        ) {
+          throw badRequest(
+            "Only invoices with no recorded payments can be voided",
+          );
         }
         nextStatus = input.status;
       } else {
@@ -496,7 +525,8 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
             amountPaid: input.amountPaid,
             status,
             paidAt: status === "PAID" ? (existing.paidAt ?? new Date()) : null,
-            issuedAt: existing.issuedAt ?? (status === "DRAFT" ? null : new Date()),
+            issuedAt:
+              existing.issuedAt ?? (status === "DRAFT" ? null : new Date()),
           },
           include,
         });
@@ -582,7 +612,8 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
             amountPaid,
             status,
             paidAt: status === "PAID" ? (existing.paidAt ?? new Date()) : null,
-            issuedAt: existing.issuedAt ?? (status === "DRAFT" ? null : new Date()),
+            issuedAt:
+              existing.issuedAt ?? (status === "DRAFT" ? null : new Date()),
           },
           include,
         });
@@ -605,7 +636,11 @@ export async function invoiceRoutes(app: FastifyInstance): Promise<void> {
     "/invoices/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["invoices"], summary: "Delete an invoice", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["invoices"],
+        summary: "Delete an invoice",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request, reply) => {
       const auth = getAuth(request);

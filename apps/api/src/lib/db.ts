@@ -28,17 +28,26 @@ export function configureDatabase(): Promise<void> {
     try {
       await prisma.$queryRawUnsafe("PRAGMA journal_mode=WAL");
     } catch (error) {
-      console.error("database configuration failed: PRAGMA journal_mode=WAL", error);
+      console.error(
+        "database configuration failed: PRAGMA journal_mode=WAL",
+        error,
+      );
     }
     try {
       await prisma.$queryRawUnsafe("PRAGMA busy_timeout=5000");
     } catch (error) {
-      console.error("database configuration failed: PRAGMA busy_timeout=5000", error);
+      console.error(
+        "database configuration failed: PRAGMA busy_timeout=5000",
+        error,
+      );
     }
     try {
       await prisma.$executeRawUnsafe("PRAGMA foreign_keys=ON");
     } catch (error) {
-      console.error("database configuration failed: PRAGMA foreign_keys=ON", error);
+      console.error(
+        "database configuration failed: PRAGMA foreign_keys=ON",
+        error,
+      );
     }
   })();
   return configured;

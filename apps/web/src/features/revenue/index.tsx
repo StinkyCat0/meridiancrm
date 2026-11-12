@@ -11,7 +11,12 @@ import {
   PAYMENT_METHOD_LABEL,
   type ExpenseCategory,
 } from "@meridian/contracts";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   AlertTriangle,
   BadgeDollarSign,
@@ -39,7 +44,13 @@ import {
 import { toast } from "sonner";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Field } from "../../components/ui/Field";
 import { Input } from "../../components/ui/Input";
@@ -50,7 +61,13 @@ import { Skeleton } from "../../components/ui/Skeleton";
 import { StatCard } from "../../components/ui/StatCard";
 import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
-import { cn, formatDate, formatMoney, fromCents, toCents } from "../../lib/utils";
+import {
+  cn,
+  formatDate,
+  formatMoney,
+  fromCents,
+  toCents,
+} from "../../lib/utils";
 import { apiErrorMessage } from "../companies/lib";
 import { compactMoney, monthYearLabel } from "../dashboard/format";
 import { fromDateInput, toDateInput } from "../operations/shared";
@@ -77,7 +94,9 @@ function daysAgo(days: number): Date {
 }
 
 function percentOrDash(value: number | null | undefined): string {
-  return typeof value === "number" && Number.isFinite(value) ? `${value}%` : "—";
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value}%`
+    : "—";
 }
 
 const tooltipContentStyle = {
@@ -151,15 +170,24 @@ function FinanceTrendChart({ summary }: { summary: FinanceSummary }) {
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-3 text-[10px] font-medium text-muted">
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-accent"
+              aria-hidden="true"
+            />
             Revenue
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-danger" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-danger"
+              aria-hidden="true"
+            />
             Expenses
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent-2" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-accent-2"
+              aria-hidden="true"
+            />
             Profit
           </span>
         </div>
@@ -175,20 +203,35 @@ function FinanceTrendChart({ summary }: { summary: FinanceSummary }) {
         ) : (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
+              <ComposedChart
+                data={data}
+                margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+              >
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={false} dy={6} />
+                <XAxis
+                  dataKey="label"
+                  tick={axisTick}
+                  tickLine={false}
+                  axisLine={false}
+                  dy={6}
+                />
                 <YAxis
                   tick={axisTick}
                   tickLine={false}
                   axisLine={false}
                   width={52}
-                  tickFormatter={(value: number) => compactMoney(value, summary.currency)}
+                  tickFormatter={(value: number) =>
+                    compactMoney(value, summary.currency)
+                  }
                 />
                 <Tooltip
                   contentStyle={tooltipContentStyle}
                   labelStyle={tooltipLabelStyle}
-                  itemStyle={{ color: "var(--color-fg)", fontSize: 12, padding: 0 }}
+                  itemStyle={{
+                    color: "var(--color-fg)",
+                    fontSize: 12,
+                    padding: 0,
+                  }}
                   cursor={{ fill: "rgba(255,255,255,0.04)" }}
                   formatter={(value, name) => [
                     formatMoney(Number(value), summary.currency),
@@ -247,7 +290,9 @@ function SectionCard({
       <CardHeader className="pb-3">
         <div>
           <CardTitle>{title}</CardTitle>
-          {description ? <CardDescription className="mt-1">{description}</CardDescription> : null}
+          {description ? (
+            <CardDescription className="mt-1">{description}</CardDescription>
+          ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </CardHeader>
@@ -256,15 +301,34 @@ function SectionCard({
   );
 }
 
-function TableScroll({ children, label }: { children: ReactNode; label: string }) {
+function TableScroll({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
   return (
-    <div className="overflow-x-auto" role="region" aria-label={label} tabIndex={0}>
-      <table className="w-full min-w-[560px] border-collapse text-sm">{children}</table>
+    <div
+      className="overflow-x-auto"
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+    >
+      <table className="w-full min-w-[560px] border-collapse text-sm">
+        {children}
+      </table>
     </div>
   );
 }
 
-function Th({ children, align = "left" }: { children: ReactNode; align?: "left" | "right" }) {
+function Th({
+  children,
+  align = "left",
+}: {
+  children: ReactNode;
+  align?: "left" | "right";
+}) {
   return (
     <th
       scope="col"
@@ -318,22 +382,44 @@ interface ExpenseFormModalProps {
   onClose: () => void;
 }
 
-function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps) {
+function ExpenseFormModal({
+  expense,
+  currency,
+  onClose,
+}: ExpenseFormModalProps) {
   const queryClient = useQueryClient();
-  const [category, setCategory] = useState<ExpenseCategory>(expense?.category ?? "OTHER");
+  const [category, setCategory] = useState<ExpenseCategory>(
+    expense?.category ?? "OTHER",
+  );
   const [vendor, setVendor] = useState(expense?.vendor ?? "");
   const [description, setDescription] = useState(expense?.description ?? "");
-  const [amount, setAmount] = useState(expense ? fromCents(expense.amount) : "");
+  const [amount, setAmount] = useState(
+    expense ? fromCents(expense.amount) : "",
+  );
   const [incurredAt, setIncurredAt] = useState(
     expense ? toDateInput(expense.incurredAt) : isoDate(new Date()),
   );
   const [jobId, setJobId] = useState(expense?.jobId ?? "");
   const [userId, setUserId] = useState(expense?.user?.id ?? "");
-  const [errors, setErrors] = useState<{ description?: string; amount?: string }>({});
+  const [errors, setErrors] = useState<{
+    description?: string;
+    amount?: string;
+  }>({});
 
   const jobsQuery = useQuery({
-    queryKey: queryKeys.jobs.list({ scope: "all", pageSize: 100, sort: "scheduledStart", order: "desc" }),
-    queryFn: () => api.jobs.list({ scope: "all", pageSize: 100, sort: "scheduledStart", order: "desc" }),
+    queryKey: queryKeys.jobs.list({
+      scope: "all",
+      pageSize: 100,
+      sort: "scheduledStart",
+      order: "desc",
+    }),
+    queryFn: () =>
+      api.jobs.list({
+        scope: "all",
+        pageSize: 100,
+        sort: "scheduledStart",
+        order: "desc",
+      }),
     staleTime: 60_000,
   });
 
@@ -345,7 +431,9 @@ function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps)
 
   const mutation = useMutation({
     mutationFn: (input: CreateExpenseInput) =>
-      expense ? api.finance.updateExpense(expense.id, input) : api.finance.createExpense(input),
+      expense
+        ? api.finance.updateExpense(expense.id, input)
+        : api.finance.createExpense(input),
     onSuccess: () => {
       toast.success(expense ? "Expense updated" : "Expense recorded");
       void queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
@@ -359,7 +447,8 @@ function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps)
     const nextErrors: typeof errors = {};
     const trimmedDescription = description.trim();
     const amountCents = toCents(amount);
-    if (!trimmedDescription) nextErrors.description = "Describe what this expense was for.";
+    if (!trimmedDescription)
+      nextErrors.description = "Describe what this expense was for.";
     if (!Number.isFinite(amountCents) || amountCents <= 0) {
       nextErrors.amount = "Enter an amount greater than zero.";
     }
@@ -389,7 +478,11 @@ function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps)
       size="lg"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={mutation.isPending}
+          >
             Cancel
           </Button>
           <Button
@@ -408,7 +501,9 @@ function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps)
           <Field label="Category" required>
             <Select
               value={category}
-              onChange={(event) => setCategory(event.target.value as ExpenseCategory)}
+              onChange={(event) =>
+                setCategory(event.target.value as ExpenseCategory)
+              }
             >
               {EXPENSE_CATEGORIES.map((option) => (
                 <option key={option} value={option}>
@@ -458,7 +553,10 @@ function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps)
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Job">
-            <Select value={jobId} onChange={(event) => setJobId(event.target.value)}>
+            <Select
+              value={jobId}
+              onChange={(event) => setJobId(event.target.value)}
+            >
               <option value="">No job</option>
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
@@ -468,7 +566,10 @@ function ExpenseFormModal({ expense, currency, onClose }: ExpenseFormModalProps)
             </Select>
           </Field>
           <Field label="Technician">
-            <Select value={userId} onChange={(event) => setUserId(event.target.value)}>
+            <Select
+              value={userId}
+              onChange={(event) => setUserId(event.target.value)}
+            >
               <option value="">Unassigned</option>
               {members.map((member) => (
                 <option key={member.id} value={member.user.id}>
@@ -498,11 +599,16 @@ export default function RevenuePage() {
   const [customTo, setCustomTo] = useState(isoDate(new Date()));
   const [editing, setEditing] = useState<Expense | null>(null);
   const [creating, setCreating] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState<Expense | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<Expense | null>(
+    null,
+  );
 
   const range = useMemo(() => {
     if (period !== "custom") {
-      return { from: isoDate(daysAgo(Number(period))), to: isoDate(new Date()) };
+      return {
+        from: isoDate(daysAgo(Number(period))),
+        to: isoDate(new Date()),
+      };
     }
     const from = customFrom || isoDate(daysAgo(30));
     const to = customTo || isoDate(new Date());
@@ -610,10 +716,17 @@ export default function RevenuePage() {
       ) : error ? (
         <Card className="p-6" role="alert">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 size-5 text-danger" aria-hidden="true" />
+            <AlertTriangle
+              className="mt-0.5 size-5 text-danger"
+              aria-hidden="true"
+            />
             <div>
-              <p className="text-sm font-medium text-fg">Could not load revenue</p>
-              <p className="mt-1 text-sm text-muted">{apiErrorMessage(error)}</p>
+              <p className="text-sm font-medium text-fg">
+                Could not load revenue
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                {apiErrorMessage(error)}
+              </p>
               <Button className="mt-4" size="sm" onClick={refreshAll}>
                 Try again
               </Button>
@@ -633,7 +746,9 @@ export default function RevenuePage() {
               label="Expenses"
               value={formatMoney(summary.expenses, currency)}
               hint={`${summary.expensesByCategory.length} ${
-                summary.expensesByCategory.length === 1 ? "category" : "categories"
+                summary.expensesByCategory.length === 1
+                  ? "category"
+                  : "categories"
               }`}
               icon={<Wallet aria-hidden="true" />}
             />
@@ -689,9 +804,13 @@ export default function RevenuePage() {
                     summary.serviceMargins.map((row) => (
                       <tr key={row.category}>
                         <Td>{row.category}</Td>
-                        <Td align="right">{formatMoney(row.revenue, currency)}</Td>
+                        <Td align="right">
+                          {formatMoney(row.revenue, currency)}
+                        </Td>
                         <Td align="right">{formatMoney(row.cost, currency)}</Td>
-                        <Td align="right">{formatMoney(row.margin, currency)}</Td>
+                        <Td align="right">
+                          {formatMoney(row.margin, currency)}
+                        </Td>
                         <Td align="right">{percentOrDash(row.marginPct)}</Td>
                       </tr>
                     ))
@@ -725,13 +844,20 @@ export default function RevenuePage() {
                       <tr key={row.user.id}>
                         <Td>
                           <span className="flex items-center gap-2">
-                            <Wrench className="size-3.5 text-muted" aria-hidden="true" />
+                            <Wrench
+                              className="size-3.5 text-muted"
+                              aria-hidden="true"
+                            />
                             {row.user.name}
                           </span>
                         </Td>
                         <Td align="right">{row.jobs}</Td>
-                        <Td align="right">{formatMoney(row.revenue, currency)}</Td>
-                        <Td align="right">{formatMoney(row.margin, currency)}</Td>
+                        <Td align="right">
+                          {formatMoney(row.revenue, currency)}
+                        </Td>
+                        <Td align="right">
+                          {formatMoney(row.margin, currency)}
+                        </Td>
                       </tr>
                     ))
                   )}
@@ -741,7 +867,10 @@ export default function RevenuePage() {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <SectionCard title="Top customers" description="Highest revenue customers in the range.">
+            <SectionCard
+              title="Top customers"
+              description="Highest revenue customers in the range."
+            >
               <TableScroll label="Top customers">
                 <thead>
                   <tr>
@@ -763,8 +892,12 @@ export default function RevenuePage() {
                       <tr key={row.customer.id}>
                         <Td>{row.customer.name}</Td>
                         <Td align="right">{row.jobs}</Td>
-                        <Td align="right">{formatMoney(row.revenue, currency)}</Td>
-                        <Td align="right">{formatMoney(row.balance, currency)}</Td>
+                        <Td align="right">
+                          {formatMoney(row.revenue, currency)}
+                        </Td>
+                        <Td align="right">
+                          {formatMoney(row.balance, currency)}
+                        </Td>
                       </tr>
                     ))
                   )}
@@ -791,7 +924,10 @@ export default function RevenuePage() {
               ) : (
                 <ul className="divide-y divide-border/60">
                   {upsells.map((upsell) => (
-                    <li key={`${upsell.customer.id}-${upsell.serviceId}`} className="p-4">
+                    <li
+                      key={`${upsell.customer.id}-${upsell.serviceId}`}
+                      className="p-4"
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-fg">
@@ -805,9 +941,13 @@ export default function RevenuePage() {
                           {formatMoney(upsell.price, currency)}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs leading-relaxed text-muted">{upsell.reason}</p>
+                      <p className="mt-2 text-xs leading-relaxed text-muted">
+                        {upsell.reason}
+                      </p>
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                        <Badge tone="accent">Score {Math.round(upsell.score)}</Badge>
+                        <Badge tone="accent">
+                          Score {Math.round(upsell.score)}
+                        </Badge>
                         <Link
                           to={`/app/estimates?customer=${encodeURIComponent(upsell.customer.id)}`}
                           className="text-xs font-medium text-accent hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -865,7 +1005,9 @@ export default function RevenuePage() {
                       </Td>
                       <Td>{PAYMENT_METHOD_LABEL[payment.method]}</Td>
                       <Td className="text-muted">{payment.reference ?? "—"}</Td>
-                      <Td align="right">{formatMoney(payment.amount, currency)}</Td>
+                      <Td align="right">
+                        {formatMoney(payment.amount, currency)}
+                      </Td>
                     </tr>
                   ))}
                 </tbody>
@@ -873,7 +1015,8 @@ export default function RevenuePage() {
             )}
             {paymentsQuery.data && payments.length > 0 ? (
               <p className="border-t border-border px-5 py-2.5 text-xs text-muted">
-                Showing {payments.length} of {paymentsQuery.data.meta.total} payments
+                Showing {payments.length} of {paymentsQuery.data.meta.total}{" "}
+                payments
               </p>
             ) : null}
           </SectionCard>
@@ -883,7 +1026,11 @@ export default function RevenuePage() {
             description="Costs recorded in the selected range."
             action={
               canManage ? (
-                <Button size="sm" variant="secondary" onClick={() => setCreating(true)}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setCreating(true)}
+                >
                   <Plus className="size-4" aria-hidden="true" />
                   Add expense
                 </Button>
@@ -915,21 +1062,26 @@ export default function RevenuePage() {
                     <tr key={expense.id}>
                       <Td>{formatDate(expense.incurredAt)}</Td>
                       <Td className="max-w-[220px]">
-                        <span className="block truncate" title={expense.description}>
+                        <span
+                          className="block truncate"
+                          title={expense.description}
+                        >
                           {expense.description}
                         </span>
                       </Td>
                       <Td>
-                        <Badge tone="neutral">{EXPENSE_CATEGORY_META[expense.category]}</Badge>
+                        <Badge tone="neutral">
+                          {EXPENSE_CATEGORY_META[expense.category]}
+                        </Badge>
                       </Td>
                       <Td className="text-muted">{expense.vendor ?? "—"}</Td>
                       <Td className="text-muted">{expense.jobNumber ?? "—"}</Td>
                       <Td className="text-muted">
-                        {expense.user
-                          ? expense.user.name
-                          : "—"}
+                        {expense.user ? expense.user.name : "—"}
                       </Td>
-                      <Td align="right">{formatMoney(expense.amount, currency)}</Td>
+                      <Td align="right">
+                        {formatMoney(expense.amount, currency)}
+                      </Td>
                       {canManage ? (
                         <Td align="right">
                           <span className="inline-flex items-center gap-1">
@@ -960,14 +1112,16 @@ export default function RevenuePage() {
             )}
             {expensesQuery.data && expenses.length > 0 ? (
               <p className="border-t border-border px-5 py-2.5 text-xs text-muted">
-                Showing {expenses.length} of {expensesQuery.data.meta.total} expenses
+                Showing {expenses.length} of {expensesQuery.data.meta.total}{" "}
+                expenses
               </p>
             ) : null}
           </SectionCard>
 
           <p className="text-xs leading-relaxed text-muted">
-            Range {formatDate(summary.range.from)} – {formatDate(summary.range.to)} · figures in{" "}
-            {currency}, stored and calculated in cents.
+            Range {formatDate(summary.range.from)} –{" "}
+            {formatDate(summary.range.to)} · figures in {currency}, stored and
+            calculated in cents.
           </p>
         </>
       ) : null}
@@ -1007,7 +1161,8 @@ export default function RevenuePage() {
               variant="danger"
               loading={deleteMutation.isPending}
               onClick={() => {
-                if (confirmingDelete) deleteMutation.mutate(confirmingDelete.id);
+                if (confirmingDelete)
+                  deleteMutation.mutate(confirmingDelete.id);
               }}
             >
               Delete

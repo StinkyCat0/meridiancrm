@@ -22,7 +22,9 @@ const DAILY_CAPACITY_MINUTES = 480;
 const OPEN_STATUSES = [...OPEN_JOB_STATUSES];
 
 function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 /** Parses a YYYY-MM-DD date; defaults to today (UTC). */
@@ -30,9 +32,14 @@ function parseDay(value: string | undefined): Date {
   if (!value) return startOfUtcDay(new Date());
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) throw badRequest("Use a YYYY-MM-DD date");
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  const date = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+  );
   // Date.UTC rolls invalid values over (Feb 31 becomes Mar 3), so round-trip.
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
     throw badRequest("Use a valid calendar date");
   }
   return date;
@@ -45,7 +52,10 @@ function resolveRange(query: TeamRangeQuery): { from: Date; to: Date } {
     throw badRequest("`from` must be on or before `to`");
   }
   const earliest = new Date(to.getTime() - MAX_RANGE_DAYS * DAY_MS);
-  return { from: new Date(Math.max(requestedFrom.getTime(), earliest.getTime())), to };
+  return {
+    from: new Date(Math.max(requestedFrom.getTime(), earliest.getTime())),
+    to,
+  };
 }
 
 /** Weekdays (Mon-Fri) touched by the inclusive range, counted in UTC. */
@@ -104,81 +114,87 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
       const upcomingEnd = new Date(now.getTime() + 7 * DAY_MS);
       const weekdays = weekdayCount(from, to);
 
-      const [workspace, memberships, jobs, openJobCounts, upcomingRows, paymentRows] =
-        await Promise.all([
-          prisma.workspace.findUnique({
-            where: { id: auth.workspaceId },
-            select: { currency: true },
-          }),
-          prisma.membership.findMany({
-            where: { workspaceId: auth.workspaceId },
-            select: {
-              role: true,
-              user: { select: userSelect },
-            },
-            orderBy: [{ createdAt: "asc" }, { userId: "asc" }],
-          }),
-          prisma.job.findMany({
-            where: {
-              workspaceId: auth.workspaceId,
-              OR: [
-                { scheduledStart: { gte: from, lte: to } },
-                { completedAt: { gte: from, lte: to } },
-              ],
-            },
-            select: {
-              assigneeId: true,
-              status: true,
-              scheduledStart: true,
-              completedAt: true,
-              durationMinutes: true,
-              rating: true,
-            },
-          }),
-          prisma.job.groupBy({
-            by: ["assigneeId"],
-            where: {
-              workspaceId: auth.workspaceId,
-              assigneeId: { not: null },
-              status: { in: OPEN_STATUSES },
-            },
-            _count: { _all: true },
-          }),
-          prisma.job.groupBy({
-            by: ["assigneeId"],
-            where: {
-              workspaceId: auth.workspaceId,
-              assigneeId: { not: null },
-              status: { in: OPEN_STATUSES },
-              scheduledStart: { gte: now, lte: upcomingEnd },
-            },
-            _sum: { durationMinutes: true },
-          }),
-          prisma.payment.findMany({
-            where: {
-              workspaceId: auth.workspaceId,
-              receivedAt: { gte: from, lte: to },
-              // A payment only belongs to a member's revenue through its
-              // invoice's job, and both sides must stay inside the workspace.
-              invoice: { workspaceId: auth.workspaceId },
-            },
-            select: {
-              amount: true,
-              invoice: {
-                select: {
-                  job: {
-                    select: {
-                      assigneeId: true,
-                      subtotal: true,
-                      total: true,
-                      lineItems: { select: { quantity: true, unitCost: true } },
-                    },
+      const [
+        workspace,
+        memberships,
+        jobs,
+        openJobCounts,
+        upcomingRows,
+        paymentRows,
+      ] = await Promise.all([
+        prisma.workspace.findUnique({
+          where: { id: auth.workspaceId },
+          select: { currency: true },
+        }),
+        prisma.membership.findMany({
+          where: { workspaceId: auth.workspaceId },
+          select: {
+            role: true,
+            user: { select: userSelect },
+          },
+          orderBy: [{ createdAt: "asc" }, { userId: "asc" }],
+        }),
+        prisma.job.findMany({
+          where: {
+            workspaceId: auth.workspaceId,
+            OR: [
+              { scheduledStart: { gte: from, lte: to } },
+              { completedAt: { gte: from, lte: to } },
+            ],
+          },
+          select: {
+            assigneeId: true,
+            status: true,
+            scheduledStart: true,
+            completedAt: true,
+            durationMinutes: true,
+            rating: true,
+          },
+        }),
+        prisma.job.groupBy({
+          by: ["assigneeId"],
+          where: {
+            workspaceId: auth.workspaceId,
+            assigneeId: { not: null },
+            status: { in: OPEN_STATUSES },
+          },
+          _count: { _all: true },
+        }),
+        prisma.job.groupBy({
+          by: ["assigneeId"],
+          where: {
+            workspaceId: auth.workspaceId,
+            assigneeId: { not: null },
+            status: { in: OPEN_STATUSES },
+            scheduledStart: { gte: now, lte: upcomingEnd },
+          },
+          _sum: { durationMinutes: true },
+        }),
+        prisma.payment.findMany({
+          where: {
+            workspaceId: auth.workspaceId,
+            receivedAt: { gte: from, lte: to },
+            // A payment only belongs to a member's revenue through its
+            // invoice's job, and both sides must stay inside the workspace.
+            invoice: { workspaceId: auth.workspaceId },
+          },
+          select: {
+            amount: true,
+            invoice: {
+              select: {
+                job: {
+                  select: {
+                    assigneeId: true,
+                    subtotal: true,
+                    total: true,
+                    lineItems: { select: { quantity: true, unitCost: true } },
                   },
                 },
               },
             },
-          }),
-        ]);
+          },
+        }),
+      ]);
 
       if (!workspace) throw notFound("Workspace");
 
@@ -257,7 +273,8 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
         );
         const billedValue = job.subtotal > 0 ? job.subtotal : job.total;
         if (billedValue > 0 && lineCost > 0) {
-          member.allocatedCost += payment.amount * Math.min(lineCost / billedValue, 1);
+          member.allocatedCost +=
+            payment.amount * Math.min(lineCost / billedValue, 1);
         }
       }
 
@@ -294,13 +311,17 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
           revenue: member.revenue,
           margin: Math.round(member.revenue - member.allocatedCost),
           avgTicket:
-            member.jobsCompleted > 0 ? Math.round(member.revenue / member.jobsCompleted) : 0,
+            member.jobsCompleted > 0
+              ? Math.round(member.revenue / member.jobsCompleted)
+              : 0,
           utilizationPct: utilization(
             member.completedMinutes,
             weekdays * DAILY_CAPACITY_MINUTES,
           ),
           ratingAvg:
-            member.ratingCount > 0 ? roundRating(member.ratingSum / member.ratingCount) : null,
+            member.ratingCount > 0
+              ? roundRating(member.ratingSum / member.ratingCount)
+              : null,
           ratingCount: member.ratingCount,
           openJobs: member.openJobs,
           upcomingMinutes: member.upcomingMinutes,
@@ -328,13 +349,17 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
         },
       );
 
-      const totalRatingCount = members.reduce((sum, member) => sum + member.ratingCount, 0);
+      const totalRatingCount = members.reduce(
+        (sum, member) => sum + member.ratingCount,
+        0,
+      );
       const totalRatingSum = members.reduce(
         (sum, member) => sum + (member.ratingAvg ?? 0) * member.ratingCount,
         0,
       );
       const totalCompletedMinutes = memberships.reduce(
-        (sum, membership) => sum + (stats.get(membership.user.id)?.completedMinutes ?? 0),
+        (sum, membership) =>
+          sum + (stats.get(membership.user.id)?.completedMinutes ?? 0),
         0,
       );
 
@@ -344,7 +369,10 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
         members,
         totals: {
           ...totals,
-          avgTicket: totals.jobsCompleted > 0 ? Math.round(totals.revenue / totals.jobsCompleted) : 0,
+          avgTicket:
+            totals.jobsCompleted > 0
+              ? Math.round(totals.revenue / totals.jobsCompleted)
+              : 0,
           utilizationPct:
             members.length > 0
               ? utilization(
@@ -353,7 +381,9 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
                 )
               : 0,
           ratingAvg:
-            totalRatingCount > 0 ? roundRating(totalRatingSum / totalRatingCount) : null,
+            totalRatingCount > 0
+              ? roundRating(totalRatingSum / totalRatingCount)
+              : null,
         },
       };
     },
@@ -413,7 +443,8 @@ export async function teamRoutes(app: FastifyInstance): Promise<void> {
 
       const completedByUser = new Map<string, number>();
       for (const row of completedRows) {
-        if (row.assigneeId) completedByUser.set(row.assigneeId, row._count._all);
+        if (row.assigneeId)
+          completedByUser.set(row.assigneeId, row._count._all);
       }
 
       const perMember = new Map<

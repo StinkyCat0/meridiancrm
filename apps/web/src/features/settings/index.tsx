@@ -25,7 +25,9 @@ export default function SettingsPage() {
   const location = useLocation();
   const canManage = role ? atLeast(role, "ADMIN") : false;
   const hash = location.hash.replace(/^#/, "");
-  const active = TAB_ITEMS.some((item) => item.value === hash) ? hash : "profile";
+  const active = TAB_ITEMS.some((item) => item.value === hash)
+    ? hash
+    : "profile";
 
   function selectTab(value: string) {
     navigate({ hash: value }, { replace: true });

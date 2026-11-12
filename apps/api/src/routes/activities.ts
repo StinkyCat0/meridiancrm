@@ -26,7 +26,9 @@ const userSelect = {
 } satisfies Prisma.UserSelect;
 
 export const activityInclude = {
-  contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+  contact: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
   company: { select: { id: true, name: true, domain: true } },
   deal: { select: { id: true, title: true } },
   owner: { select: userSelect },
@@ -49,7 +51,12 @@ const idParamsSchema = z.object({ id: idSchema });
 
 function toPublicUser(user: PublicUser | null | undefined): PublicUser | null {
   if (!user) return null;
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 export function toActivity(row: ActivityWithRelations): Activity {
@@ -69,7 +76,11 @@ export function toActivity(row: ActivityWithRelations): Activity {
         }
       : null,
     company: row.company
-      ? { id: row.company.id, name: row.company.name, domain: row.company.domain }
+      ? {
+          id: row.company.id,
+          name: row.company.name,
+          domain: row.company.domain,
+        }
       : null,
     dealId: row.dealId,
     dealTitle: row.deal ? row.deal.title : null,
@@ -95,7 +106,10 @@ function activityOrder(
   }
 }
 
-async function requireContact(workspaceId: string, contactId: string): Promise<void> {
+async function requireContact(
+  workspaceId: string,
+  contactId: string,
+): Promise<void> {
   const contact = await prisma.contact.findFirst({
     where: { id: contactId, workspaceId },
     select: { id: true },
@@ -103,7 +117,10 @@ async function requireContact(workspaceId: string, contactId: string): Promise<v
   if (!contact) throw notFound("Contact");
 }
 
-async function requireCompany(workspaceId: string, companyId: string): Promise<void> {
+async function requireCompany(
+  workspaceId: string,
+  companyId: string,
+): Promise<void> {
   const company = await prisma.company.findFirst({
     where: { id: companyId, workspaceId },
     select: { id: true },
@@ -119,7 +136,10 @@ async function requireDeal(workspaceId: string, dealId: string): Promise<void> {
   if (!deal) throw notFound("Deal");
 }
 
-async function loadActivity(workspaceId: string, id: string): Promise<ActivityWithRelations> {
+async function loadActivity(
+  workspaceId: string,
+  id: string,
+): Promise<ActivityWithRelations> {
   const row = await prisma.activity.findFirst({
     where: { id, workspaceId },
     include: activityInclude,
@@ -165,9 +185,15 @@ export async function activityRoutes(app: FastifyInstance): Promise<void> {
             Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
           );
           if (query.due === "today") {
-            where.dueAt = { gte: startOfDay, lt: new Date(startOfDay.getTime() + DAY_MS) };
+            where.dueAt = {
+              gte: startOfDay,
+              lt: new Date(startOfDay.getTime() + DAY_MS),
+            };
           } else {
-            where.dueAt = { gte: startOfDay, lte: new Date(now.getTime() + 7 * DAY_MS) };
+            where.dueAt = {
+              gte: startOfDay,
+              lte: new Date(now.getTime() + 7 * DAY_MS),
+            };
           }
         }
       }
@@ -203,8 +229,10 @@ export async function activityRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const input = parseOrThrow(activityInputSchema, request.body);
-      if (input.contactId) await requireContact(auth.workspaceId, input.contactId);
-      if (input.companyId) await requireCompany(auth.workspaceId, input.companyId);
+      if (input.contactId)
+        await requireContact(auth.workspaceId, input.contactId);
+      if (input.companyId)
+        await requireCompany(auth.workspaceId, input.companyId);
       if (input.dealId) await requireDeal(auth.workspaceId, input.dealId);
 
       const created = await prisma.activity.create({
@@ -257,13 +285,16 @@ export async function activityRoutes(app: FastifyInstance): Promise<void> {
       if (input.title !== undefined) data.title = input.title;
       if (input.body !== undefined) data.body = input.body ?? null;
       if (input.dueAt !== undefined) data.dueAt = input.dueAt ?? null;
-      if (input.completedAt !== undefined) data.completedAt = input.completedAt ?? null;
+      if (input.completedAt !== undefined)
+        data.completedAt = input.completedAt ?? null;
       if (input.contactId !== undefined) {
-        if (input.contactId) await requireContact(auth.workspaceId, input.contactId);
+        if (input.contactId)
+          await requireContact(auth.workspaceId, input.contactId);
         data.contactId = input.contactId ?? null;
       }
       if (input.companyId !== undefined) {
-        if (input.companyId) await requireCompany(auth.workspaceId, input.companyId);
+        if (input.companyId)
+          await requireCompany(auth.workspaceId, input.companyId);
         data.companyId = input.companyId ?? null;
       }
       if (input.dealId !== undefined) {

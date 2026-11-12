@@ -11,7 +11,13 @@ export type TopLevelEntity =
 export const ROLES = ["OWNER", "ADMIN", "MEMBER"] as const;
 export type Role = (typeof ROLES)[number];
 
-export const ACTIVITY_TYPES = ["NOTE", "CALL", "EMAIL", "MEETING", "TASK"] as const;
+export const ACTIVITY_TYPES = [
+  "NOTE",
+  "CALL",
+  "EMAIL",
+  "MEETING",
+  "TASK",
+] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 export const STAGE_KINDS = ["OPEN", "WON", "LOST"] as const;
@@ -47,10 +53,21 @@ export type Currency = (typeof CURRENCIES)[number];
 /* Service operations                                                          */
 /* -------------------------------------------------------------------------- */
 
-export const CUSTOMER_TYPES = ["RESIDENTIAL", "COMMERCIAL", "PROPERTY_MANAGER"] as const;
+export const CUSTOMER_TYPES = [
+  "RESIDENTIAL",
+  "COMMERCIAL",
+  "PROPERTY_MANAGER",
+] as const;
 export type CustomerType = (typeof CUSTOMER_TYPES)[number];
 
-export const SERVICE_UNITS = ["VISIT", "HOUR", "SQFT", "ROOM", "UNIT", "ITEM"] as const;
+export const SERVICE_UNITS = [
+  "VISIT",
+  "HOUR",
+  "SQFT",
+  "ROOM",
+  "UNIT",
+  "ITEM",
+] as const;
 export type ServiceUnit = (typeof SERVICE_UNITS)[number];
 
 export const JOB_STATUSES = [
@@ -70,9 +87,29 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
  * rebooked, which is the one recovery path dispatch actually needs.
  */
 export const JOB_STATUS_TRANSITIONS: Record<JobStatus, readonly JobStatus[]> = {
-  UNSCHEDULED: ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "CANCELED", "NO_SHOW"],
-  SCHEDULED: ["SCHEDULED", "DISPATCHED", "IN_PROGRESS", "COMPLETED", "CANCELED", "NO_SHOW"],
-  DISPATCHED: ["DISPATCHED", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELED", "NO_SHOW"],
+  UNSCHEDULED: [
+    "UNSCHEDULED",
+    "SCHEDULED",
+    "DISPATCHED",
+    "CANCELED",
+    "NO_SHOW",
+  ],
+  SCHEDULED: [
+    "SCHEDULED",
+    "DISPATCHED",
+    "IN_PROGRESS",
+    "COMPLETED",
+    "CANCELED",
+    "NO_SHOW",
+  ],
+  DISPATCHED: [
+    "DISPATCHED",
+    "SCHEDULED",
+    "IN_PROGRESS",
+    "COMPLETED",
+    "CANCELED",
+    "NO_SHOW",
+  ],
   IN_PROGRESS: ["IN_PROGRESS", "COMPLETED", "CANCELED"],
   COMPLETED: ["COMPLETED"],
   CANCELED: ["CANCELED"],
@@ -123,7 +160,11 @@ export const COMMUNICATION_INTENTS = [
 ] as const;
 export type CommunicationIntent = (typeof COMMUNICATION_INTENTS)[number];
 
-export const COMMUNICATION_SENTIMENTS = ["POSITIVE", "NEUTRAL", "NEGATIVE"] as const;
+export const COMMUNICATION_SENTIMENTS = [
+  "POSITIVE",
+  "NEUTRAL",
+  "NEGATIVE",
+] as const;
 export type CommunicationSentiment = (typeof COMMUNICATION_SENTIMENTS)[number];
 
 export const AUTOMATION_TRIGGERS = [
@@ -147,7 +188,11 @@ export const AUTOMATION_ACTION_TYPES = [
 ] as const;
 export type AutomationActionType = (typeof AUTOMATION_ACTION_TYPES)[number];
 
-export const AUTOMATION_RUN_STATUSES = ["SUCCESS", "SKIPPED", "FAILED"] as const;
+export const AUTOMATION_RUN_STATUSES = [
+  "SUCCESS",
+  "SKIPPED",
+  "FAILED",
+] as const;
 export type AutomationRunStatus = (typeof AUTOMATION_RUN_STATUSES)[number];
 
 export const EXPENSE_CATEGORIES = [
@@ -193,10 +238,22 @@ export type RecommendationSeverity = (typeof RECOMMENDATION_SEVERITIES)[number];
 export const JOB_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 export type JobPriority = (typeof JOB_PRIORITIES)[number];
 
-export const ESTIMATE_STATUSES = ["DRAFT", "SENT", "APPROVED", "DECLINED", "EXPIRED"] as const;
+export const ESTIMATE_STATUSES = [
+  "DRAFT",
+  "SENT",
+  "APPROVED",
+  "DECLINED",
+  "EXPIRED",
+] as const;
 export type EstimateStatus = (typeof ESTIMATE_STATUSES)[number];
 
-export const INVOICE_STATUSES = ["DRAFT", "SENT", "PARTIAL", "PAID", "VOID"] as const;
+export const INVOICE_STATUSES = [
+  "DRAFT",
+  "SENT",
+  "PARTIAL",
+  "PAID",
+  "VOID",
+] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
 export const RECURRENCE_FREQUENCIES = [
@@ -217,13 +274,19 @@ export const OPEN_JOB_STATUSES: readonly JobStatus[] = [
   "IN_PROGRESS",
 ];
 
-export const CUSTOMER_TYPE_META: Record<CustomerType, { label: string; short: string }> = {
+export const CUSTOMER_TYPE_META: Record<
+  CustomerType,
+  { label: string; short: string }
+> = {
   RESIDENTIAL: { label: "Residential", short: "Home" },
   COMMERCIAL: { label: "Commercial", short: "Business" },
   PROPERTY_MANAGER: { label: "Property manager", short: "Portfolio" },
 };
 
-export const SERVICE_UNIT_META: Record<ServiceUnit, { label: string; short: string }> = {
+export const SERVICE_UNIT_META: Record<
+  ServiceUnit,
+  { label: string; short: string }
+> = {
   VISIT: { label: "Per visit", short: "visit" },
   HOUR: { label: "Per hour", short: "hr" },
   SQFT: { label: "Per sq ft", short: "sq ft" },
@@ -234,7 +297,10 @@ export const SERVICE_UNIT_META: Record<ServiceUnit, { label: string; short: stri
 
 export const JOB_PRIORITY_META: Record<
   JobPriority,
-  { label: string; tone: "accent" | "success" | "warning" | "danger" | "neutral" }
+  {
+    label: string;
+    tone: "accent" | "success" | "warning" | "danger" | "neutral";
+  }
 > = {
   LOW: { label: "Low", tone: "neutral" },
   NORMAL: { label: "Normal", tone: "accent" },
@@ -244,7 +310,10 @@ export const JOB_PRIORITY_META: Record<
 
 export const JOB_STATUS_META: Record<
   JobStatus,
-  { label: string; tone: "accent" | "success" | "warning" | "danger" | "neutral" }
+  {
+    label: string;
+    tone: "accent" | "success" | "warning" | "danger" | "neutral";
+  }
 > = {
   UNSCHEDULED: { label: "Unscheduled", tone: "neutral" },
   SCHEDULED: { label: "Scheduled", tone: "accent" },
@@ -255,7 +324,10 @@ export const JOB_STATUS_META: Record<
   NO_SHOW: { label: "No-show", tone: "danger" },
 };
 
-export const BUSINESS_TYPE_META: Record<BusinessType, { label: string; short: string }> = {
+export const BUSINESS_TYPE_META: Record<
+  BusinessType,
+  { label: string; short: string }
+> = {
   GENERAL: { label: "Home services", short: "Services" },
   SALON: { label: "Hair salon", short: "Salon" },
   NAIL_SALON: { label: "Nail salon", short: "Nails" },
@@ -289,7 +361,10 @@ export const COMMUNICATION_INTENT_META: Record<CommunicationIntent, string> = {
   RESCHEDULE: "Reschedule",
 };
 
-export const AUTOMATION_TRIGGER_META: Record<AutomationTrigger, { label: string; entity: string }> = {
+export const AUTOMATION_TRIGGER_META: Record<
+  AutomationTrigger,
+  { label: string; entity: string }
+> = {
   JOB_CREATED: { label: "Job created", entity: "job" },
   JOB_COMPLETED: { label: "Job completed", entity: "job" },
   JOB_CANCELED: { label: "Job canceled", entity: "job" },
@@ -325,7 +400,10 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
 
 export const ESTIMATE_STATUS_META: Record<
   EstimateStatus,
-  { label: string; tone: "accent" | "success" | "warning" | "danger" | "neutral" }
+  {
+    label: string;
+    tone: "accent" | "success" | "warning" | "danger" | "neutral";
+  }
 > = {
   DRAFT: { label: "Draft", tone: "neutral" },
   SENT: { label: "Sent", tone: "accent" },
@@ -336,7 +414,10 @@ export const ESTIMATE_STATUS_META: Record<
 
 export const INVOICE_STATUS_META: Record<
   InvoiceStatus,
-  { label: string; tone: "accent" | "success" | "warning" | "danger" | "neutral" }
+  {
+    label: string;
+    tone: "accent" | "success" | "warning" | "danger" | "neutral";
+  }
 > = {
   DRAFT: { label: "Draft", tone: "neutral" },
   SENT: { label: "Sent", tone: "accent" },
@@ -365,7 +446,11 @@ export const ACTIVITY_TYPE_META: Record<
   TASK: { label: "Task", preposition: "for" },
 };
 
-export const ROLE_RANK: Record<Role, number> = { MEMBER: 1, ADMIN: 2, OWNER: 3 };
+export const ROLE_RANK: Record<Role, number> = {
+  MEMBER: 1,
+  ADMIN: 2,
+  OWNER: 3,
+};
 
 export function atLeast(role: Role, minimum: Role): boolean {
   return ROLE_RANK[role] >= ROLE_RANK[minimum];

@@ -169,12 +169,19 @@ async function addPayment(
     _sum: { amount: true },
   });
   const amountPaid = totals._sum.amount ?? 0;
-  const invoice = await prisma.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
+  const invoice = await prisma.invoice.findUniqueOrThrow({
+    where: { id: invoiceId },
+  });
   await prisma.invoice.update({
     where: { id: invoiceId },
     data: {
       amountPaid,
-      status: amountPaid >= invoice.amount ? "PAID" : amountPaid > 0 ? "PARTIAL" : "SENT",
+      status:
+        amountPaid >= invoice.amount
+          ? "PAID"
+          : amountPaid > 0
+            ? "PARTIAL"
+            : "SENT",
     },
   });
   return payment;
@@ -206,7 +213,10 @@ async function createExpense(
   });
 }
 
-async function getSummary(target: TestAccount, query = ""): Promise<FinanceSummary> {
+async function getSummary(
+  target: TestAccount,
+  query = "",
+): Promise<FinanceSummary> {
   const response = await app.inject({
     method: "GET",
     url: `/api/v1/finance/summary${query}`,
@@ -236,8 +246,18 @@ async function seedJobInvoice(target: TestAccount, amount = 15000) {
     customerId: customer.id,
     locationId: location.id,
     lineItems: [
-      { serviceId: windows.id, name: windows.name, unitPrice: 10000, unitCost: 4000 },
-      { serviceId: gutters.id, name: gutters.name, unitPrice: 5000, unitCost: 2000 },
+      {
+        serviceId: windows.id,
+        name: windows.name,
+        unitPrice: 10000,
+        unitCost: 4000,
+      },
+      {
+        serviceId: gutters.id,
+        name: gutters.name,
+        unitPrice: 5000,
+        unitCost: 2000,
+      },
     ],
   });
   const invoice = await createInvoice(target, {
@@ -258,9 +278,16 @@ describe("finance summary", () => {
     const { customer, job, invoice } = await seedJobInvoice(owner, 15000);
     await addPayment(owner, invoice.id, 10000);
     await addPayment(owner, invoice.id, -2000, { method: "ADJUSTMENT" });
-    await createExpense(owner, { amount: 1500, category: "SUPPLIES", jobId: job.id });
+    await createExpense(owner, {
+      amount: 1500,
+      category: "SUPPLIES",
+      jobId: job.id,
+    });
 
-    const summary = await getSummary(owner, `?from=${dayOffset(-10)}&to=${dayOffset(0)}`);
+    const summary = await getSummary(
+      owner,
+      `?from=${dayOffset(-10)}&to=${dayOffset(0)}`,
+    );
 
     expect(summary.currency).toBe("USD");
     expect(summary.range.from).toBeTruthy();
@@ -279,7 +306,9 @@ describe("finance summary", () => {
     expect(summary.grossProfit).toBe(8000 - 3200 - 1500);
     expect(summary.grossMarginPct).toBe(41.3);
 
-    const windows = summary.serviceMargins.find((row) => row.category === "Windows");
+    const windows = summary.serviceMargins.find(
+      (row) => row.category === "Windows",
+    );
     expect(windows).toMatchObject({
       revenue: 5334,
       cost: 2134,
@@ -287,7 +316,9 @@ describe("finance summary", () => {
       marginPct: 60,
       jobs: 1,
     });
-    const gutters = summary.serviceMargins.find((row) => row.category === "Gutters");
+    const gutters = summary.serviceMargins.find(
+      (row) => row.category === "Gutters",
+    );
     expect(gutters).toMatchObject({
       revenue: 2666,
       cost: 1066,
@@ -296,9 +327,21 @@ describe("finance summary", () => {
       jobs: 1,
     });
 
-    expect(summary.expensesByCategory).toEqual([{ category: "SUPPLIES", amount: 1500 }]);
+    expect(summary.expensesByCategory).toEqual([
+      { category: "SUPPLIES", amount: 1500 },
+    ]);
     expect(summary.technicianRevenue).toEqual([
-      { user: { id: owner.userId, name: "Test Owner", email: owner.email, avatarUrl: null }, jobs: 1, revenue: 8000, margin: 4800 },
+      {
+        user: {
+          id: owner.userId,
+          name: "Test Owner",
+          email: owner.email,
+          avatarUrl: null,
+        },
+        jobs: 1,
+        revenue: 8000,
+        margin: 4800,
+      },
     ]);
     expect(summary.topCustomers).toEqual([
       {
@@ -314,8 +357,15 @@ describe("finance summary", () => {
       },
     ]);
 
-    const currentMonth = summary.monthly.find((row) => row.month === monthKey());
-    expect(currentMonth).toEqual({ month: monthKey(), revenue: 8000, expenses: 1500, profit: 3300 });
+    const currentMonth = summary.monthly.find(
+      (row) => row.month === monthKey(),
+    );
+    expect(currentMonth).toEqual({
+      month: monthKey(),
+      revenue: 8000,
+      expenses: 1500,
+      profit: 3300,
+    });
     expect(summary.monthly).toHaveLength(6);
 
     const paymentsResponse = await app.inject({
@@ -326,10 +376,22 @@ describe("finance summary", () => {
     expect(paymentsResponse.statusCode).toBe(200);
     const paymentsBody = paymentsResponse.json() as {
       data: Payment[];
-      meta: { total: number; page: number; pageSize: number; totalPages: number };
+      meta: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+      };
     };
-    expect(paymentsBody.meta).toEqual({ total: 2, page: 1, pageSize: 10, totalPages: 1 });
-    expect(paymentsBody.data.map((row) => row.amount).sort((a, b) => a - b)).toEqual([-2000, 10000]);
+    expect(paymentsBody.meta).toEqual({
+      total: 2,
+      page: 1,
+      pageSize: 10,
+      totalPages: 1,
+    });
+    expect(
+      paymentsBody.data.map((row) => row.amount).sort((a, b) => a - b),
+    ).toEqual([-2000, 10000]);
 
     const received = paymentsBody.data.find((row) => row.amount === 10000);
     expect(received).toMatchObject({
@@ -376,7 +438,11 @@ describe("finance summary", () => {
     expect(summary.outstanding).toBe(1500);
     expect(summary.overdueAmount).toBe(0);
     expect(summary.serviceMargins).toEqual([]);
-    expect(summary.topCustomers[0]).toMatchObject({ revenue: 3500, jobs: 1, balance: 1500 });
+    expect(summary.topCustomers[0]).toMatchObject({
+      revenue: 3500,
+      jobs: 1,
+      balance: 1500,
+    });
 
     const empty = await getSummary(owner, "?from=2020-01-01&to=2020-01-10");
     expect(empty.revenue).toBe(0);
@@ -384,7 +450,9 @@ describe("finance summary", () => {
     expect(empty.averageTicket).toBe(0);
     expect(empty.grossProfit).toBe(0);
     expect(empty.grossMarginPct).toBeNull();
-    expect(empty.monthly.every((row) => row.revenue === 0 && row.expenses === 0)).toBe(true);
+    expect(
+      empty.monthly.every((row) => row.revenue === 0 && row.expenses === 0),
+    ).toBe(true);
   });
 
   it("keeps tenant data isolated", async () => {
@@ -395,7 +463,9 @@ describe("finance summary", () => {
     const ownerExpenseBody = ownerExpense.json() as { id: string };
     const expenseId = ownerExpenseBody.id;
 
-    const other = await registerAccount(app, { email: `other-${crypto.randomUUID()}@example.com` });
+    const other = await registerAccount(app, {
+      email: `other-${crypto.randomUUID()}@example.com`,
+    });
 
     const otherSummary = await getSummary(other);
     expect(otherSummary.revenue).toBe(0);
@@ -498,7 +568,12 @@ describe("finance expenses", () => {
       category: string;
       amount: number;
     };
-    expect(expense).toMatchObject({ jobId: job.id, jobNumber: job.number, category: "FUEL", amount: 4200 });
+    expect(expense).toMatchObject({
+      jobId: job.id,
+      jobNumber: job.number,
+      category: "FUEL",
+      amount: 4200,
+    });
     expect(expense.user.id).toBe(owner.userId);
 
     const memberPatch = await app.inject({
@@ -523,7 +598,11 @@ describe("finance expenses", () => {
       payload: { amount: 5000, category: "OTHER", vendor: null },
     });
     expect(updated.statusCode).toBe(200);
-    expect(updated.json()).toMatchObject({ amount: 5000, category: "OTHER", vendor: null });
+    expect(updated.json()).toMatchObject({
+      amount: 5000,
+      category: "OTHER",
+      vendor: null,
+    });
 
     const audits = await prisma.auditLog.findMany({
       where: { workspaceId: owner.workspaceId, entityType: "expense" },
@@ -541,7 +620,9 @@ describe("finance expenses", () => {
     });
     expect(removed.statusCode).toBe(204);
 
-    const remaining = await prisma.expense.count({ where: { workspaceId: owner.workspaceId } });
+    const remaining = await prisma.expense.count({
+      where: { workspaceId: owner.workspaceId },
+    });
     expect(remaining).toBe(0);
     const deleteAudit = await prisma.auditLog.findFirst({
       where: { workspaceId: owner.workspaceId, action: "expense.deleted" },
@@ -552,7 +633,9 @@ describe("finance expenses", () => {
   it("validates references and paginates filtered expenses", async () => {
     const { job } = await seedJobInvoice(owner, 15000);
 
-    const other = await registerAccount(app, { email: `foreign-${crypto.randomUUID()}@example.com` });
+    const other = await registerAccount(app, {
+      email: `foreign-${crypto.randomUUID()}@example.com`,
+    });
     const foreignCustomer = await createCustomer(other, "Foreign Client");
     const foreignLocation = await createLocation(other, foreignCustomer.id);
     const foreignJob = await createJob(other, {
@@ -561,10 +644,14 @@ describe("finance expenses", () => {
       locationId: foreignLocation.id,
     });
 
-    const foreignJobExpense = await createExpense(owner, { jobId: foreignJob.id });
+    const foreignJobExpense = await createExpense(owner, {
+      jobId: foreignJob.id,
+    });
     expect(foreignJobExpense.statusCode).toBe(404);
 
-    const foreignUserExpense = await createExpense(owner, { userId: other.userId });
+    const foreignUserExpense = await createExpense(owner, {
+      userId: other.userId,
+    });
     expect(foreignUserExpense.statusCode).toBe(400);
 
     for (const description of ["Van wrap", "Flyers", "Gloves"]) {
@@ -591,9 +678,19 @@ describe("finance expenses", () => {
     expect(filtered.statusCode).toBe(200);
     const body = filtered.json() as {
       data: Array<{ category: string; amount: number }>;
-      meta: { total: number; page: number; pageSize: number; totalPages: number };
+      meta: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+      };
     };
-    expect(body.meta).toEqual({ total: 3, page: 1, pageSize: 2, totalPages: 2 });
+    expect(body.meta).toEqual({
+      total: 3,
+      page: 1,
+      pageSize: 2,
+      totalPages: 2,
+    });
     expect(body.data).toHaveLength(2);
     expect(body.data.every((row) => row.category === "MARKETING")).toBe(true);
 

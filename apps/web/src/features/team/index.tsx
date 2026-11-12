@@ -86,7 +86,11 @@ function formatMinutes(total: number): string {
   return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 }
 
-function compareMembers(a: PerformanceMember, b: PerformanceMember, sort: SortState): number {
+function compareMembers(
+  a: PerformanceMember,
+  b: PerformanceMember,
+  sort: SortState,
+): number {
   const direction = sort.dir === "asc" ? 1 : -1;
 
   switch (sort.key) {
@@ -268,7 +272,8 @@ export default function TeamPage() {
   const workload = workloadQuery.data;
   const workloadMembers = workload?.members ?? EMPTY_WORKLOAD_MEMBERS;
   const hasActivity =
-    topPerformer !== null && (topPerformer.revenue > 0 || topPerformer.jobsCompleted > 0);
+    topPerformer !== null &&
+    (topPerformer.revenue > 0 || topPerformer.jobsCompleted > 0);
 
   function toggleSort(key: SortKey) {
     setSort((current) => {
@@ -290,7 +295,10 @@ export default function TeamPage() {
       <Card className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           ariaLabel="Performance range"
-          items={RANGE_TABS.map((item) => ({ value: item.value, label: item.label }))}
+          items={RANGE_TABS.map((item) => ({
+            value: item.value,
+            label: item.label,
+          }))}
           value={String(days)}
           onChange={(value) => setDays(value === "90" ? 90 : 30)}
           className="border-0"
@@ -310,7 +318,9 @@ export default function TeamPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load team performance.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load team performance.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(performanceQuery.error)}
             </p>
@@ -372,12 +382,17 @@ export default function TeamPage() {
                         Top performer
                       </Badge>
                       <span className="text-xs text-muted">
-                        {topPerformer.revenue > 0 ? "Highest revenue" : "Most completed jobs"}
+                        {topPerformer.revenue > 0
+                          ? "Highest revenue"
+                          : "Most completed jobs"}
                       </span>
                     </div>
-                    <p className="mt-1.5 truncate text-lg text-fg">{topPerformer.user.name}</p>
+                    <p className="mt-1.5 truncate text-lg text-fg">
+                      {topPerformer.user.name}
+                    </p>
                     <p className="truncate text-xs text-muted">
-                      {ROLE_LABEL[topPerformer.role]} · {topPerformer.user.email}
+                      {ROLE_LABEL[topPerformer.role]} ·{" "}
+                      {topPerformer.user.email}
                     </p>
                   </div>
                 </div>
@@ -391,7 +406,9 @@ export default function TeamPage() {
                   </div>
                   <div>
                     <dt className="label-micro">Completed</dt>
-                    <dd className="num mt-0.5 text-sm text-fg">{topPerformer.jobsCompleted}</dd>
+                    <dd className="num mt-0.5 text-sm text-fg">
+                      {topPerformer.jobsCompleted}
+                    </dd>
                   </div>
                   <div>
                     <dt className="label-micro">Avg ticket</dt>
@@ -417,9 +434,12 @@ export default function TeamPage() {
                 <Users />
               </span>
               <div>
-                <p className="text-sm font-medium text-fg">No completed work in this period.</p>
+                <p className="text-sm font-medium text-fg">
+                  No completed work in this period.
+                </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-muted">
-                  Completed jobs and revenue will highlight your top performer here.
+                  Completed jobs and revenue will highlight your top performer
+                  here.
                 </p>
               </div>
             </Card>
@@ -438,19 +458,25 @@ export default function TeamPage() {
                 </CardDescription>
               </div>
               <Badge tone="neutral">
-                {workloadMembers.length} {workloadMembers.length === 1 ? "member" : "members"}
+                {workloadMembers.length}{" "}
+                {workloadMembers.length === 1 ? "member" : "members"}
               </Badge>
             </CardHeader>
             <CardContent>
               {workloadQuery.isPending ? (
                 <div className="-mx-1 flex gap-3 overflow-hidden">
                   {[0, 1, 2].map((item) => (
-                    <Skeleton key={item} className="h-36 min-w-[230px] flex-1" />
+                    <Skeleton
+                      key={item}
+                      className="h-36 min-w-[230px] flex-1"
+                    />
                   ))}
                 </div>
               ) : workloadQuery.isError ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <p className="text-sm font-medium text-fg">Could not load today&apos;s workload.</p>
+                  <p className="text-sm font-medium text-fg">
+                    Could not load today&apos;s workload.
+                  </p>
                   <p className="mt-1 text-xs text-muted">
                     {apiErrorMessage(workloadQuery.error)}
                   </p>
@@ -464,7 +490,9 @@ export default function TeamPage() {
                   </Button>
                 </div>
               ) : workloadMembers.length === 0 ? (
-                <p className="py-4 text-sm text-muted">No team members to schedule.</p>
+                <p className="py-4 text-sm text-muted">
+                  No team members to schedule.
+                </p>
               ) : (
                 <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
                   {workloadMembers.map((member) => (
@@ -479,9 +507,12 @@ export default function TeamPage() {
                           size="sm"
                         />
                         <div className="min-w-0">
-                          <p className="truncate text-sm text-fg">{member.user.name}</p>
+                          <p className="truncate text-sm text-fg">
+                            {member.user.name}
+                          </p>
                           <p className="text-[11px] text-muted">
-                            {member.jobCount} {member.jobCount === 1 ? "job" : "jobs"} ·{" "}
+                            {member.jobCount}{" "}
+                            {member.jobCount === 1 ? "job" : "jobs"} ·{" "}
                             {formatMinutes(member.scheduledMinutes)}
                           </p>
                         </div>
@@ -492,9 +523,17 @@ export default function TeamPage() {
                         className="mt-3"
                       />
                       <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
-                        <CalendarClock className="size-3.5" aria-hidden="true" />
+                        <CalendarClock
+                          className="size-3.5"
+                          aria-hidden="true"
+                        />
                         {member.nextStart ? (
-                          <span title={formatDate(member.nextStart, "MMM d, yyyy · h:mm a")}>
+                          <span
+                            title={formatDate(
+                              member.nextStart,
+                              "MMM d, yyyy · h:mm a",
+                            )}
+                          >
                             Next at {formatDate(member.nextStart, "h:mm a")}
                           </span>
                         ) : member.jobCount > 0 ? (
@@ -515,7 +554,8 @@ export default function TeamPage() {
               <div>
                 <CardTitle>Performance</CardTitle>
                 <CardDescription className="mt-1">
-                  Sort any column. Utilization compares scheduled time against capacity.
+                  Sort any column. Utilization compares scheduled time against
+                  capacity.
                 </CardDescription>
               </div>
               <Badge tone="neutral">
@@ -537,8 +577,18 @@ export default function TeamPage() {
                   <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
                     <thead>
                       <tr className="border-y border-border">
-                        <SortHeader label="Member" sortKey="member" sort={sort} onSort={toggleSort} />
-                        <SortHeader label="Role" sortKey="role" sort={sort} onSort={toggleSort} />
+                        <SortHeader
+                          label="Member"
+                          sortKey="member"
+                          sort={sort}
+                          onSort={toggleSort}
+                        />
+                        <SortHeader
+                          label="Role"
+                          sortKey="role"
+                          sort={sort}
+                          onSort={toggleSort}
+                        />
                         <SortHeader
                           label="Completed"
                           sortKey="jobsCompleted"
@@ -602,7 +652,9 @@ export default function TeamPage() {
                                 size="sm"
                               />
                               <div className="min-w-0">
-                                <p className="truncate text-fg">{member.user.name}</p>
+                                <p className="truncate text-fg">
+                                  {member.user.name}
+                                </p>
                                 <p className="max-w-[200px] truncate text-xs text-muted">
                                   {member.user.email}
                                 </p>
@@ -610,13 +662,18 @@ export default function TeamPage() {
                             </div>
                           </td>
                           <td className="px-3 py-3">
-                            <Badge tone={member.role === "MEMBER" ? "neutral" : "accent"}>
+                            <Badge
+                              tone={
+                                member.role === "MEMBER" ? "neutral" : "accent"
+                              }
+                            >
                               {ROLE_LABEL[member.role]}
                             </Badge>
                           </td>
                           <td className="num px-3 py-3 text-right text-fg">
                             {member.jobsCompleted}
-                            {member.jobsScheduled > 0 && member.jobsCompleted === 0 ? (
+                            {member.jobsScheduled > 0 &&
+                            member.jobsCompleted === 0 ? (
                               <p className="text-[11px] font-normal text-muted">
                                 {member.jobsScheduled} scheduled
                               </p>
@@ -660,18 +717,25 @@ export default function TeamPage() {
                             size="sm"
                           />
                           <div className="min-w-0">
-                            <p className="truncate text-sm text-fg">{member.user.name}</p>
-                            <p className="truncate text-xs text-muted">{member.user.email}</p>
+                            <p className="truncate text-sm text-fg">
+                              {member.user.name}
+                            </p>
+                            <p className="truncate text-xs text-muted">
+                              {member.user.email}
+                            </p>
                           </div>
                         </div>
-                        <Badge tone={member.role === "MEMBER" ? "neutral" : "accent"}>
+                        <Badge
+                          tone={member.role === "MEMBER" ? "neutral" : "accent"}
+                        >
                           {ROLE_LABEL[member.role]}
                         </Badge>
                       </div>
 
                       <div className="mt-3 flex items-center justify-between gap-3 text-xs">
                         <span className="text-muted">
-                          {member.jobsCompleted} completed · {member.openJobs} open
+                          {member.jobsCompleted} completed · {member.openJobs}{" "}
+                          open
                         </span>
                         <Rating member={member} />
                       </div>
@@ -724,7 +788,11 @@ export default function TeamPage() {
 
 function PerformanceSkeleton() {
   return (
-    <div className="space-y-5" role="status" aria-label="Loading team performance">
+    <div
+      className="space-y-5"
+      role="status"
+      aria-label="Loading team performance"
+    >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[0, 1, 2, 3].map((item) => (
           <Skeleton key={item} className="h-28" />

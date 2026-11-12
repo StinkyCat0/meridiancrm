@@ -27,7 +27,11 @@ import { apiErrorMessage } from "../companies/lib";
 
 type Customer = CommunicationThread["customer"];
 
-const COMPOSER_CHANNELS: readonly CommunicationChannel[] = ["SMS", "EMAIL", "CALL"];
+const COMPOSER_CHANNELS: readonly CommunicationChannel[] = [
+  "SMS",
+  "EMAIL",
+  "CALL",
+];
 
 interface ComposerProps {
   customer: Customer;
@@ -106,7 +110,8 @@ export function Composer({ customer, className }: ComposerProps) {
   });
 
   const createMutation = useMutation({
-    mutationFn: (input: CreateCommunicationInput) => api.communications.create(input),
+    mutationFn: (input: CreateCommunicationInput) =>
+      api.communications.create(input),
     onSuccess: (_created, input) => {
       toast.success(
         input.channel === "CALL"
@@ -114,7 +119,9 @@ export function Composer({ customer, className }: ComposerProps) {
           : "Message logged in the inbox. No carrier is connected, so nothing was delivered.",
       );
       resetForm();
-      void queryClient.invalidateQueries({ queryKey: queryKeys.communications.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.communications.all,
+      });
       void queryClient.invalidateQueries({
         queryKey: queryKeys.companies.timeline(customer.id),
       });
@@ -128,7 +135,8 @@ export function Composer({ customer, className }: ComposerProps) {
     const nextErrors: FormErrors = {};
     if (isCall) {
       if (!notes.trim() && !duration.trim()) {
-        nextErrors.body = "Add how long the call lasted or a short note about it.";
+        nextErrors.body =
+          "Add how long the call lasted or a short note about it.";
       } else if (duration.trim()) {
         const minutes = Number(duration);
         if (!Number.isFinite(minutes) || minutes < 0 || minutes > 1440) {
@@ -146,14 +154,19 @@ export function Composer({ customer, className }: ComposerProps) {
       return;
     }
 
-    const messageBody = (isCall ? callBody(duration, notes) : body.trim()).slice(0, 5000);
+    const messageBody = (
+      isCall ? callBody(duration, notes) : body.trim()
+    ).slice(0, 5000);
     const input: CreateCommunicationInput = {
       channel,
       direction: "OUTBOUND",
       // There is no delivery provider: texts and emails are simply logged.
       status: isCall ? callOutcome : "LOGGED",
       intent,
-      subject: !isCall && channel === "EMAIL" && subject.trim() ? subject.trim() : null,
+      subject:
+        !isCall && channel === "EMAIL" && subject.trim()
+          ? subject.trim()
+          : null,
       body: messageBody,
       customerId: customer.id,
       occurredAt: new Date().toISOString(),
@@ -167,7 +180,10 @@ export function Composer({ customer, className }: ComposerProps) {
 
   return (
     <section
-      className={cn("border-t border-border bg-surface/60 p-4 sm:p-5", className)}
+      className={cn(
+        "border-t border-border bg-surface/60 p-4 sm:p-5",
+        className,
+      )}
       aria-label={`Log a message for ${customer.name}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -195,11 +211,15 @@ export function Composer({ customer, className }: ComposerProps) {
             <Select
               id={`${uid}-channel`}
               value={channel}
-              onChange={(event) => handleChannelChange(event.target.value as CommunicationChannel)}
+              onChange={(event) =>
+                handleChannelChange(event.target.value as CommunicationChannel)
+              }
             >
               {COMPOSER_CHANNELS.map((option) => (
                 <option key={option} value={option}>
-                  {option === "CALL" ? "Call log" : COMMUNICATION_CHANNEL_META[option].label}
+                  {option === "CALL"
+                    ? "Call log"
+                    : COMMUNICATION_CHANNEL_META[option].label}
                 </option>
               ))}
             </Select>
@@ -209,7 +229,9 @@ export function Composer({ customer, className }: ComposerProps) {
             <Select
               id={`${uid}-intent`}
               value={intent}
-              onChange={(event) => setIntent(event.target.value as CommunicationIntent)}
+              onChange={(event) =>
+                setIntent(event.target.value as CommunicationIntent)
+              }
             >
               {COMMUNICATION_INTENTS.map((option) => (
                 <option key={option} value={option}>
@@ -227,7 +249,9 @@ export function Composer({ customer, className }: ComposerProps) {
                 <Select
                   id={`${uid}-outcome`}
                   value={callOutcome}
-                  onChange={(event) => setCallOutcome(event.target.value as CallOutcome)}
+                  onChange={(event) =>
+                    setCallOutcome(event.target.value as CallOutcome)
+                  }
                 >
                   <option value="RECEIVED">Received / connected</option>
                   <option value="MISSED">Missed</option>
@@ -276,7 +300,11 @@ export function Composer({ customer, className }: ComposerProps) {
         ) : (
           <>
             {channel === "EMAIL" ? (
-              <Field label="Subject" htmlFor={`${uid}-subject`} error={errors.subject}>
+              <Field
+                label="Subject"
+                htmlFor={`${uid}-subject`}
+                error={errors.subject}
+              >
                 <Input
                   id={`${uid}-subject`}
                   maxLength={200}
@@ -323,7 +351,8 @@ export function Composer({ customer, className }: ComposerProps) {
               </span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted">
-              <span className="font-medium text-fg">Why this draft:</span> {draft.rationale}
+              <span className="font-medium text-fg">Why this draft:</span>{" "}
+              {draft.rationale}
             </p>
           </div>
         ) : null}
@@ -338,7 +367,10 @@ export function Composer({ customer, className }: ComposerProps) {
                 onClick={() => draftMutation.mutate()}
               >
                 {draftMutation.isPending ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <Sparkles className="size-3.5" aria-hidden="true" />
                 )}
@@ -354,20 +386,34 @@ export function Composer({ customer, className }: ComposerProps) {
 
           <div className="flex items-center gap-2">
             {draft || body || subject || notes || duration ? (
-              <Button variant="ghost" size="sm" disabled={busy} onClick={resetForm}>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={resetForm}
+              >
                 Clear
               </Button>
             ) : null}
-            <Button variant="primary" size="sm" type="submit" loading={createMutation.isPending}>
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              loading={createMutation.isPending}
+            >
               <Send className="size-3.5" aria-hidden="true" />
-              {isCall ? "Log call" : channel === "SMS" ? "Log text" : "Log email"}
+              {isCall
+                ? "Log call"
+                : channel === "SMS"
+                  ? "Log text"
+                  : "Log email"}
             </Button>
           </div>
         </div>
 
         <p className="text-[11px] leading-relaxed text-muted">
-          Nothing is sent to the customer. This records the interaction for your team and the
-          customer timeline.
+          Nothing is sent to the customer. This records the interaction for your
+          team and the customer timeline.
         </p>
       </form>
     </section>

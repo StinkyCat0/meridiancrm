@@ -71,11 +71,36 @@ const SEVERITY_META: Record<
 };
 
 const HEALTH_ITEMS = [
-  { key: "churnRiskCustomers", label: "Churn risk customers", icon: Users, money: false },
-  { key: "noShowRiskJobs", label: "No-show risk jobs", icon: Clock, money: false },
-  { key: "overdueAmount", label: "Overdue balance", icon: Receipt, money: true },
-  { key: "unassignedToday", label: "Unassigned today", icon: Users, money: false },
-  { key: "unbilledJobs", label: "Unbilled jobs", icon: FileWarning, money: false },
+  {
+    key: "churnRiskCustomers",
+    label: "Churn risk customers",
+    icon: Users,
+    money: false,
+  },
+  {
+    key: "noShowRiskJobs",
+    label: "No-show risk jobs",
+    icon: Clock,
+    money: false,
+  },
+  {
+    key: "overdueAmount",
+    label: "Overdue balance",
+    icon: Receipt,
+    money: true,
+  },
+  {
+    key: "unassignedToday",
+    label: "Unassigned today",
+    icon: Users,
+    money: false,
+  },
+  {
+    key: "unbilledJobs",
+    label: "Unbilled jobs",
+    icon: FileWarning,
+    money: false,
+  },
   { key: "staleQuotes", label: "Stale quotes", icon: Gauge, money: false },
 ] as const satisfies ReadonlyArray<{
   key: keyof IntelligenceSummary["health"];
@@ -84,13 +109,27 @@ const HEALTH_ITEMS = [
   money: boolean;
 }>;
 
-function ConfidenceBadge({ confidence }: { confidence: "low" | "medium" | "high" }) {
+function ConfidenceBadge({
+  confidence,
+}: {
+  confidence: "low" | "medium" | "high";
+}) {
   const tone: BadgeTone =
-    confidence === "high" ? "success" : confidence === "medium" ? "warning" : "neutral";
+    confidence === "high"
+      ? "success"
+      : confidence === "medium"
+        ? "warning"
+        : "neutral";
   return <Badge tone={tone}>{confidence} confidence</Badge>;
 }
 
-function ForecastCard({ summary, currency }: { summary: IntelligenceSummary; currency: string }) {
+function ForecastCard({
+  summary,
+  currency,
+}: {
+  summary: IntelligenceSummary;
+  currency: string;
+}) {
   const { forecast } = summary;
   return (
     <Card className="min-w-0">
@@ -111,7 +150,9 @@ function ForecastCard({ summary, currency }: { summary: IntelligenceSummary; cur
           <p className="num text-3xl font-light tracking-tight text-fg">
             {formatMoney(forecast.next30Days, currency)}
           </p>
-          <p className="mt-1 text-xs text-muted">Projected revenue, next 30 days</p>
+          <p className="mt-1 text-xs text-muted">
+            Projected revenue, next 30 days
+          </p>
         </div>
         <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {[
@@ -119,7 +160,10 @@ function ForecastCard({ summary, currency }: { summary: IntelligenceSummary; cur
             { label: "Pipeline weighted", value: forecast.pipelineWeighted },
             { label: "Recurring", value: forecast.recurring },
           ].map((item) => (
-            <div key={item.label} className="rounded-input border border-border bg-surface-2/50 p-3">
+            <div
+              key={item.label}
+              className="rounded-input border border-border bg-surface-2/50 p-3"
+            >
               <dt className="label-micro">{item.label}</dt>
               <dd className="num mt-1 text-sm text-fg">
                 {formatMoney(item.value, currency)}
@@ -134,8 +178,14 @@ function ForecastCard({ summary, currency }: { summary: IntelligenceSummary; cur
           ) : (
             <ul className="space-y-1.5">
               {forecast.assumptions.map((assumption, index) => (
-                <li key={index} className="flex items-start gap-2 text-xs leading-relaxed text-muted">
-                  <span className="mt-1.5 size-1 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                <li
+                  key={index}
+                  className="flex items-start gap-2 text-xs leading-relaxed text-muted"
+                >
+                  <span
+                    className="mt-1.5 size-1 shrink-0 rounded-full bg-accent"
+                    aria-hidden="true"
+                  />
                   {assumption}
                 </li>
               ))}
@@ -147,7 +197,13 @@ function ForecastCard({ summary, currency }: { summary: IntelligenceSummary; cur
   );
 }
 
-function HealthStrip({ summary, currency }: { summary: IntelligenceSummary; currency: string }) {
+function HealthStrip({
+  summary,
+  currency,
+}: {
+  summary: IntelligenceSummary;
+  currency: string;
+}) {
   return (
     <Card className="p-3">
       <div className="flex items-center justify-between gap-2 px-2 pb-2">
@@ -165,12 +221,16 @@ function HealthStrip({ summary, currency }: { summary: IntelligenceSummary; curr
               key={item.key}
               className={cn(
                 "rounded-input border p-3",
-                alerting ? "border-warning/25 bg-warning/5" : "border-border bg-surface-2/40",
+                alerting
+                  ? "border-warning/25 bg-warning/5"
+                  : "border-border bg-surface-2/40",
               )}
             >
               <div className="flex items-center gap-1.5 text-muted">
                 <Icon className="size-3.5" aria-hidden="true" />
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em]">{item.label}</p>
+                <p className="text-[10px] font-medium uppercase tracking-[0.12em]">
+                  {item.label}
+                </p>
               </div>
               <p
                 className={cn(
@@ -188,7 +248,13 @@ function HealthStrip({ summary, currency }: { summary: IntelligenceSummary; curr
   );
 }
 
-function BriefCard({ brief, error }: { brief: AssistantBrief | undefined; error: unknown }) {
+function BriefCard({
+  brief,
+  error,
+}: {
+  brief: AssistantBrief | undefined;
+  error: unknown;
+}) {
   return (
     <Card className="min-w-0">
       <CardHeader className="pb-3">
@@ -204,7 +270,9 @@ function BriefCard({ brief, error }: { brief: AssistantBrief | undefined; error:
       </CardHeader>
       <CardContent>
         {error ? (
-          <p className="text-sm text-muted">The brief is unavailable right now.</p>
+          <p className="text-sm text-muted">
+            The brief is unavailable right now.
+          </p>
         ) : !brief ? (
           <div className="space-y-2" role="status" aria-label="Loading brief">
             <Skeleton className="h-5 w-3/4" />
@@ -215,7 +283,9 @@ function BriefCard({ brief, error }: { brief: AssistantBrief | undefined; error:
           <div className="space-y-3">
             <p className="text-sm font-medium text-fg">{brief.headline}</p>
             {brief.summary ? (
-              <p className="text-sm leading-relaxed text-muted">{brief.summary}</p>
+              <p className="text-sm leading-relaxed text-muted">
+                {brief.summary}
+              </p>
             ) : null}
             {brief.bullets.length > 0 ? (
               <ul className="space-y-1.5">
@@ -224,7 +294,10 @@ function BriefCard({ brief, error }: { brief: AssistantBrief | undefined; error:
                     key={index}
                     className="flex items-start gap-2 text-xs leading-relaxed text-fg/80"
                   >
-                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-accent-2" aria-hidden="true" />
+                    <span
+                      className="mt-1.5 size-1 shrink-0 rounded-full bg-accent-2"
+                      aria-hidden="true"
+                    />
                     {bullet}
                   </li>
                 ))}
@@ -258,8 +331,12 @@ function RecommendationCard({
               </span>
             ) : null}
           </div>
-          <p className="mt-2 text-sm font-medium text-fg">{recommendation.title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted">{recommendation.detail}</p>
+          <p className="mt-2 text-sm font-medium text-fg">
+            {recommendation.title}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            {recommendation.detail}
+          </p>
         </div>
         <span className="shrink-0 text-[10px] text-muted">
           {relativeTime(recommendation.createdAt)}
@@ -273,13 +350,19 @@ function RecommendationCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
         {recommendation.customer ? (
-          <span className="text-xs text-muted">{recommendation.customer.name}</span>
+          <span className="text-xs text-muted">
+            {recommendation.customer.name}
+          </span>
         ) : null}
         {recommendation.jobNumber ? (
-          <span className="text-xs text-muted">Job {recommendation.jobNumber}</span>
+          <span className="text-xs text-muted">
+            Job {recommendation.jobNumber}
+          </span>
         ) : null}
         {recommendation.serviceName ? (
-          <span className="text-xs text-muted">{recommendation.serviceName}</span>
+          <span className="text-xs text-muted">
+            {recommendation.serviceName}
+          </span>
         ) : null}
         <Link
           to={recommendation.href}
@@ -298,7 +381,9 @@ export default function IntelligencePage() {
   const currency = workspace?.currency ?? "USD";
 
   const [kind, setKind] = useState<RecommendationKind | "ALL">("ALL");
-  const [severity, setSeverity] = useState<RecommendationSeverity | "ALL">("ALL");
+  const [severity, setSeverity] = useState<RecommendationSeverity | "ALL">(
+    "ALL",
+  );
 
   const summaryQuery = useQuery({
     queryKey: queryKeys.intelligence.summary,
@@ -332,7 +417,9 @@ export default function IntelligencePage() {
     return ordered
       .map((value) => ({
         severity: value,
-        items: filtered.filter((recommendation) => recommendation.severity === value),
+        items: filtered.filter(
+          (recommendation) => recommendation.severity === value,
+        ),
       }))
       .filter((group) => group.items.length > 0);
   }, [filtered]);
@@ -354,7 +441,12 @@ export default function IntelligencePage() {
               <Cpu className="size-3" aria-hidden="true" />
               Local engine
             </Badge>
-            <Button variant="secondary" size="sm" onClick={refreshAll} loading={refreshing}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={refreshAll}
+              loading={refreshing}
+            >
               <RefreshCw className="size-4" aria-hidden="true" />
               Refresh
             </Button>
@@ -363,7 +455,11 @@ export default function IntelligencePage() {
       />
 
       {summaryQuery.isPending ? (
-        <div className="space-y-3" role="status" aria-label="Loading intelligence">
+        <div
+          className="space-y-3"
+          role="status"
+          aria-label="Loading intelligence"
+        >
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
@@ -374,10 +470,17 @@ export default function IntelligencePage() {
       ) : summaryQuery.isError ? (
         <Card className="p-6" role="alert">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 size-5 text-danger" aria-hidden="true" />
+            <AlertTriangle
+              className="mt-0.5 size-5 text-danger"
+              aria-hidden="true"
+            />
             <div>
-              <p className="text-sm font-medium text-fg">Could not load intelligence signals</p>
-              <p className="mt-1 text-sm text-muted">{apiErrorMessage(summaryQuery.error)}</p>
+              <p className="text-sm font-medium text-fg">
+                Could not load intelligence signals
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                {apiErrorMessage(summaryQuery.error)}
+              </p>
               <Button className="mt-4" size="sm" onClick={refreshAll}>
                 Try again
               </Button>
@@ -396,7 +499,10 @@ export default function IntelligencePage() {
               <CardHeader className="pb-3">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <ShieldAlert className="size-4 text-warning" aria-hidden="true" />
+                    <ShieldAlert
+                      className="size-4 text-warning"
+                      aria-hidden="true"
+                    />
                     Recommendation mix
                   </CardTitle>
                   <CardDescription className="mt-1">
@@ -406,11 +512,20 @@ export default function IntelligencePage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {summary.recommendations.length === 0 ? (
-                  <p className="text-sm text-muted">Nothing flagged right now.</p>
+                  <p className="text-sm text-muted">
+                    Nothing flagged right now.
+                  </p>
                 ) : (
-                  RECOMMENDATION_KINDS.filter((value) => summary.counts[value] > 0).map((value) => {
+                  RECOMMENDATION_KINDS.filter(
+                    (value) => summary.counts[value] > 0,
+                  ).map((value) => {
                     const count = summary.counts[value];
-                    const max = Math.max(...RECOMMENDATION_KINDS.map((item) => summary.counts[item]), 1);
+                    const max = Math.max(
+                      ...RECOMMENDATION_KINDS.map(
+                        (item) => summary.counts[item],
+                      ),
+                      1,
+                    );
                     return (
                       <div key={value} className="flex items-center gap-2">
                         <span className="w-32 shrink-0 truncate text-xs text-muted">
@@ -419,16 +534,21 @@ export default function IntelligencePage() {
                         <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
                           <span
                             className="block h-full rounded-full bg-accent/70"
-                            style={{ width: `${Math.round((count / max) * 100)}%` }}
+                            style={{
+                              width: `${Math.round((count / max) * 100)}%`,
+                            }}
                           />
                         </span>
-                        <span className="num w-6 text-right text-xs text-fg">{count}</span>
+                        <span className="num w-6 text-right text-xs text-fg">
+                          {count}
+                        </span>
                       </div>
                     );
                   })
                 )}
                 <p className="pt-2 text-[10px] leading-relaxed text-muted">
-                  Generated by a local, explainable rules engine — no external model.
+                  Generated by a local, explainable rules engine — no external
+                  model.
                 </p>
               </CardContent>
             </Card>
@@ -447,7 +567,9 @@ export default function IntelligencePage() {
               <Field label="Kind" className="min-w-[180px]">
                 <Select
                   value={kind}
-                  onChange={(event) => setKind(event.target.value as RecommendationKind | "ALL")}
+                  onChange={(event) =>
+                    setKind(event.target.value as RecommendationKind | "ALL")
+                  }
                 >
                   <option value="ALL">All kinds</option>
                   {RECOMMENDATION_KINDS.map((value) => (
@@ -461,7 +583,9 @@ export default function IntelligencePage() {
                 <Select
                   value={severity}
                   onChange={(event) =>
-                    setSeverity(event.target.value as RecommendationSeverity | "ALL")
+                    setSeverity(
+                      event.target.value as RecommendationSeverity | "ALL",
+                    )
                   }
                 >
                   <option value="ALL">All severities</option>
@@ -517,7 +641,8 @@ export default function IntelligencePage() {
                       {SEVERITY_META[group.severity].label}
                     </Badge>
                     <span className="text-xs text-muted">
-                      {group.items.length} {group.items.length === 1 ? "signal" : "signals"}
+                      {group.items.length}{" "}
+                      {group.items.length === 1 ? "signal" : "signals"}
                     </span>
                   </div>
                   <Card>
@@ -537,8 +662,9 @@ export default function IntelligencePage() {
           )}
 
           <p className="text-xs leading-relaxed text-muted">
-            Generated {relativeTime(summary.generatedAt)} · scores and forecasts are computed locally
-            from workspace data — no external model is called.
+            Generated {relativeTime(summary.generatedAt)} · scores and forecasts
+            are computed locally from workspace data — no external model is
+            called.
           </p>
         </>
       ) : null}

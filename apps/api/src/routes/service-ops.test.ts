@@ -30,7 +30,10 @@ function asAccount(target: TestAccount = account) {
   return authHeaders(target);
 }
 
-async function createCustomer(name = "Cedar & Co", extra: Record<string, unknown> = {}) {
+async function createCustomer(
+  name = "Cedar & Co",
+  extra: Record<string, unknown> = {},
+) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/companies",
@@ -48,7 +51,10 @@ async function createCustomer(name = "Cedar & Co", extra: Record<string, unknown
   return response.json();
 }
 
-async function createLocation(customerId: string, payload: Record<string, unknown> = {}) {
+async function createLocation(
+  customerId: string,
+  payload: Record<string, unknown> = {},
+) {
   const response = await app.inject({
     method: "POST",
     url: "/api/v1/locations",
@@ -102,7 +108,10 @@ describe("service locations", () => {
     expect(first.isPrimary).toBe(true);
     expect(first.customer.name).toBe(customer.name);
 
-    const second = await createLocation(customer.id, { label: "Boat house", isPrimary: true });
+    const second = await createLocation(customer.id, {
+      label: "Boat house",
+      isPrimary: true,
+    });
     const list = await app.inject({
       method: "GET",
       url: `/api/v1/locations?customerId=${customer.id}`,
@@ -110,7 +119,9 @@ describe("service locations", () => {
     });
     expect(list.statusCode).toBe(200);
     expect(list.json().data).toHaveLength(2);
-    const primaries = list.json().data.filter((row: { isPrimary: boolean }) => row.isPrimary);
+    const primaries = list
+      .json()
+      .data.filter((row: { isPrimary: boolean }) => row.isPrimary);
     expect(primaries.map((row: { id: string }) => row.id)).toEqual([second.id]);
 
     await createJob({
@@ -175,7 +186,12 @@ describe("service locations", () => {
 describe("service price book", () => {
   it("creates, filters, archives and restores services", async () => {
     const windows = await createService();
-    await createService({ name: "Deep clean", category: "Cleaning", price: 24000, unit: "HOUR" });
+    await createService({
+      name: "Deep clean",
+      category: "Cleaning",
+      price: 24000,
+      unit: "HOUR",
+    });
 
     const filtered = await app.inject({
       method: "GET",
@@ -230,7 +246,12 @@ describe("jobs", () => {
       locationId: location.id,
       taxRate: 8.25,
       lineItems: [
-        { serviceId: service.id, name: service.name, quantity: 2, unitPrice: service.price },
+        {
+          serviceId: service.id,
+          name: service.name,
+          quantity: 2,
+          unitPrice: service.price,
+        },
         { name: "Supply fee", quantity: 1, unitPrice: 2500 },
       ],
     });
@@ -291,9 +312,11 @@ describe("jobs", () => {
     });
     expect(activities.statusCode).toBe(200);
     expect(
-      activities.json().data.some((entry: { title: string }) =>
-        entry.title.includes("Gutter clearing"),
-      ),
+      activities
+        .json()
+        .data.some((entry: { title: string }) =>
+          entry.title.includes("Gutter clearing"),
+        ),
     ).toBe(true);
   });
 
@@ -330,7 +353,9 @@ describe("jobs", () => {
   it("rejects line items that reference another workspace's service", async () => {
     const customer = await createCustomer();
     const location = await createLocation(customer.id);
-    const other = await registerAccount(app, { email: `other-${crypto.randomUUID()}@example.com` });
+    const other = await registerAccount(app, {
+      email: `other-${crypto.randomUUID()}@example.com`,
+    });
     const otherService = await app.inject({
       method: "POST",
       url: "/api/v1/services",
@@ -343,7 +368,14 @@ describe("jobs", () => {
       title: "Cross tenant",
       customerId: customer.id,
       locationId: location.id,
-      lineItems: [{ serviceId: foreignId, name: "Borrowed", quantity: 1, unitPrice: 5000 }],
+      lineItems: [
+        {
+          serviceId: foreignId,
+          name: "Borrowed",
+          quantity: 1,
+          unitPrice: 5000,
+        },
+      ],
     });
     expect(response.statusCode).toBe(400);
   });
@@ -445,9 +477,13 @@ describe("estimates", () => {
         }),
       ),
     );
-    expect(responses.map((response) => response.statusCode).sort()).toEqual([201, 409]);
+    expect(responses.map((response) => response.statusCode).sort()).toEqual([
+      201, 409,
+    ]);
 
-    const jobs = await prisma.job.count({ where: { workspaceId: account.workspaceId } });
+    const jobs = await prisma.job.count({
+      where: { workspaceId: account.workspaceId },
+    });
     expect(jobs).toBe(1);
   });
 
@@ -459,7 +495,12 @@ describe("estimates", () => {
         method: "POST",
         url: "/api/v1/estimates",
         headers: asAccount(),
-        payload: { title: `${status} quote`, customerId: customer.id, locationId: location.id, status },
+        payload: {
+          title: `${status} quote`,
+          customerId: customer.id,
+          locationId: location.id,
+          status,
+        },
       });
       expect(response.statusCode).toBe(201);
     }
@@ -468,10 +509,12 @@ describe("estimates", () => {
       url: "/api/v1/estimates?open=true",
       headers: asAccount(),
     });
-    expect(open.json().data.map((row: { status: string }) => row.status).sort()).toEqual([
-      "DRAFT",
-      "SENT",
-    ]);
+    expect(
+      open
+        .json()
+        .data.map((row: { status: string }) => row.status)
+        .sort(),
+    ).toEqual(["DRAFT", "SENT"]);
   });
 });
 
@@ -515,7 +558,11 @@ describe("invoices", () => {
       payload: { amountPaid: 20000 },
     });
     expect(partial.statusCode).toBe(200);
-    expect(partial.json()).toMatchObject({ status: "PARTIAL", balance: 30000, overdue: true });
+    expect(partial.json()).toMatchObject({
+      status: "PARTIAL",
+      balance: 30000,
+      overdue: true,
+    });
 
     const overpay = await app.inject({
       method: "PATCH",
@@ -532,7 +579,12 @@ describe("invoices", () => {
       payload: { amountPaid: 50000 },
     });
     expect(paid.statusCode).toBe(200);
-    expect(paid.json()).toMatchObject({ status: "PAID", balance: 0, overdue: false, amountPaid: 50000 });
+    expect(paid.json()).toMatchObject({
+      status: "PAID",
+      balance: 0,
+      overdue: false,
+      amountPaid: 50000,
+    });
     expect(paid.json().paidAt).not.toBeNull();
 
     const overdueList = await app.inject({
@@ -556,7 +608,9 @@ describe("invoices", () => {
 
 describe("operations summary and search", () => {
   it("summarises the day, revenue, receivables and estimates", async () => {
-    const customer = await createCustomer("Harbor Property Group", { customerType: "PROPERTY_MANAGER" });
+    const customer = await createCustomer("Harbor Property Group", {
+      customerType: "PROPERTY_MANAGER",
+    });
     const location = await createLocation(customer.id);
 
     const scheduled = (
@@ -601,7 +655,9 @@ describe("operations summary and search", () => {
         customerId: customer.id,
         locationId: location.id,
         status: "SENT",
-        lineItems: [{ name: "Monthly portfolio care", quantity: 1, unitPrice: 80000 }],
+        lineItems: [
+          { name: "Monthly portfolio care", quantity: 1, unitPrice: 80000 },
+        ],
       },
     });
 
@@ -637,17 +693,26 @@ describe("operations summary and search", () => {
     expect(search.statusCode).toBe(200);
     const hits = search.json().hits as Array<{ type: string }>;
     expect(hits.some((hit) => hit.type === "job")).toBe(true);
-    expect(hits.some((hit) => hit.type === "invoice") || hits.some((hit) => hit.type === "location")).toBe(true);
+    expect(
+      hits.some((hit) => hit.type === "invoice") ||
+        hits.some((hit) => hit.type === "location"),
+    ).toBe(true);
   });
 
   it("isolates service operations between workspaces", async () => {
     const customer = await createCustomer();
     const location = await createLocation(customer.id);
     const job = (
-      await createJob({ title: "Private job", customerId: customer.id, locationId: location.id })
+      await createJob({
+        title: "Private job",
+        customerId: customer.id,
+        locationId: location.id,
+      })
     ).json();
 
-    const other = await registerAccount(app, { email: `other-${crypto.randomUUID()}@example.com` });
+    const other = await registerAccount(app, {
+      email: `other-${crypto.randomUUID()}@example.com`,
+    });
     const hidden = await app.inject({
       method: "GET",
       url: `/api/v1/jobs/${job.id}`,
@@ -671,11 +736,19 @@ describe("document numbering", () => {
 
     const responses = await Promise.all(
       ["A", "B", "C", "D"].map((suffix) =>
-        createJob({ title: `Concurrent ${suffix}`, customerId: customer.id, locationId: location.id }),
+        createJob({
+          title: `Concurrent ${suffix}`,
+          customerId: customer.id,
+          locationId: location.id,
+        }),
       ),
     );
-    expect(responses.map((response) => response.statusCode)).toEqual([201, 201, 201, 201]);
-    const numbers = responses.map((response) => (response.json() as { number: string }).number);
+    expect(responses.map((response) => response.statusCode)).toEqual([
+      201, 201, 201, 201,
+    ]);
+    const numbers = responses.map(
+      (response) => (response.json() as { number: string }).number,
+    );
     expect(new Set(numbers).size).toBe(4);
     for (const number of numbers) {
       expect(number).toMatch(/^JOB-10\d{2}$/);
@@ -690,19 +763,32 @@ describe("document numbering", () => {
       method: "POST",
       url: "/api/v1/invoices",
       headers: asAccount(),
-      payload: { title: "Sequence invoice", customerId: customer.id, amount: 1000, status: "SENT" },
+      payload: {
+        title: "Sequence invoice",
+        customerId: customer.id,
+        amount: 1000,
+        status: "SENT",
+      },
     });
     expect(firstInvoice.json().number).toBe("INV-1001");
     const firstEstimate = await app.inject({
       method: "POST",
       url: "/api/v1/estimates",
       headers: asAccount(),
-      payload: { title: "Sequence quote", customerId: customer.id, locationId: location.id },
+      payload: {
+        title: "Sequence quote",
+        customerId: customer.id,
+        locationId: location.id,
+      },
     });
     expect(firstEstimate.json().number).toBe("EST-1001");
 
     const doomed = (
-      await createJob({ title: "Doomed job", customerId: customer.id, locationId: location.id })
+      await createJob({
+        title: "Doomed job",
+        customerId: customer.id,
+        locationId: location.id,
+      })
     ).json();
     const removed = await app.inject({
       method: "DELETE",
@@ -804,7 +890,10 @@ describe("job lifecycle invariants", () => {
       payload: { status: "CANCELED", cancelReason: "Storm" },
     });
     expect(canceled.statusCode).toBe(200);
-    expect(canceled.json()).toMatchObject({ status: "CANCELED", cancelReason: "Storm" });
+    expect(canceled.json()).toMatchObject({
+      status: "CANCELED",
+      cancelReason: "Storm",
+    });
 
     const after = await app.inject({
       method: "PATCH",
@@ -834,7 +923,11 @@ describe("job lifecycle invariants", () => {
       payload: { status: "COMPLETED", rating: 5, ratingNote: "Spotless" },
     });
     expect(patched.statusCode).toBe(200);
-    expect(patched.json()).toMatchObject({ status: "COMPLETED", rating: 5, ratingNote: "Spotless" });
+    expect(patched.json()).toMatchObject({
+      status: "COMPLETED",
+      rating: 5,
+      ratingNote: "Spotless",
+    });
     expect(patched.json().completedAt).not.toBeNull();
 
     const repeat = await app.inject({
@@ -862,10 +955,16 @@ describe("job lifecycle invariants", () => {
     expect(statused.statusCode).toBe(200);
 
     const patchActivity = await prisma.activity.count({
-      where: { workspaceId: account.workspaceId, title: { contains: viaPatch.title } },
+      where: {
+        workspaceId: account.workspaceId,
+        title: { contains: viaPatch.title },
+      },
     });
     const statusActivity = await prisma.activity.count({
-      where: { workspaceId: account.workspaceId, title: { contains: viaStatus.title } },
+      where: {
+        workspaceId: account.workspaceId,
+        title: { contains: viaStatus.title },
+      },
     });
     expect(patchActivity).toBe(1);
     expect(statusActivity).toBe(1);
@@ -971,7 +1070,12 @@ describe("estimate line costs", () => {
           locationId: location.id,
           status: "SENT",
           lineItems: [
-            { serviceId: service.id, name: service.name, quantity: 1, unitPrice: service.price },
+            {
+              serviceId: service.id,
+              name: service.name,
+              quantity: 1,
+              unitPrice: service.price,
+            },
           ],
         },
       })
@@ -993,7 +1097,12 @@ describe("estimate line costs", () => {
         customerId: customer.id,
         locationId: location.id,
         lineItems: [
-          { serviceId: service.id, name: service.name, quantity: 1, unitPrice: service.price },
+          {
+            serviceId: service.id,
+            name: service.name,
+            quantity: 1,
+            unitPrice: service.price,
+          },
         ],
       })
     ).json();
@@ -1044,7 +1153,11 @@ describe("invoice money rules", () => {
       url: `/api/v1/invoices/${invoice.id}`,
       headers: asAccount(),
     });
-    expect(untouched.json()).toMatchObject({ status: "SENT", amountPaid: 0, balance: 50000 });
+    expect(untouched.json()).toMatchObject({
+      status: "SENT",
+      amountPaid: 0,
+      balance: 50000,
+    });
 
     const partial = await app.inject({
       method: "POST",
@@ -1053,7 +1166,10 @@ describe("invoice money rules", () => {
       payload: { amount: 20000, method: "CASH" },
     });
     expect(partial.statusCode).toBe(201);
-    expect(partial.json()).toMatchObject({ status: "PARTIAL", amountPaid: 20000 });
+    expect(partial.json()).toMatchObject({
+      status: "PARTIAL",
+      amountPaid: 20000,
+    });
 
     const stillPremature = await app.inject({
       method: "PATCH",
@@ -1076,7 +1192,11 @@ describe("invoice money rules", () => {
       payload: { amount: 30000, method: "ACH" },
     });
     expect(settled.statusCode).toBe(201);
-    expect(settled.json()).toMatchObject({ status: "PAID", amountPaid: 50000, balance: 0 });
+    expect(settled.json()).toMatchObject({
+      status: "PAID",
+      amountPaid: 50000,
+      balance: 0,
+    });
 
     const ledger = await app.inject({
       method: "GET",
@@ -1086,7 +1206,9 @@ describe("invoice money rules", () => {
     expect(ledger.statusCode).toBe(200);
     const payments = ledger.json() as Array<{ amount: number; method: string }>;
     expect(payments).toHaveLength(2);
-    expect(payments.reduce((sum, payment) => sum + payment.amount, 0)).toBe(50000);
+    expect(payments.reduce((sum, payment) => sum + payment.amount, 0)).toBe(
+      50000,
+    );
 
     const belowPaid = await app.inject({
       method: "PATCH",
@@ -1170,7 +1292,12 @@ describe("invoice money rules", () => {
       url: `/api/v1/invoices/${invoice.id}`,
       headers: asAccount(),
     });
-    expect(fetched.json()).toMatchObject({ status: "SENT", amountPaid: 0, balance: 0, overdue: false });
+    expect(fetched.json()).toMatchObject({
+      status: "SENT",
+      amountPaid: 0,
+      balance: 0,
+      overdue: false,
+    });
   });
 
   it("refuses to void an invoice that already has payments", async () => {
@@ -1280,9 +1407,9 @@ describe("invoice money rules", () => {
       url: "/api/v1/invoices?overdue=true",
       headers: asAccount(),
     });
-    expect(overdue.json().data.map((row: { title: string }) => row.title)).toEqual([
-      "Overdue sent",
-    ]);
+    expect(
+      overdue.json().data.map((row: { title: string }) => row.title),
+    ).toEqual(["Overdue sent"]);
 
     const paidIntersect = await app.inject({
       method: "GET",
@@ -1296,16 +1423,19 @@ describe("invoice money rules", () => {
       url: "/api/v1/invoices?overdue=true&status=SENT",
       headers: asAccount(),
     });
-    expect(sentIntersect.json().data.map((row: { id: string }) => row.id)).toEqual([
-      overdueSent.id,
-    ]);
+    expect(
+      sentIntersect.json().data.map((row: { id: string }) => row.id),
+    ).toEqual([overdueSent.id]);
   });
 });
 
 describe("primary location invariants", () => {
   it("promotes another active location when the primary is archived", async () => {
     const customer = await createCustomer();
-    const first = await createLocation(customer.id, { label: "Main", isPrimary: true });
+    const first = await createLocation(customer.id, {
+      label: "Main",
+      isPrimary: true,
+    });
     const second = await createLocation(customer.id, { label: "Annex" });
     expect(second.isPrimary).toBe(false);
 

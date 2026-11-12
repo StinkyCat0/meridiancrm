@@ -9,10 +9,10 @@ external edge probe catches DNS, TLS, reverse-proxy and firewall failures too.
 
 ## Endpoints
 
-| Method | Path      | Behavior                                                                                         |
-| ------ | --------- | ------------------------------------------------------------------------------------------------ |
-| GET    | `/`       | Service metadata and available endpoints.                                                        |
-| GET    | `/health` | Calls `${TARGET_URL}/api/v1/health` with an 8s timeout and returns a cached JSON summary.         |
+| Method | Path      | Behavior                                                                                  |
+| ------ | --------- | ----------------------------------------------------------------------------------------- |
+| GET    | `/`       | Service metadata and available endpoints.                                                 |
+| GET    | `/health` | Calls `${TARGET_URL}/api/v1/health` with an 8s timeout and returns a cached JSON summary. |
 
 `/health` responds `200` when the API returns 2xx and its database is not `down`; otherwise `503`.
 The body is `{ ok, target, status, database, latencyMs, checkedAt }`. Results are cached at the edge

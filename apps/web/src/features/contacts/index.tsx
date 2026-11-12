@@ -70,8 +70,11 @@ export default function ContactsPage() {
   const currentPage = contactsQuery.data?.meta.page ?? page;
   const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const rangeEnd = Math.min(currentPage * pageSize, total);
-  const selectedContact = contacts.find((contact) => contact.id === selectedId) ?? null;
-  const hasFilters = Boolean(search.trim() || companyId || archive === "archived");
+  const selectedContact =
+    contacts.find((contact) => contact.id === selectedId) ?? null;
+  const hasFilters = Boolean(
+    search.trim() || companyId || archive === "archived",
+  );
 
   function openContact(id: string) {
     navigate(`/app/contacts/${encodeURIComponent(id)}`);
@@ -151,7 +154,9 @@ export default function ContactsPage() {
                 { value: "archived", label: "Archived" },
               ]}
               value={archive}
-              onChange={(value) => setArchive(value === "archived" ? "archived" : "active")}
+              onChange={(value) =>
+                setArchive(value === "archived" ? "archived" : "active")
+              }
               className="border-0"
             />
             <p aria-live="polite" className="num shrink-0 text-xs text-muted">
@@ -173,7 +178,9 @@ export default function ContactsPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load contacts.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load contacts.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(contactsQuery.error)}
             </p>
@@ -189,7 +196,9 @@ export default function ContactsPage() {
       ) : contacts.length === 0 ? (
         <EmptyState
           icon={<Users />}
-          title={hasFilters ? "No contacts match those filters." : "No contacts yet."}
+          title={
+            hasFilters ? "No contacts match those filters." : "No contacts yet."
+          }
           description={
             hasFilters
               ? "Clear the filters or search for a different name."
@@ -245,7 +254,9 @@ export default function ContactsPage() {
                       tabIndex={0}
                       aria-label={`Open ${contactName(contact)}`}
                       onClick={() => openContact(contact.id)}
-                      onKeyDown={(event) => handleRowKeyDown(event, contact.id, openContact)}
+                      onKeyDown={(event) =>
+                        handleRowKeyDown(event, contact.id, openContact)
+                      }
                       className="cursor-pointer border-b border-border/70 transition-colors last:border-0 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <td className="px-4 py-3">
@@ -275,12 +286,17 @@ export default function ContactsPage() {
                       <td className="px-4 py-3">
                         <ContactTags tags={contact.tags} />
                       </td>
-                      <td className="num px-4 py-3 text-fg">{contact.openDealCount}</td>
+                      <td className="num px-4 py-3 text-fg">
+                        {contact.openDealCount}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3 text-muted">
                         {relativeTime(contact.lastActivityAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <OwnerCell name={contact.owner?.name} avatarUrl={contact.owner?.avatarUrl} />
+                        <OwnerCell
+                          name={contact.owner?.name}
+                          avatarUrl={contact.owner?.avatarUrl}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -306,15 +322,21 @@ export default function ContactsPage() {
                   <Avatar name={contactName(contact)} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium text-fg">{contactName(contact)}</p>
-                      {contact.archived ? <Badge tone="warning">Archived</Badge> : null}
+                      <p className="truncate font-medium text-fg">
+                        {contactName(contact)}
+                      </p>
+                      {contact.archived ? (
+                        <Badge tone="warning">Archived</Badge>
+                      ) : null}
                     </div>
                     <p className="truncate text-xs text-muted">
                       {contact.title ?? "No title"}
                       {contact.company ? ` · ${contact.company.name}` : ""}
                     </p>
                     {contact.email ? (
-                      <p className="mt-1 truncate text-xs text-muted">{contact.email}</p>
+                      <p className="mt-1 truncate text-xs text-muted">
+                        {contact.email}
+                      </p>
                     ) : null}
                   </div>
                 </div>
@@ -331,7 +353,9 @@ export default function ContactsPage() {
                 <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
                   <div>
                     <dt className="label-micro">Deals</dt>
-                    <dd className="num mt-0.5 text-fg">{contact.openDealCount} open</dd>
+                    <dd className="num mt-0.5 text-fg">
+                      {contact.openDealCount} open
+                    </dd>
                   </div>
                   <div>
                     <dt className="label-micro">Activity</dt>
@@ -370,7 +394,9 @@ export default function ContactsPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
                 disabled={page >= totalPages}
                 aria-label="Next page"
               >
@@ -432,12 +458,20 @@ function ContactTags({ tags }: { tags: string[] }) {
       {tags.slice(0, 2).map((tag) => (
         <Badge key={tag}>{tag}</Badge>
       ))}
-      {tags.length > 2 ? <Badge tone="neutral">+{tags.length - 2}</Badge> : null}
+      {tags.length > 2 ? (
+        <Badge tone="neutral">+{tags.length - 2}</Badge>
+      ) : null}
     </div>
   );
 }
 
-function OwnerCell({ name, avatarUrl }: { name?: string; avatarUrl?: string | null }) {
+function OwnerCell({
+  name,
+  avatarUrl,
+}: {
+  name?: string;
+  avatarUrl?: string | null;
+}) {
   if (!name) return <span className="text-muted">—</span>;
   return (
     <span className="flex items-center gap-2">
@@ -470,7 +504,10 @@ function ListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <div className="flex items-center gap-3">
               <Skeleton className="size-10 rounded-full" />
               <div className="flex-1 space-y-2">

@@ -45,7 +45,12 @@ async function seedWorkspace(workspaceId: string): Promise<WorkspaceSeed> {
       city: "Portland",
     },
   });
-  return { workspaceId, customerId: customer.id, locationId: location.id, nextNumber: 1 };
+  return {
+    workspaceId,
+    customerId: customer.id,
+    locationId: location.id,
+    nextNumber: 1,
+  };
 }
 
 async function addMember(workspaceId: string, name: string): Promise<string> {
@@ -146,7 +151,9 @@ function getPerformance(url = "/api/v1/team/performance") {
 }
 
 function getWorkload(date?: string) {
-  const url = date ? `/api/v1/team/workload?date=${date}` : "/api/v1/team/workload";
+  const url = date
+    ? `/api/v1/team/workload?date=${date}`
+    : "/api/v1/team/workload";
   return app.inject({ method: "GET", url, headers: authHeaders(account) });
 }
 
@@ -213,7 +220,9 @@ describe("team performance", () => {
     expect(body.currency).toBe("USD");
     expect(body.members).toHaveLength(3);
 
-    const owner = body.members.find((row: { user: { id: string } }) => row.user.id === account.userId);
+    const owner = body.members.find(
+      (row: { user: { id: string } }) => row.user.id === account.userId,
+    );
     expect(owner.role).toBe("OWNER");
     expect(owner).toMatchObject({
       jobsScheduled: 3,
@@ -230,7 +239,9 @@ describe("team performance", () => {
       upcomingMinutes: 0,
     });
 
-    const member = body.members.find((row: { user: { id: string } }) => row.user.id === memberId);
+    const member = body.members.find(
+      (row: { user: { id: string } }) => row.user.id === memberId,
+    );
     expect(member.role).toBe("MEMBER");
     expect(member).toMatchObject({
       jobsScheduled: 2,
@@ -247,7 +258,9 @@ describe("team performance", () => {
       upcomingMinutes: 0,
     });
 
-    const idle = body.members.find((row: { user: { id: string } }) => row.user.id === idleId);
+    const idle = body.members.find(
+      (row: { user: { id: string } }) => row.user.id === idleId,
+    );
     expect(idle).toMatchObject({
       jobsScheduled: 0,
       jobsCompleted: 0,
@@ -299,7 +312,8 @@ describe("team performance", () => {
     );
     expect(capped.statusCode).toBe(200);
     const span =
-      new Date(capped.json().range.to).getTime() - new Date(capped.json().range.from).getTime();
+      new Date(capped.json().range.to).getTime() -
+      new Date(capped.json().range.from).getTime();
     expect(span).toBe(366 * 86_400_000);
     expect(capped.json().members[0].jobsCompleted).toBe(1);
 
@@ -361,7 +375,9 @@ describe("team workload", () => {
     expect(body.unassigned).toBe(1);
     expect(body.totalScheduledMinutes).toBe(360);
 
-    const owner = body.members.find((row: { user: { id: string } }) => row.user.id === account.userId);
+    const owner = body.members.find(
+      (row: { user: { id: string } }) => row.user.id === account.userId,
+    );
     expect(owner).toEqual({
       user: expect.objectContaining({ id: account.userId }),
       jobCount: 2,
@@ -372,7 +388,9 @@ describe("team workload", () => {
       jobsCompletedToday: 1,
     });
 
-    const member = body.members.find((row: { user: { id: string } }) => row.user.id === memberId);
+    const member = body.members.find(
+      (row: { user: { id: string } }) => row.user.id === memberId,
+    );
     expect(member).toMatchObject({
       jobCount: 1,
       scheduledMinutes: 180,
@@ -397,7 +415,12 @@ describe("team tenant isolation", () => {
 
     const today = new Date();
     const start = new Date(
-      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 9),
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate(),
+        9,
+      ),
     );
     const scheduled = start.toISOString();
     const otherJob = await seedJob(otherSeed, {

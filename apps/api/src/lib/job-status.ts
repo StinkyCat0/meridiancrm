@@ -46,7 +46,8 @@ export function jobStatusTimestamps(
       : status === "UNSCHEDULED" || status === "SCHEDULED"
         ? null
         : existing.arrivedAt;
-  const completedAt = status === "COMPLETED" ? (existing.completedAt ?? now) : null;
+  const completedAt =
+    status === "COMPLETED" ? (existing.completedAt ?? now) : null;
   return { arrivedAt, completedAt };
 }
 
@@ -117,7 +118,9 @@ export async function applyJobStatus(
     data: {
       status: input.status,
       ...stamps,
-      ...(input.cancelReason !== undefined ? { cancelReason: input.cancelReason ?? null } : {}),
+      ...(input.cancelReason !== undefined
+        ? { cancelReason: input.cancelReason ?? null }
+        : {}),
     },
   });
 

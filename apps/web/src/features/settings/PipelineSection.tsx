@@ -100,12 +100,20 @@ function StageFormModal({ open, pipelineId, stage, onClose }: StageModalProps) {
       return;
     }
     const nextProbability = Number(probability);
-    if (!Number.isInteger(nextProbability) || nextProbability < 0 || nextProbability > 100) {
+    if (
+      !Number.isInteger(nextProbability) ||
+      nextProbability < 0 ||
+      nextProbability > 100
+    ) {
       setError("Probability must be a whole number between 0 and 100.");
       return;
     }
     const nextTargetDays = Number(targetDays);
-    if (!Number.isInteger(nextTargetDays) || nextTargetDays < 1 || nextTargetDays > 365) {
+    if (
+      !Number.isInteger(nextTargetDays) ||
+      nextTargetDays < 1 ||
+      nextTargetDays > 365
+    ) {
       setError("Target days must be a whole number between 1 and 365.");
       return;
     }
@@ -128,7 +136,9 @@ function StageFormModal({ open, pipelineId, stage, onClose }: StageModalProps) {
         });
       }
       toast.success(stage ? "Stage updated" : "Stage added");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.pipelines.all });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelines.all,
+      });
       await queryClient.invalidateQueries({ queryKey: ["insights"] });
       await queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
       onClose();
@@ -153,13 +163,22 @@ function StageFormModal({ open, pipelineId, stage, onClose }: StageModalProps) {
           <Button variant="ghost" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
-          <Button type="submit" form="stage-form" variant="primary" loading={pending}>
+          <Button
+            type="submit"
+            form="stage-form"
+            variant="primary"
+            loading={pending}
+          >
             {stage ? "Save stage" : "Add stage"}
           </Button>
         </>
       }
     >
-      <form id="stage-form" className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+      <form
+        id="stage-form"
+        className="space-y-4"
+        onSubmit={(event) => void handleSubmit(event)}
+      >
         <Field label="Name" htmlFor="stage-name" required>
           <Input
             id="stage-name"
@@ -223,9 +242,10 @@ export function PipelineSection() {
     queryKey: queryKeys.pipelines.all,
     queryFn: api.pipelines.list,
   });
-  const [stageModal, setStageModal] = useState<{ pipelineId: string; stage: Stage | null } | null>(
-    null,
-  );
+  const [stageModal, setStageModal] = useState<{
+    pipelineId: string;
+    stage: Stage | null;
+  } | null>(null);
   const [deletingStage, setDeletingStage] = useState<Stage | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pipelineModalOpen, setPipelineModalOpen] = useState(false);
@@ -233,14 +253,22 @@ export function PipelineSection() {
   const [pipelineError, setPipelineError] = useState<string | null>(null);
 
   const reorderMutation = useMutation({
-    mutationFn: ({ pipelineId, stageIds }: { pipelineId: string; stageIds: string[] }) =>
-      api.pipelines.reorderStages(pipelineId, stageIds),
+    mutationFn: ({
+      pipelineId,
+      stageIds,
+    }: {
+      pipelineId: string;
+      stageIds: string[];
+    }) => api.pipelines.reorderStages(pipelineId, stageIds),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.pipelines.all });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelines.all,
+      });
       await queryClient.invalidateQueries({ queryKey: ["insights"] });
       await queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
-    onError: (error) => toast.error(messageFor(error, "Could not reorder stages.")),
+    onError: (error) =>
+      toast.error(messageFor(error, "Could not reorder stages.")),
   });
 
   const deleteStageMutation = useMutation({
@@ -249,7 +277,9 @@ export function PipelineSection() {
       toast.success("Stage deleted");
       setDeletingStage(null);
       setDeleteError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.pipelines.all });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelines.all,
+      });
       await queryClient.invalidateQueries({ queryKey: ["insights"] });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
@@ -267,7 +297,9 @@ export function PipelineSection() {
       setPipelineModalOpen(false);
       setPipelineName("");
       setPipelineError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.pipelines.all });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.pipelines.all,
+      });
       await queryClient.invalidateQueries({ queryKey: ["insights"] });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
@@ -278,7 +310,11 @@ export function PipelineSection() {
     },
   });
 
-  function moveStage(pipeline: Pipeline, stage: Stage, direction: "up" | "down") {
+  function moveStage(
+    pipeline: Pipeline,
+    stage: Stage,
+    direction: "up" | "down",
+  ) {
     const index = pipeline.stages.findIndex((item) => item.id === stage.id);
     const target = direction === "up" ? index - 1 : index + 1;
     if (index < 0 || target < 0 || target >= pipeline.stages.length) return;
@@ -306,12 +342,17 @@ export function PipelineSection() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-light tracking-tight text-fg">Pipeline</h2>
+          <h2 className="text-lg font-light tracking-tight text-fg">
+            Pipeline
+          </h2>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">
-            Stages define probability, expected time in stage and won/lost outcomes.
+            Stages define probability, expected time in stage and won/lost
+            outcomes.
           </p>
           {!canManage ? (
-            <p className="mt-2 text-xs text-muted">Only admins can manage stages. This view is read-only.</p>
+            <p className="mt-2 text-xs text-muted">
+              Only admins can manage stages. This view is read-only.
+            </p>
           ) : null}
         </div>
         {canManage ? (
@@ -333,9 +374,14 @@ export function PipelineSection() {
       {pipelinesQuery.isError ? (
         <Card>
           <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
-            <p className="text-sm font-medium text-fg">Could not load pipelines</p>
+            <p className="text-sm font-medium text-fg">
+              Could not load pipelines
+            </p>
             <p className="mt-1.5 text-sm text-muted">
-              {messageFor(pipelinesQuery.error, "Check your connection and try again.")}
+              {messageFor(
+                pipelinesQuery.error,
+                "Check your connection and try again.",
+              )}
             </p>
             <Button
               variant="secondary"
@@ -381,17 +427,22 @@ export function PipelineSection() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle>{pipeline.name}</CardTitle>
-                {pipeline.isDefault ? <Badge tone="success">Default</Badge> : null}
+                {pipeline.isDefault ? (
+                  <Badge tone="success">Default</Badge>
+                ) : null}
               </div>
               <CardDescription className="mt-1">
-                {pipeline.stages.length} {pipeline.stages.length === 1 ? "stage" : "stages"}
+                {pipeline.stages.length}{" "}
+                {pipeline.stages.length === 1 ? "stage" : "stages"}
               </CardDescription>
             </div>
             {canManage ? (
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setStageModal({ pipelineId: pipeline.id, stage: null })}
+                onClick={() =>
+                  setStageModal({ pipelineId: pipeline.id, stage: null })
+                }
               >
                 <Plus className="size-3.5" aria-hidden="true" />
                 Add stage
@@ -415,7 +466,10 @@ export function PipelineSection() {
                     <th scope="col" className="px-4 py-2.5 font-black">
                       Kind
                     </th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-black">
+                    <th
+                      scope="col"
+                      className="px-4 py-2.5 text-right font-black"
+                    >
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -425,14 +479,22 @@ export function PipelineSection() {
                     <tr key={stage.id}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="num w-4 text-xs text-muted">{index + 1}</span>
+                          <span className="num w-4 text-xs text-muted">
+                            {index + 1}
+                          </span>
                           <span className="text-sm text-fg">{stage.name}</span>
                         </div>
                       </td>
-                      <td className="num px-4 py-3 text-sm text-muted">{stage.probability}%</td>
-                      <td className="num px-4 py-3 text-sm text-muted">{stage.targetDays}d</td>
+                      <td className="num px-4 py-3 text-sm text-muted">
+                        {stage.probability}%
+                      </td>
+                      <td className="num px-4 py-3 text-sm text-muted">
+                        {stage.targetDays}d
+                      </td>
                       <td className="px-4 py-3">
-                        <Badge tone={STAGE_TONE[stage.kind]}>{stage.kind}</Badge>
+                        <Badge tone={STAGE_TONE[stage.kind]}>
+                          {stage.kind}
+                        </Badge>
                       </td>
                       <td className="px-4 py-3">
                         {canManage ? (
@@ -442,7 +504,9 @@ export function PipelineSection() {
                                 label={`Move ${stage.name} up`}
                                 size="sm"
                                 disabled={
-                                  index === 0 || reorderMutation.isPending || !canManage
+                                  index === 0 ||
+                                  reorderMutation.isPending ||
+                                  !canManage
                                 }
                                 onClick={() => moveStage(pipeline, stage, "up")}
                               >
@@ -457,7 +521,9 @@ export function PipelineSection() {
                                   index === pipeline.stages.length - 1 ||
                                   reorderMutation.isPending
                                 }
-                                onClick={() => moveStage(pipeline, stage, "down")}
+                                onClick={() =>
+                                  moveStage(pipeline, stage, "down")
+                                }
                               >
                                 <ChevronDown aria-hidden="true" />
                               </IconButton>
@@ -467,7 +533,10 @@ export function PipelineSection() {
                                 label={`Edit ${stage.name}`}
                                 size="sm"
                                 onClick={() =>
-                                  setStageModal({ pipelineId: pipeline.id, stage })
+                                  setStageModal({
+                                    pipelineId: pipeline.id,
+                                    stage,
+                                  })
                                 }
                               >
                                 <Pencil aria-hidden="true" />
@@ -512,7 +581,9 @@ export function PipelineSection() {
           if (!deleteStageMutation.isPending) setDeletingStage(null);
         }}
         title="Delete stage?"
-        description={deletingStage ? `“${deletingStage.name}” will be removed.` : undefined}
+        description={
+          deletingStage ? `“${deletingStage.name}” will be removed.` : undefined
+        }
         size="sm"
         closeOnBackdrop={!deleteStageMutation.isPending}
         footer={
@@ -588,7 +659,10 @@ export function PipelineSection() {
             />
           </Field>
           {pipelineError ? (
-            <p role="alert" className="mt-3 text-sm leading-relaxed text-danger">
+            <p
+              role="alert"
+              className="mt-3 text-sm leading-relaxed text-danger"
+            >
               {pipelineError}
             </p>
           ) : null}

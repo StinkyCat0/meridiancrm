@@ -8,10 +8,10 @@ fix. This is a small studio; there is no paid bounty program.
 
 ## Supported versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | Yes (current MVP)  |
-| < 0.1   | No                 |
+| Version | Supported         |
+| ------- | ----------------- |
+| 0.1.x   | Yes (current MVP) |
+| < 0.1   | No                |
 
 Only the latest released minor receives fixes.
 

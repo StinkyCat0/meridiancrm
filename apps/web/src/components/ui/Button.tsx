@@ -27,44 +27,49 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  {
-    variant = "secondary",
-    size = "md",
-    loading = false,
-    fullWidth = false,
-    className,
-    children,
-    disabled,
-    type = "button",
-    ...props
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    {
+      variant = "secondary",
+      size = "md",
+      loading = false,
+      fullWidth = false,
+      className,
+      children,
+      disabled,
+      type = "button",
+      ...props
+    },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type={type}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center rounded-input font-medium transition-colors duration-150",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+          "disabled:pointer-events-none disabled:opacity-50",
+          variantClasses[variant],
+          sizeClasses[size],
+          fullWidth && "w-full",
+          className,
+        )}
+        {...props}
+      >
+        {loading ? (
+          <Loader2
+            className={cn(
+              "animate-spin",
+              size === "sm" ? "size-3.5" : "size-4",
+            )}
+            aria-hidden="true"
+          />
+        ) : null}
+        {children}
+      </button>
+    );
   },
-  ref,
-) {
-  return (
-    <button
-      ref={ref}
-      type={type}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-input font-medium transition-colors duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-        "disabled:pointer-events-none disabled:opacity-50",
-        variantClasses[variant],
-        sizeClasses[size],
-        fullWidth && "w-full",
-        className,
-      )}
-      {...props}
-    >
-      {loading ? (
-        <Loader2
-          className={cn("animate-spin", size === "sm" ? "size-3.5" : "size-4")}
-          aria-hidden="true"
-        />
-      ) : null}
-      {children}
-    </button>
-  );
-});
+);

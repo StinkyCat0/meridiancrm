@@ -1,10 +1,5 @@
 import { X } from "lucide-react";
-import {
-  useEffect,
-  useId,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
 import { IconButton } from "./IconButton";
@@ -58,7 +53,9 @@ export function Modal({
     if (!open) return;
 
     previouslyFocused.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -87,8 +84,11 @@ export function Modal({
 
       const panel = panelRef.current;
       if (!panel) return;
-      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (element) => element.tabIndex !== -1 && element.getClientRects().length > 0,
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE),
+      ).filter(
+        (element) =>
+          element.tabIndex !== -1 && element.getClientRects().length > 0,
       );
       if (focusable.length === 0) {
         event.preventDefault();
@@ -147,20 +147,32 @@ export function Modal({
       >
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-medium tracking-tight text-fg">
+            <h2
+              id={titleId}
+              className="text-base font-medium tracking-tight text-fg"
+            >
               {title}
             </h2>
             {description ? (
-              <p id={descriptionId} className="mt-1 text-sm leading-relaxed text-muted">
+              <p
+                id={descriptionId}
+                className="mt-1 text-sm leading-relaxed text-muted"
+              >
                 {description}
               </p>
             ) : null}
           </div>
-          <IconButton label="Close dialog" size="sm" onClick={() => onCloseRef.current()}>
+          <IconButton
+            label="Close dialog"
+            size="sm"
+            onClick={() => onCloseRef.current()}
+          >
             <X aria-hidden="true" />
           </IconButton>
         </div>
-        {children ? <div className="overflow-y-auto p-5">{children}</div> : null}
+        {children ? (
+          <div className="overflow-y-auto p-5">{children}</div>
+        ) : null}
         {footer ? (
           <div className="flex items-center justify-end gap-2 border-t border-border p-5">
             {footer}

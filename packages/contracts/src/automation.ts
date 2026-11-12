@@ -138,5 +138,7 @@ export const automationRunListQuerySchema = paginationSchema.extend({
 });
 
 export type AutomationRuleInput = z.infer<typeof automationRuleInputSchema>;
-export type AutomationRulePatchInput = z.infer<typeof automationRulePatchSchema>;
+export type AutomationRulePatchInput = z.infer<
+  typeof automationRulePatchSchema
+>;
 export type AutomationActionInput = z.infer<typeof automationActionSchema>;

@@ -1,7 +1,13 @@
 import { api, type Job, type JobStatus } from "@meridian/api-client";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
@@ -23,7 +29,10 @@ const GRID_HEIGHT = (HOUR_END - HOUR_START) * HOUR_HEIGHT;
 const DAY_MS = 86_400_000;
 const MIN_BLOCK_HEIGHT = 20;
 
-const HOURS = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, index) => HOUR_START + index);
+const HOURS = Array.from(
+  { length: HOUR_END - HOUR_START + 1 },
+  (_, index) => HOUR_START + index,
+);
 
 const TECH_COLORS = [
   "#22d3ee",
@@ -42,7 +51,10 @@ const UTC_TIME = new Intl.DateTimeFormat(undefined, {
   timeZone: "UTC",
 });
 
-const STATUS_TONE: Record<JobStatus, "neutral" | "accent" | "warning" | "success" | "danger"> = {
+const STATUS_TONE: Record<
+  JobStatus,
+  "neutral" | "accent" | "warning" | "success" | "danger"
+> = {
   UNSCHEDULED: "neutral",
   SCHEDULED: "accent",
   DISPATCHED: "warning",
@@ -124,7 +136,8 @@ function buildSegments(jobs: Job[], days: string[]): CalendarSegment[] {
       const dayEnd = dayStart + DAY_MS;
       if (start.getTime() >= dayEnd || endTime <= dayStart) return;
 
-      const startMin = (Math.max(start.getTime(), dayStart) - dayStart) / 60_000;
+      const startMin =
+        (Math.max(start.getTime(), dayStart) - dayStart) / 60_000;
       const endMin = (Math.min(endTime, dayEnd) - dayStart) / 60_000;
       const clippedStart = Math.max(startMin, HOUR_START * 60);
       const clippedEnd = Math.min(endMin, HOUR_END * 60);
@@ -143,7 +156,10 @@ function buildSegments(jobs: Job[], days: string[]): CalendarSegment[] {
   }
 
   for (const daySegments of byDay.values()) {
-    daySegments.sort((left, right) => left.startMin - right.startMin || left.endMin - right.endMin);
+    daySegments.sort(
+      (left, right) =>
+        left.startMin - right.startMin || left.endMin - right.endMin,
+    );
 
     let cluster: RawSegment[] = [];
     let clusterEnd = -1;
@@ -162,8 +178,12 @@ function buildSegments(jobs: Job[], days: string[]): CalendarSegment[] {
         active.push({ end: segment.endMin, col });
         return { segment, col };
       });
-      const cols = placed.reduce((max, entry) => Math.max(max, entry.col + 1), 1);
-      for (const entry of placed) segments.push({ ...entry.segment, col: entry.col, cols });
+      const cols = placed.reduce(
+        (max, entry) => Math.max(max, entry.col + 1),
+        1,
+      );
+      for (const entry of placed)
+        segments.push({ ...entry.segment, col: entry.col, cols });
       cluster = [];
       clusterEnd = -1;
     };
@@ -195,7 +215,8 @@ export default function CalendarPage() {
 
   const weekStartKey = useMemo(() => startOfUtcWeek(anchorKey), [anchorKey]);
   const days = useMemo(
-    () => Array.from({ length: 7 }, (_, index) => shiftDayKey(weekStartKey, index)),
+    () =>
+      Array.from({ length: 7 }, (_, index) => shiftDayKey(weekStartKey, index)),
     [weekStartKey],
   );
   const weekEndKey = days[6] ?? weekStartKey;
@@ -203,7 +224,12 @@ export default function CalendarPage() {
   const to = weekEndKey;
 
   const jobsQuery = useQuery({
-    queryKey: queryKeys.jobs.list({ from, to, pageSize: 100, assigneeId: assigneeFilter || undefined }),
+    queryKey: queryKeys.jobs.list({
+      from,
+      to,
+      pageSize: 100,
+      assigneeId: assigneeFilter || undefined,
+    }),
     queryFn: () =>
       api.jobs.list({
         from,
@@ -216,7 +242,11 @@ export default function CalendarPage() {
   });
 
   const unscheduledQuery = useQuery({
-    queryKey: queryKeys.jobs.list({ scope: "unscheduled", pageSize: 1, assigneeId: assigneeFilter || undefined }),
+    queryKey: queryKeys.jobs.list({
+      scope: "unscheduled",
+      pageSize: 1,
+      assigneeId: assigneeFilter || undefined,
+    }),
     queryFn: () =>
       api.jobs.list({
         scope: "unscheduled",
@@ -227,7 +257,9 @@ export default function CalendarPage() {
 
   const jobs = useMemo(() => {
     const rows = jobsQuery.data?.data ?? [];
-    return assigneeFilter ? rows.filter((job) => job.assignee?.id === assigneeFilter) : rows;
+    return assigneeFilter
+      ? rows.filter((job) => job.assignee?.id === assigneeFilter)
+      : rows;
   }, [jobsQuery.data, assigneeFilter]);
 
   const segments = useMemo(() => buildSegments(jobs, days), [jobs, days]);
@@ -237,7 +269,8 @@ export default function CalendarPage() {
   const unscheduledCount = unscheduledQuery.data?.meta.total ?? 0;
   const todayInWeek = days.includes(now.toISOString().slice(0, 10));
   const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-  const showNowLine = todayInWeek && nowMinutes >= HOUR_START * 60 && nowMinutes <= HOUR_END * 60;
+  const showNowLine =
+    todayInWeek && nowMinutes >= HOUR_START * 60 && nowMinutes <= HOUR_END * 60;
 
   const technicians = useMemo(() => {
     const map = new Map<string, string>();
@@ -250,7 +283,8 @@ export default function CalendarPage() {
   const technicianOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const member of members) map.set(member.user.id, member.user.name);
-    for (const technician of technicians) map.set(technician.id, technician.name);
+    for (const technician of technicians)
+      map.set(technician.id, technician.name);
     return Array.from(map, ([id, name]) => ({ id, name }));
   }, [members, technicians]);
 
@@ -260,12 +294,16 @@ export default function CalendarPage() {
         if (!job.scheduledStart) return false;
         const start = new Date(job.scheduledStart);
         if (Number.isNaN(start.getTime())) return false;
-        return start.getUTCHours() < HOUR_START || start.getUTCHours() >= HOUR_END;
+        return (
+          start.getUTCHours() < HOUR_START || start.getUTCHours() >= HOUR_END
+        );
       }).length,
     [jobs],
   );
 
-  const filterName = technicianOptions.find((option) => option.id === assigneeFilter)?.name;
+  const filterName = technicianOptions.find(
+    (option) => option.id === assigneeFilter,
+  )?.name;
   const hasFilters = Boolean(assigneeFilter);
 
   const agendaDays = useMemo(
@@ -276,11 +314,18 @@ export default function CalendarPage() {
           .filter((job) => {
             if (!job.scheduledStart) return false;
             const start = new Date(job.scheduledStart);
-            return !Number.isNaN(start.getTime()) && start.toISOString().slice(0, 10) === dayKey;
+            return (
+              !Number.isNaN(start.getTime()) &&
+              start.toISOString().slice(0, 10) === dayKey
+            );
           })
           .sort((left, right) => {
-            const leftTime = left.scheduledStart ? new Date(left.scheduledStart).getTime() : 0;
-            const rightTime = right.scheduledStart ? new Date(right.scheduledStart).getTime() : 0;
+            const leftTime = left.scheduledStart
+              ? new Date(left.scheduledStart).getTime()
+              : 0;
+            const rightTime = right.scheduledStart
+              ? new Date(right.scheduledStart).getTime()
+              : 0;
             return leftTime - rightTime;
           }),
       })),
@@ -321,7 +366,9 @@ export default function CalendarPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setAnchorKey(new Date().toISOString().slice(0, 10))}
+                onClick={() =>
+                  setAnchorKey(new Date().toISOString().slice(0, 10))
+                }
               >
                 This week
               </Button>
@@ -337,7 +384,9 @@ export default function CalendarPage() {
             <p className="text-sm font-medium text-fg">
               {format(dateFromKey(weekStartKey), "MMM d")} –{" "}
               {format(dateFromKey(weekEndKey), "MMM d, yyyy")}
-              <span className="ml-1.5 text-[10px] font-normal text-muted">UTC</span>
+              <span className="ml-1.5 text-[10px] font-normal text-muted">
+                UTC
+              </span>
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -359,7 +408,10 @@ export default function CalendarPage() {
         {technicians.length > 0 ? (
           <ul className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
             {technicians.map((technician) => (
-              <li key={technician.id} className="flex items-center gap-1.5 text-[10px] text-muted">
+              <li
+                key={technician.id}
+                className="flex items-center gap-1.5 text-[10px] text-muted"
+              >
                 <span
                   className="size-2 rounded-full"
                   style={{ backgroundColor: colorForTechnician(technician.id) }}
@@ -385,9 +437,11 @@ export default function CalendarPage() {
           <p className="flex items-center gap-2 text-fg">
             <Clock className="size-4 text-warning" aria-hidden="true" />
             <span>
-              <span className="num text-warning">{unscheduledCount}</span> unscheduled job
+              <span className="num text-warning">{unscheduledCount}</span>{" "}
+              unscheduled job
               {unscheduledCount === 1 ? "" : "s"}
-              {filterName ? ` for ${filterName}` : ""} not shown on the calendar.
+              {filterName ? ` for ${filterName}` : ""} not shown on the
+              calendar.
             </span>
           </p>
           <Link
@@ -404,8 +458,8 @@ export default function CalendarPage() {
           role="status"
           className="rounded-input border border-warning/25 bg-warning/5 px-3 py-2 text-xs text-warning"
         >
-          Showing first {loadedCount} of {total} scheduled jobs this week. Narrow the technician
-          filter or open the schedule to see the rest.
+          Showing first {loadedCount} of {total} scheduled jobs this week.
+          Narrow the technician filter or open the schedule to see the rest.
         </p>
       ) : null}
 
@@ -417,11 +471,17 @@ export default function CalendarPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load the calendar.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load the calendar.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(jobsQuery.error)}
             </p>
-            <Button variant="secondary" className="mt-4" onClick={() => void jobsQuery.refetch()}>
+            <Button
+              variant="secondary"
+              className="mt-4"
+              onClick={() => void jobsQuery.refetch()}
+            >
               Try again
             </Button>
           </div>
@@ -440,7 +500,12 @@ export default function CalendarPage() {
               : "Move through the weeks or book a job from the schedule."
           }
           action={
-            <Button variant="secondary" onClick={() => setAnchorKey(new Date().toISOString().slice(0, 10))}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setAnchorKey(new Date().toISOString().slice(0, 10))
+              }
+            >
               Go to this week
             </Button>
           }
@@ -478,13 +543,19 @@ export default function CalendarPage() {
                   })}
                 </div>
                 <div className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))]">
-                  <div className="relative" style={{ height: GRID_HEIGHT }} aria-hidden="true">
+                  <div
+                    className="relative"
+                    style={{ height: GRID_HEIGHT }}
+                    aria-hidden="true"
+                  >
                     {HOURS.map((hour) => (
                       <div
                         key={hour}
                         className={cn(
                           "absolute right-2 text-[10px] text-muted",
-                          hour === HOUR_END ? "-translate-y-full" : "-translate-y-1/2",
+                          hour === HOUR_END
+                            ? "-translate-y-full"
+                            : "-translate-y-1/2",
                         )}
                         style={{ top: (hour - HOUR_START) * HOUR_HEIGHT }}
                       >
@@ -499,7 +570,10 @@ export default function CalendarPage() {
                         key={dayKey}
                         role="group"
                         aria-label={format(dateFromKey(dayKey), "EEEE, MMMM d")}
-                        className={cn("relative border-l border-border", isToday && "bg-accent/[0.03]")}
+                        className={cn(
+                          "relative border-l border-border",
+                          isToday && "bg-accent/[0.03]",
+                        )}
                         style={{ height: GRID_HEIGHT }}
                       >
                         {HOURS.map((hour) => (
@@ -507,7 +581,9 @@ export default function CalendarPage() {
                             key={hour}
                             className={cn(
                               "absolute inset-x-0 border-t",
-                              hour === HOUR_START ? "border-border/80" : "border-border/50",
+                              hour === HOUR_START
+                                ? "border-border/80"
+                                : "border-border/50",
                             )}
                             style={{ top: (hour - HOUR_START) * HOUR_HEIGHT }}
                             aria-hidden="true"
@@ -516,18 +592,26 @@ export default function CalendarPage() {
                         {segments
                           .filter((segment) => segment.dayIndex === dayIndex)
                           .map((segment) => {
-                            const top = ((segment.startMin - HOUR_START * 60) / 60) * HOUR_HEIGHT;
+                            const top =
+                              ((segment.startMin - HOUR_START * 60) / 60) *
+                              HOUR_HEIGHT;
                             const height = Math.max(
                               MIN_BLOCK_HEIGHT,
-                              ((segment.endMin - segment.startMin) / 60) * HOUR_HEIGHT - 2,
+                              ((segment.endMin - segment.startMin) / 60) *
+                                HOUR_HEIGHT -
+                                2,
                             );
-                            const color = colorForTechnician(segment.job.assignee?.id ?? null);
+                            const color = colorForTechnician(
+                              segment.job.assignee?.id ?? null,
+                            );
                             return (
                               <button
                                 key={`${segment.job.id}-${dayIndex}`}
                                 type="button"
                                 onClick={() =>
-                                  navigate(`/app/schedule?job=${encodeURIComponent(segment.job.id)}`)
+                                  navigate(
+                                    `/app/schedule?job=${encodeURIComponent(segment.job.id)}`,
+                                  )
                                 }
                                 title={`${segment.job.number} · ${segment.job.title} · ${segment.job.customer.name} · ${segment.job.location.line1}, ${segment.job.location.city}`}
                                 aria-label={`${segment.job.number} ${segment.job.title} for ${segment.job.customer.name}, ${formatTimeRange(segment.job)}, ${segment.job.status}`}
@@ -550,7 +634,10 @@ export default function CalendarPage() {
                                   </span>
                                 ) : null}
                                 {height >= 50 ? (
-                                  <Badge tone={STATUS_TONE[segment.job.status]} className="mt-1">
+                                  <Badge
+                                    tone={STATUS_TONE[segment.job.status]}
+                                    className="mt-1"
+                                  >
                                     {segment.job.status.replaceAll("_", " ")}
                                   </Badge>
                                 ) : null}
@@ -561,7 +648,9 @@ export default function CalendarPage() {
                           <div
                             className="pointer-events-none absolute inset-x-0 z-10 border-t border-danger"
                             style={{
-                              top: ((nowMinutes - HOUR_START * 60) / 60) * HOUR_HEIGHT,
+                              top:
+                                ((nowMinutes - HOUR_START * 60) / 60) *
+                                HOUR_HEIGHT,
                             }}
                           >
                             <span className="absolute -left-1 -top-1.5 size-2.5 rounded-full bg-danger" />
@@ -578,8 +667,8 @@ export default function CalendarPage() {
 
           {outOfHours > 0 ? (
             <p className="text-xs text-muted">
-              {outOfHours} job{outOfHours === 1 ? "" : "s"} start outside the 7:00–19:00 grid and
-              are clipped.
+              {outOfHours} job{outOfHours === 1 ? "" : "s"} start outside the
+              7:00–19:00 grid and are clipped.
             </p>
           ) : null}
 
@@ -599,12 +688,18 @@ export default function CalendarPage() {
                   </div>
                   <ul className="divide-y divide-border">
                     {dayJobs.map((job) => {
-                      const color = colorForTechnician(job.assignee?.id ?? null);
+                      const color = colorForTechnician(
+                        job.assignee?.id ?? null,
+                      );
                       return (
                         <li key={job.id}>
                           <button
                             type="button"
-                            onClick={() => navigate(`/app/schedule?job=${encodeURIComponent(job.id)}`)}
+                            onClick={() =>
+                              navigate(
+                                `/app/schedule?job=${encodeURIComponent(job.id)}`,
+                              )
+                            }
                             className="flex w-full items-center gap-3 py-2.5 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                           >
                             <span
@@ -615,7 +710,9 @@ export default function CalendarPage() {
                             <span className="w-20 shrink-0">
                               <span className="num block text-[11px] text-fg">
                                 {job.scheduledStart
-                                  ? UTC_TIME.format(new Date(job.scheduledStart))
+                                  ? UTC_TIME.format(
+                                      new Date(job.scheduledStart),
+                                    )
                                   : "Unscheduled"}
                               </span>
                               <span className="block text-[10px] text-muted">
@@ -630,7 +727,9 @@ export default function CalendarPage() {
                                 {job.customer.name} · {job.location.label}
                               </span>
                             </span>
-                            <Badge tone={STATUS_TONE[job.status]}>{job.status.replaceAll("_", " ")}</Badge>
+                            <Badge tone={STATUS_TONE[job.status]}>
+                              {job.status.replaceAll("_", " ")}
+                            </Badge>
                           </button>
                         </li>
                       );

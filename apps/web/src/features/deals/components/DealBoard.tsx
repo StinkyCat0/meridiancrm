@@ -25,7 +25,10 @@ interface DealColumnProps {
 }
 
 function DealColumn({ stage, deals, currency, onOpenDeal }: DealColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage.id, data: { stageId: stage.id } });
+  const { setNodeRef, isOver } = useDroppable({
+    id: stage.id,
+    data: { stageId: stage.id },
+  });
   const total = deals.reduce((sum, deal) => sum + deal.value, 0);
   const displayCurrency = deals[0]?.currency ?? currency;
   const kindLabel = stageKindLabel(stage.kind);
@@ -45,10 +48,16 @@ function DealColumn({ stage, deals, currency, onOpenDeal }: DealColumnProps) {
       <header className="flex items-start justify-between gap-2 border-b border-border/70 px-3.5 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-medium text-fg">{stage.name}</h2>
-            {kindLabel ? <Badge tone={stageKindTone(stage.kind)}>{kindLabel}</Badge> : null}
+            <h2 className="truncate text-sm font-medium text-fg">
+              {stage.name}
+            </h2>
+            {kindLabel ? (
+              <Badge tone={stageKindTone(stage.kind)}>{kindLabel}</Badge>
+            ) : null}
           </div>
-          <p className="num mt-1 text-xs text-muted">{formatMoney(total, displayCurrency)}</p>
+          <p className="num mt-1 text-xs text-muted">
+            {formatMoney(total, displayCurrency)}
+          </p>
         </div>
         <span
           aria-label={`${deals.length} ${deals.length === 1 ? "deal" : "deals"}`}
@@ -64,7 +73,9 @@ function DealColumn({ stage, deals, currency, onOpenDeal }: DealColumnProps) {
         ))}
         {deals.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-card border border-dashed border-border/80 px-3 py-6 text-center">
-            <p className="text-xs leading-relaxed text-muted/70">Drop a deal here</p>
+            <p className="text-xs leading-relaxed text-muted/70">
+              Drop a deal here
+            </p>
           </div>
         ) : null}
       </div>
@@ -80,12 +91,20 @@ interface DealBoardProps {
   onMoveDeal: (deal: Deal, stage: Stage) => void;
 }
 
-export function DealBoard({ stages, deals, currency, onOpenDeal, onMoveDeal }: DealBoardProps) {
+export function DealBoard({
+  stages,
+  deals,
+  currency,
+  onOpenDeal,
+  onMoveDeal,
+}: DealBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
-  const activeDeal = activeId ? deals.find((deal) => deal.id === activeId) ?? null : null;
+  const activeDeal = activeId
+    ? (deals.find((deal) => deal.id === activeId) ?? null)
+    : null;
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveId(null);
@@ -100,7 +119,9 @@ export function DealBoard({ stages, deals, currency, onOpenDeal, onMoveDeal }: D
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
-      onDragStart={(event: DragStartEvent) => setActiveId(String(event.active.id))}
+      onDragStart={(event: DragStartEvent) =>
+        setActiveId(String(event.active.id))
+      }
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveId(null)}
     >

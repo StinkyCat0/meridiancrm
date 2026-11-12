@@ -72,21 +72,21 @@ Notes:
 
 ### Environment variables
 
-| Variable                       | Default                          | Notes                                                       |
-| ------------------------------ | -------------------------------- | ----------------------------------------------------------- |
-| `NODE_ENV`                     | `development`                    | `production` enables strict secret checks and defaults cookies to Secure. |
-| `PORT`                         | `4000`                           | API listen port.                                            |
-| `HOST`                         | `0.0.0.0`                        | Bind address; Compose publishes loopback only.              |
-| `DATABASE_URL`                 | `file:./dev.db`                  | Compose sets `file:/data/meridian.db`.                      |
-| `JWT_SECRET`                   | none                             | Required in production; random, at least 32 chars. Weak markers are rejected. |
-| `ACCESS_TOKEN_TTL`             | `900`                            | Access token seconds.                                       |
-| `REFRESH_TOKEN_TTL`            | `2592000`                        | Refresh token seconds (30 days).                            |
-| `CORS_ORIGINS`                 | `http://localhost:5173`          | Comma-separated allowed browser origins.                    |
-| `SERVE_WEB`                    | `0`                              | `1` serves the built SPA from the API.                      |
-| `WEB_DIST_PATH`                | `../web/dist`                    | SPA directory; image sets `/app/apps/web/dist`.             |
-| `WEB_APP_URL`                  | `http://localhost:5173`          | Used to build invite links.                                 |
-| `TRUST_PROXY`                  | `false`                          | `false` ignores `X-Forwarded-*`. Set to `127.0.0.1` or the proxy CIDR only behind a trusted proxy. Never `true` when directly exposed. |
-| `COOKIE_SECURE`                | `1` in production, else `0`      | Set `0` for local HTTP Compose, `1` behind TLS.             |
+| Variable            | Default                     | Notes                                                                                                                                  |
+| ------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`          | `development`               | `production` enables strict secret checks and defaults cookies to Secure.                                                              |
+| `PORT`              | `4000`                      | API listen port.                                                                                                                       |
+| `HOST`              | `0.0.0.0`                   | Bind address; Compose publishes loopback only.                                                                                         |
+| `DATABASE_URL`      | `file:./dev.db`             | Compose sets `file:/data/meridian.db`.                                                                                                 |
+| `JWT_SECRET`        | none                        | Required in production; random, at least 32 chars. Weak markers are rejected.                                                          |
+| `ACCESS_TOKEN_TTL`  | `900`                       | Access token seconds.                                                                                                                  |
+| `REFRESH_TOKEN_TTL` | `2592000`                   | Refresh token seconds (30 days).                                                                                                       |
+| `CORS_ORIGINS`      | `http://localhost:5173`     | Comma-separated allowed browser origins.                                                                                               |
+| `SERVE_WEB`         | `0`                         | `1` serves the built SPA from the API.                                                                                                 |
+| `WEB_DIST_PATH`     | `../web/dist`               | SPA directory; image sets `/app/apps/web/dist`.                                                                                        |
+| `WEB_APP_URL`       | `http://localhost:5173`     | Used to build invite links.                                                                                                            |
+| `TRUST_PROXY`       | `false`                     | `false` ignores `X-Forwarded-*`. Set to `127.0.0.1` or the proxy CIDR only behind a trusted proxy. Never `true` when directly exposed. |
+| `COOKIE_SECURE`     | `1` in production, else `0` | Set `0` for local HTTP Compose, `1` behind TLS.                                                                                        |
 
 Generate secrets with `openssl rand -base64 48`. Never reuse the example value; placeholders and
 short secrets are rejected when `NODE_ENV=production`.
@@ -162,8 +162,8 @@ restore on a spare volume before relying on it.
   1. Set `TARGET_URL` in `infra/health-worker/wrangler.toml` to the public origin.
   2. `cd infra/health-worker && npm install && npm run deploy`.
   3. Point a monitor (or CI synthetic check) at `https://meridian-health.<account>.workers.dev/health`.
-  It returns 200/503 and is cached for 30 seconds at the edge. Alternatively run
-  `curl -fsS https://crm.example.com/api/v1/health` from a monitoring service.
+     It returns 200/503 and is cached for 30 seconds at the edge. Alternatively run
+     `curl -fsS https://crm.example.com/api/v1/health` from a monitoring service.
 - `docker compose ps` shows the health state; restart policies cover crashes, not unhealthy hangs.
 
 ## Rolling upgrades

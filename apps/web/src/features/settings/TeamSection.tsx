@@ -45,7 +45,11 @@ function messageFor(error: unknown, fallback: string): string {
 
 function MembersSkeleton() {
   return (
-    <div className="divide-y divide-border" role="status" aria-label="Loading members">
+    <div
+      className="divide-y divide-border"
+      role="status"
+      aria-label="Loading members"
+    >
       {[0, 1, 2].map((row) => (
         <div key={row} className="flex items-center gap-3 p-4">
           <Skeleton className="size-9 rounded-full" />
@@ -92,15 +96,23 @@ export function TeamSection() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: ({ id, role: nextRole }: { id: string; role: AssignableRole }) =>
-      api.workspace.updateMember(id, { role: nextRole }),
+    mutationFn: ({
+      id,
+      role: nextRole,
+    }: {
+      id: string;
+      role: AssignableRole;
+    }) => api.workspace.updateMember(id, { role: nextRole }),
     onSuccess: async (member) => {
       toast.success("Role updated");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.workspace.members });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.workspace.members,
+      });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
       if (member.user.id === user?.id) await refreshMe();
     },
-    onError: (error) => toast.error(messageFor(error, "Could not change the role.")),
+    onError: (error) =>
+      toast.error(messageFor(error, "Could not change the role.")),
   });
 
   const removeMutation = useMutation({
@@ -108,10 +120,13 @@ export function TeamSection() {
     onSuccess: () => {
       toast.success("Member removed");
       setRemoving(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.workspace.members });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspace.members,
+      });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
-    onError: (error) => toast.error(messageFor(error, "Could not remove the member.")),
+    onError: (error) =>
+      toast.error(messageFor(error, "Could not remove the member.")),
   });
 
   const inviteMutation = useMutation({
@@ -123,7 +138,9 @@ export function TeamSection() {
       setCopied(false);
       setInviteError(null);
       toast.success("Invite link ready");
-      void queryClient.invalidateQueries({ queryKey: queryKeys.workspace.invites });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspace.invites,
+      });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
     onError: (error) => {
@@ -137,10 +154,13 @@ export function TeamSection() {
     mutationFn: (id: string) => api.workspace.revokeInvite(id),
     onSuccess: () => {
       toast.success("Invite revoked");
-      void queryClient.invalidateQueries({ queryKey: queryKeys.workspace.invites });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.workspace.invites,
+      });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
-    onError: (error) => toast.error(messageFor(error, "Could not revoke the invite.")),
+    onError: (error) =>
+      toast.error(messageFor(error, "Could not revoke the invite.")),
   });
 
   function handleInvite(event: FormEvent<HTMLFormElement>) {
@@ -165,7 +185,9 @@ export function TeamSection() {
     }
   }
 
-  const pendingInvites = (invitesQuery.data ?? []).filter((invite) => !invite.acceptedAt);
+  const pendingInvites = (invitesQuery.data ?? []).filter(
+    (invite) => !invite.acceptedAt,
+  );
 
   return (
     <div className="space-y-4">
@@ -180,7 +202,8 @@ export function TeamSection() {
             </CardDescription>
           </div>
           <Badge tone="neutral">
-            {membersQuery.data?.length ?? 0} {membersQuery.data?.length === 1 ? "member" : "members"}
+            {membersQuery.data?.length ?? 0}{" "}
+            {membersQuery.data?.length === 1 ? "member" : "members"}
           </Badge>
         </CardHeader>
         <CardContent className="p-0">
@@ -188,9 +211,14 @@ export function TeamSection() {
 
           {membersQuery.isError ? (
             <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
-              <p className="text-sm font-medium text-fg">Could not load the team</p>
+              <p className="text-sm font-medium text-fg">
+                Could not load the team
+              </p>
               <p className="mt-1.5 text-sm text-muted">
-                {messageFor(membersQuery.error, "Check your connection and try again.")}
+                {messageFor(
+                  membersQuery.error,
+                  "Check your connection and try again.",
+                )}
               </p>
               <Button
                 variant="secondary"
@@ -215,10 +243,16 @@ export function TeamSection() {
                     <th scope="col" className="px-4 py-2.5 font-black">
                       Role
                     </th>
-                    <th scope="col" className="hidden px-4 py-2.5 font-black md:table-cell">
+                    <th
+                      scope="col"
+                      className="hidden px-4 py-2.5 font-black md:table-cell"
+                    >
                       Joined
                     </th>
-                    <th scope="col" className="px-4 py-2.5 text-right font-black">
+                    <th
+                      scope="col"
+                      className="px-4 py-2.5 text-right font-black"
+                    >
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -230,19 +264,29 @@ export function TeamSection() {
                       <tr key={member.id} className="align-middle">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <Avatar name={member.user.name} src={member.user.avatarUrl} size="sm" />
+                            <Avatar
+                              name={member.user.name}
+                              src={member.user.avatarUrl}
+                              size="sm"
+                            />
                             <div className="min-w-0">
                               <p className="flex items-center gap-1.5 truncate text-sm text-fg">
                                 {member.user.name}
-                                {self ? <Badge tone="neutral">You</Badge> : null}
+                                {self ? (
+                                  <Badge tone="neutral">You</Badge>
+                                ) : null}
                               </p>
-                              <p className="truncate text-xs text-muted">{member.user.email}</p>
+                              <p className="truncate text-xs text-muted">
+                                {member.user.email}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           {member.role === "OWNER" || !canManage ? (
-                            <Badge tone={ROLE_TONE[member.role]}>{member.role}</Badge>
+                            <Badge tone={ROLE_TONE[member.role]}>
+                              {member.role}
+                            </Badge>
                           ) : (
                             <Select
                               aria-label={`Role for ${member.user.name}`}
@@ -252,7 +296,9 @@ export function TeamSection() {
                                 roleMutation.mutate({
                                   id: member.id,
                                   role:
-                                    event.target.value === "ADMIN" ? "ADMIN" : "MEMBER",
+                                    event.target.value === "ADMIN"
+                                      ? "ADMIN"
+                                      : "MEMBER",
                                 })
                               }
                               className="w-32"
@@ -321,7 +367,9 @@ export function TeamSection() {
                     id="invite-role"
                     value={inviteRole}
                     onChange={(event) =>
-                      setInviteRole(event.target.value === "ADMIN" ? "ADMIN" : "MEMBER")
+                      setInviteRole(
+                        event.target.value === "ADMIN" ? "ADMIN" : "MEMBER",
+                      )
                     }
                   >
                     <option value="MEMBER">Member</option>
@@ -330,12 +378,19 @@ export function TeamSection() {
                 </Field>
 
                 {inviteError ? (
-                  <p role="alert" className="text-sm leading-relaxed text-danger">
+                  <p
+                    role="alert"
+                    className="text-sm leading-relaxed text-danger"
+                  >
                     {inviteError}
                   </p>
                 ) : null}
 
-                <Button type="submit" variant="primary" loading={inviteMutation.isPending}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={inviteMutation.isPending}
+                >
                   <MailPlus className="size-4" aria-hidden="true" />
                   Create invite
                 </Button>
@@ -351,9 +406,15 @@ export function TeamSection() {
                       aria-label="Invite link"
                       className="min-w-0 text-xs"
                     />
-                    <Button variant="secondary" onClick={() => void copyInviteUrl()}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void copyInviteUrl()}
+                    >
                       {copied ? (
-                        <Check className="size-4 text-success" aria-hidden="true" />
+                        <Check
+                          className="size-4 text-success"
+                          aria-hidden="true"
+                        />
                       ) : (
                         <Copy className="size-4" aria-hidden="true" />
                       )}
@@ -399,17 +460,26 @@ export function TeamSection() {
               ) : null}
 
               {invitesQuery.isSuccess && pendingInvites.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-muted">No pending invites.</p>
+                <p className="px-4 py-8 text-center text-sm text-muted">
+                  No pending invites.
+                </p>
               ) : null}
 
               {pendingInvites.length > 0 ? (
                 <ul className="divide-y divide-border border-t border-border">
                   {pendingInvites.map((invite) => (
-                    <li key={invite.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <li
+                      key={invite.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-fg">{invite.email}</p>
+                        <p className="truncate text-sm text-fg">
+                          {invite.email}
+                        </p>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <Badge tone={ROLE_TONE[invite.role]}>{invite.role}</Badge>
+                          <Badge tone={ROLE_TONE[invite.role]}>
+                            {invite.role}
+                          </Badge>
                           <InviteStatus invite={invite} />
                         </div>
                       </div>
@@ -440,7 +510,9 @@ export function TeamSection() {
         }}
         title="Remove member?"
         description={
-          removing ? `${removing.user.name} will lose access to this workspace.` : undefined
+          removing
+            ? `${removing.user.name} will lose access to this workspace.`
+            : undefined
         }
         size="sm"
         closeOnBackdrop={!removeMutation.isPending}

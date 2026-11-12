@@ -44,7 +44,12 @@ import { Select } from "../../components/ui/Select";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { StatCard } from "../../components/ui/StatCard";
 import { queryKeys } from "../../lib/query";
-import { cn, formatDate, relativeTime, useDebouncedValue } from "../../lib/utils";
+import {
+  cn,
+  formatDate,
+  relativeTime,
+  useDebouncedValue,
+} from "../../lib/utils";
 import { apiErrorMessage } from "../companies/lib";
 import { Composer } from "./Composer";
 
@@ -185,7 +190,10 @@ function ThreadRow({
             </span>
             <time
               dateTime={thread.lastMessage.occurredAt}
-              title={formatDate(thread.lastMessage.occurredAt, "MMM d, yyyy · h:mm a")}
+              title={formatDate(
+                thread.lastMessage.occurredAt,
+                "MMM d, yyyy · h:mm a",
+              )}
               className="shrink-0 text-[10px] text-muted"
             >
               {relativeTime(thread.lastMessage.occurredAt)}
@@ -194,14 +202,21 @@ function ThreadRow({
 
           <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
             <Icon className="size-3 shrink-0" aria-hidden="true" />
-            <span>{COMMUNICATION_CHANNEL_META[thread.lastMessage.channel].label}</span>
+            <span>
+              {COMMUNICATION_CHANNEL_META[thread.lastMessage.channel].label}
+            </span>
             {thread.channels.length > 1 ? (
-              <span aria-label={`Also ${thread.channels.length - 1} other channel(s)`}>
+              <span
+                aria-label={`Also ${thread.channels.length - 1} other channel(s)`}
+              >
                 +{thread.channels.length - 1}
               </span>
             ) : null}
             <span aria-hidden="true">·</span>
-            <span>{thread.messageCount} {thread.messageCount === 1 ? "message" : "messages"}</span>
+            <span>
+              {thread.messageCount}{" "}
+              {thread.messageCount === 1 ? "message" : "messages"}
+            </span>
           </span>
 
           <span className="mt-1 flex items-start justify-between gap-2">
@@ -257,7 +272,9 @@ function MessageBubble({ message }: { message: Communication }) {
           {outbound ? "Outbound" : "Inbound"}
         </span>
         <Badge tone={STATUS_TONES[message.status]}>{message.status}</Badge>
-        <Badge tone="neutral">{COMMUNICATION_INTENT_META[message.intent]}</Badge>
+        <Badge tone="neutral">
+          {COMMUNICATION_INTENT_META[message.intent]}
+        </Badge>
         <Badge tone={sentimentTone(message.sentiment)}>
           <span className="capitalize">{message.sentiment.toLowerCase()}</span>
         </Badge>
@@ -289,7 +306,9 @@ function MessageBubble({ message }: { message: Communication }) {
           </p>
         ) : null}
         {body ? (
-          <p className="whitespace-pre-wrap break-words leading-relaxed">{body}</p>
+          <p className="whitespace-pre-wrap break-words leading-relaxed">
+            {body}
+          </p>
         ) : (
           <p className="italic leading-relaxed text-muted">No body recorded.</p>
         )}
@@ -303,7 +322,9 @@ export default function InboxPage() {
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("ALL");
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
+  );
   const debouncedSearch = useDebouncedValue(search, 250);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const markedReadRef = useRef<Set<string>>(new Set());
@@ -346,18 +367,24 @@ export default function InboxPage() {
     return [...rows].sort((a, b) => {
       const delta =
         new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime();
-      return delta !== 0 ? delta : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      return delta !== 0
+        ? delta
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   }, [messagesQuery.data]);
 
   const markReadMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       for (const id of ids) {
-        await api.communications.update(id, { readAt: new Date().toISOString() });
+        await api.communications.update(id, {
+          readAt: new Date().toISOString(),
+        });
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.communications.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.communications.all,
+      });
     },
     onError: (error, ids) => {
       for (const id of ids) markedReadRef.current.delete(id);
@@ -389,7 +416,10 @@ export default function InboxPage() {
   const visibleThreads = useMemo(
     () =>
       threads.filter((thread) => {
-        if (channelFilter !== "ALL" && !thread.channels.includes(channelFilter)) {
+        if (
+          channelFilter !== "ALL" &&
+          !thread.channels.includes(channelFilter)
+        ) {
           return false;
         }
         return !unreadOnly || thread.unreadCount > 0;
@@ -397,8 +427,12 @@ export default function InboxPage() {
     [threads, channelFilter, unreadOnly],
   );
 
-  const hasFilters = search.trim().length > 0 || channelFilter !== "ALL" || unreadOnly;
-  const unreadInList = threads.reduce((total, thread) => total + thread.unreadCount, 0);
+  const hasFilters =
+    search.trim().length > 0 || channelFilter !== "ALL" || unreadOnly;
+  const unreadInList = threads.reduce(
+    (total, thread) => total + thread.unreadCount,
+    0,
+  );
   const stats = statsQuery.data;
 
   function clearFilters() {
@@ -494,7 +528,9 @@ export default function InboxPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={channelFilter}
-                onChange={(event) => setChannelFilter(event.target.value as ChannelFilter)}
+                onChange={(event) =>
+                  setChannelFilter(event.target.value as ChannelFilter)
+                }
                 aria-label="Filter conversations by channel"
                 className="w-[132px]"
               >
@@ -549,7 +585,11 @@ export default function InboxPage() {
             ) : visibleThreads.length === 0 ? (
               <EmptyState
                 icon={<MessageSquare />}
-                title={hasFilters ? "No conversations match." : "No conversations yet."}
+                title={
+                  hasFilters
+                    ? "No conversations match."
+                    : "No conversations yet."
+                }
                 description={
                   hasFilters
                     ? "Try another channel, or clear the unread filter."
@@ -557,7 +597,11 @@ export default function InboxPage() {
                 }
                 action={
                   hasFilters ? (
-                    <Button variant="secondary" size="sm" onClick={clearFilters}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={clearFilters}
+                    >
                       Clear filters
                     </Button>
                   ) : undefined
@@ -597,17 +641,25 @@ export default function InboxPage() {
                       {selectedCustomer.name}
                     </h2>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                      {selectedCustomer.phone ? <span>{selectedCustomer.phone}</span> : null}
-                      {selectedCustomer.phone ? <span aria-hidden="true">·</span> : null}
+                      {selectedCustomer.phone ? (
+                        <span>{selectedCustomer.phone}</span>
+                      ) : null}
+                      {selectedCustomer.phone ? (
+                        <span aria-hidden="true">·</span>
+                      ) : null}
                       <span className="capitalize">
-                        {selectedCustomer.customerType.toLowerCase().replace(/_/g, " ")}
+                        {selectedCustomer.customerType
+                          .toLowerCase()
+                          .replace(/_/g, " ")}
                       </span>
                       {messagesQuery.data ? (
                         <>
                           <span aria-hidden="true">·</span>
                           <span>
                             {messagesQuery.data.meta.total}{" "}
-                            {messagesQuery.data.meta.total === 1 ? "message" : "messages"}
+                            {messagesQuery.data.meta.total === 1
+                              ? "message"
+                              : "messages"}
                           </span>
                         </>
                       ) : null}
@@ -632,10 +684,17 @@ export default function InboxPage() {
                     {Array.from({ length: 4 }, (_, index) => (
                       <div
                         key={index}
-                        className={cn("flex flex-col gap-2", index % 2 === 0 ? "items-start" : "items-end")}
+                        className={cn(
+                          "flex flex-col gap-2",
+                          index % 2 === 0 ? "items-start" : "items-end",
+                        )}
                       >
                         <Skeleton className="h-2.5 w-32" />
-                        <Skeleton className={index % 2 === 0 ? "h-16 w-3/4" : "h-12 w-2/3"} />
+                        <Skeleton
+                          className={
+                            index % 2 === 0 ? "h-16 w-3/4" : "h-12 w-2/3"
+                          }
+                        />
                       </div>
                     ))}
                   </div>
@@ -647,7 +706,9 @@ export default function InboxPage() {
                   />
                 ) : messages.length === 0 ? (
                   <div className="px-5 py-10 text-center">
-                    <p className="text-sm font-medium text-fg">No messages with this customer yet.</p>
+                    <p className="text-sm font-medium text-fg">
+                      No messages with this customer yet.
+                    </p>
                     <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">
                       Use the form below to log the first call, text, or email.
                     </p>

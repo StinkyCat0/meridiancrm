@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { buildMessageDraft } from "./drafts.js";
 import { deriveInvoiceStatus, invoiceIsOverdue } from "./invoice-rules.js";
-import { estimateDriveMinutes, haversineMeters, optimizeRoute } from "./route.js";
+import {
+  estimateDriveMinutes,
+  haversineMeters,
+  optimizeRoute,
+} from "./route.js";
 import { churnRiskScore, noShowRiskScore, upsellScore } from "./scoring.js";
 
 describe("route optimization", () => {
@@ -17,7 +21,9 @@ describe("route optimization", () => {
     expect(route.ordered[0]?.id).toBe("near");
     expect(route.totalDistanceMeters).toBeGreaterThan(0);
     expect(route.ordered).toHaveLength(3);
-    expect(estimateDriveMinutes(route.totalDistanceMeters, 3)).toBeGreaterThan(0);
+    expect(estimateDriveMinutes(route.totalDistanceMeters, 3)).toBeGreaterThan(
+      0,
+    );
   });
 
   it("returns an empty route without points", () => {
@@ -46,7 +52,11 @@ describe("message drafts", () => {
     const reminder = buildMessageDraft({ ...base, intent: "REMINDER" });
     expect(reminder.body).toContain("Tue, Nov 18");
     expect(reminder.subject).toBeNull();
-    const payment = buildMessageDraft({ ...base, channel: "EMAIL", intent: "PAYMENT" });
+    const payment = buildMessageDraft({
+      ...base,
+      channel: "EMAIL",
+      intent: "PAYMENT",
+    });
     expect(payment.subject).toContain("$240.00");
     expect(payment.body).toContain("$240.00");
     expect(payment.rationale).toContain("local template engine");
@@ -81,10 +91,18 @@ describe("invoice rules", () => {
 
   it("only marks open balances past due as overdue", () => {
     const now = new Date("2026-11-11T12:00:00Z");
-    expect(invoiceIsOverdue("SENT", 100, new Date("2026-11-01T12:00:00Z"), now)).toBe(true);
-    expect(invoiceIsOverdue("SENT", 0, new Date("2026-11-01T12:00:00Z"), now)).toBe(false);
-    expect(invoiceIsOverdue("PAID", 100, new Date("2026-11-01T12:00:00Z"), now)).toBe(false);
-    expect(invoiceIsOverdue("DRAFT", 100, new Date("2026-11-01T12:00:00Z"), now)).toBe(false);
+    expect(
+      invoiceIsOverdue("SENT", 100, new Date("2026-11-01T12:00:00Z"), now),
+    ).toBe(true);
+    expect(
+      invoiceIsOverdue("SENT", 0, new Date("2026-11-01T12:00:00Z"), now),
+    ).toBe(false);
+    expect(
+      invoiceIsOverdue("PAID", 100, new Date("2026-11-01T12:00:00Z"), now),
+    ).toBe(false);
+    expect(
+      invoiceIsOverdue("DRAFT", 100, new Date("2026-11-01T12:00:00Z"), now),
+    ).toBe(false);
   });
 });
 

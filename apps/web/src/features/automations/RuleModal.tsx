@@ -137,15 +137,21 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
 
   const [name, setName] = useState(rule?.name ?? "");
   const [description, setDescription] = useState(rule?.description ?? "");
-  const [trigger, setTrigger] = useState<AutomationTrigger>(rule?.trigger ?? "JOB_COMPLETED");
+  const [trigger, setTrigger] = useState<AutomationTrigger>(
+    rule?.trigger ?? "JOB_COMPLETED",
+  );
   const [enabled, setEnabled] = useState(rule?.enabled ?? true);
   const [minTotal, setMinTotal] = useState(
-    rule && rule.conditions.minTotal !== undefined ? fromCents(rule.conditions.minTotal) : "",
+    rule && rule.conditions.minTotal !== undefined
+      ? fromCents(rule.conditions.minTotal)
+      : "",
   );
   const [customerTypes, setCustomerTypes] = useState<CustomerType[]>(
     rule?.conditions.customerTypes ?? [],
   );
-  const [priorities, setPriorities] = useState<JobPriority[]>(rule?.conditions.priorities ?? []);
+  const [priorities, setPriorities] = useState<JobPriority[]>(
+    rule?.conditions.priorities ?? [],
+  );
   const [actions, setActions] = useState<ActionDraft[]>(() =>
     rule ? rule.actions.map(draftFromAction) : [defaultAction("CREATE_TASK")],
   );
@@ -153,9 +159,13 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
 
   const save = useMutation({
     mutationFn: (input: CreateAutomationInput) =>
-      rule ? api.automations.update(rule.id, input) : api.automations.create(input),
+      rule
+        ? api.automations.update(rule.id, input)
+        : api.automations.create(input),
     onSuccess: (saved) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.automations.all,
+      });
       toast.success(rule ? "Automation updated" : "Automation created");
       onSaved(saved);
     },
@@ -163,7 +173,9 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
   });
 
   function patchAction(index: number, next: ActionDraft) {
-    setActions((current) => current.map((action, i) => (i === index ? next : action)));
+    setActions((current) =>
+      current.map((action, i) => (i === index ? next : action)),
+    );
     setErrors((current) => {
       if (!current.actions[index]) return current;
       const remaining = { ...current.actions };
@@ -196,7 +208,10 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
     if (!name.trim()) nextErrors.name = "Give this automation a name.";
 
     const minTotalValue = Number(minTotal);
-    if (minTotal.trim() && (!Number.isFinite(minTotalValue) || minTotalValue < 0)) {
+    if (
+      minTotal.trim() &&
+      (!Number.isFinite(minTotalValue) || minTotalValue < 0)
+    ) {
       nextErrors.minTotal = "Enter a non-negative amount, or leave it blank.";
     }
 
@@ -208,7 +223,8 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
         }
         const hours = Number(action.dueInHours);
         if (!Number.isInteger(hours) || hours < 1 || hours > 720) {
-          nextErrors.actions[index] = "Due within must be a whole number from 1 to 720 hours.";
+          nextErrors.actions[index] =
+            "Due within must be a whole number from 1 to 720 hours.";
         }
       }
       if (action.type === "ADD_TAG" && !action.tag.trim()) {
@@ -216,7 +232,11 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
       }
     });
 
-    if (nextErrors.name || nextErrors.minTotal || Object.keys(nextErrors.actions).length > 0) {
+    if (
+      nextErrors.name ||
+      nextErrors.minTotal ||
+      Object.keys(nextErrors.actions).length > 0
+    ) {
       setErrors(nextErrors);
       return;
     }
@@ -252,13 +272,23 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {rule ? "Save automation" : "Create automation"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-6">
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6"
+      >
         <div className="space-y-4">
           <Field label="Name" htmlFor={id("name")} required error={errors.name}>
             <Input
@@ -267,7 +297,8 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
               value={name}
               onChange={(event) => {
                 setName(event.target.value);
-                if (errors.name) setErrors((current) => ({ ...current, name: undefined }));
+                if (errors.name)
+                  setErrors((current) => ({ ...current, name: undefined }));
               }}
               invalid={Boolean(errors.name)}
               maxLength={120}
@@ -295,7 +326,9 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
               <Select
                 id={id("trigger")}
                 value={trigger}
-                onChange={(event) => setTrigger(event.target.value as AutomationTrigger)}
+                onChange={(event) =>
+                  setTrigger(event.target.value as AutomationTrigger)
+                }
               >
                 {AUTOMATION_TRIGGERS.map((value) => (
                   <option key={value} value={value}>
@@ -322,14 +355,20 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
           </div>
         </div>
 
-        <section className="space-y-3" aria-labelledby={id("conditions-heading")}>
+        <section
+          className="space-y-3"
+          aria-labelledby={id("conditions-heading")}
+        >
           <div>
-            <h3 id={id("conditions-heading")} className="text-sm font-medium text-fg">
+            <h3
+              id={id("conditions-heading")}
+              className="text-sm font-medium text-fg"
+            >
               Conditions
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-muted">
-              Optional. Narrow the rule to specific money values, customer types or job
-              priorities.
+              Optional. Narrow the rule to specific money values, customer types
+              or job priorities.
             </p>
           </div>
 
@@ -359,7 +398,9 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <fieldset className="space-y-2">
-              <legend className="text-xs font-medium text-muted">Customer types</legend>
+              <legend className="text-xs font-medium text-muted">
+                Customer types
+              </legend>
               <div className="space-y-1.5 rounded-input border border-border bg-surface-2/40 p-3">
                 {CUSTOMER_TYPES.map((value) => (
                   <label
@@ -379,7 +420,9 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
             </fieldset>
 
             <fieldset className="space-y-2">
-              <legend className="text-xs font-medium text-muted">Job priorities</legend>
+              <legend className="text-xs font-medium text-muted">
+                Job priorities
+              </legend>
               <div className="space-y-1.5 rounded-input border border-border bg-surface-2/40 p-3">
                 {JOB_PRIORITIES.map((value) => (
                   <label
@@ -403,7 +446,10 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
         <section className="space-y-3" aria-labelledby={id("actions-heading")}>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 id={id("actions-heading")} className="text-sm font-medium text-fg">
+              <h3
+                id={id("actions-heading")}
+                className="text-sm font-medium text-fg"
+              >
                 Actions
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-muted">
@@ -414,7 +460,10 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
               size="sm"
               variant="secondary"
               onClick={() => {
-                setActions((current) => [...current, defaultAction("CREATE_TASK")]);
+                setActions((current) => [
+                  ...current,
+                  defaultAction("CREATE_TASK"),
+                ]);
                 setErrors((current) => ({ ...current, actions: {} }));
               }}
               disabled={actions.length >= 5 || save.isPending}
@@ -442,7 +491,9 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                         variant="danger"
                         size="sm"
                         onClick={() => {
-                          setActions((current) => current.filter((_, i) => i !== index));
+                          setActions((current) =>
+                            current.filter((_, i) => i !== index),
+                          );
                           setErrors((current) => ({ ...current, actions: {} }));
                         }}
                         disabled={actions.length === 1 || save.isPending}
@@ -460,7 +511,9 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                         onChange={(event) =>
                           patchAction(
                             index,
-                            defaultAction(event.target.value as AutomationActionType),
+                            defaultAction(
+                              event.target.value as AutomationActionType,
+                            ),
                           )
                         }
                         aria-label={`Action ${index + 1} type`}
@@ -487,7 +540,10 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                           step="1"
                           value={action.dueInHours}
                           onChange={(event) =>
-                            patchAction(index, { ...action, dueInHours: event.target.value })
+                            patchAction(index, {
+                              ...action,
+                              dueInHours: event.target.value,
+                            })
                           }
                         />
                       </Field>
@@ -495,14 +551,18 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
 
                     {action.type === "SEND_MESSAGE" ? (
                       <>
-                        <Field label="Channel" htmlFor={id(`action-${index}-channel`)}>
+                        <Field
+                          label="Channel"
+                          htmlFor={id(`action-${index}-channel`)}
+                        >
                           <Select
                             id={id(`action-${index}-channel`)}
                             value={action.channel}
                             onChange={(event) =>
                               patchAction(index, {
                                 ...action,
-                                channel: event.target.value as CommunicationChannel,
+                                channel: event.target
+                                  .value as CommunicationChannel,
                               })
                             }
                             aria-label={`Action ${index + 1} channel`}
@@ -514,14 +574,18 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                             ))}
                           </Select>
                         </Field>
-                        <Field label="Intent" htmlFor={id(`action-${index}-intent`)}>
+                        <Field
+                          label="Intent"
+                          htmlFor={id(`action-${index}-intent`)}
+                        >
                           <Select
                             id={id(`action-${index}-intent`)}
                             value={action.intent}
                             onChange={(event) =>
                               patchAction(index, {
                                 ...action,
-                                intent: event.target.value as CommunicationIntent,
+                                intent: event.target
+                                  .value as CommunicationIntent,
                               })
                             }
                             aria-label={`Action ${index + 1} intent`}
@@ -537,14 +601,18 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                     ) : null}
 
                     {action.type === "REQUEST_REVIEW" ? (
-                      <Field label="Channel" htmlFor={id(`action-${index}-review-channel`)}>
+                      <Field
+                        label="Channel"
+                        htmlFor={id(`action-${index}-review-channel`)}
+                      >
                         <Select
                           id={id(`action-${index}-review-channel`)}
                           value={action.channel}
                           onChange={(event) =>
                             patchAction(index, {
                               ...action,
-                              channel: event.target.value as CommunicationChannel,
+                              channel: event.target
+                                .value as CommunicationChannel,
                             })
                           }
                           aria-label={`Action ${index + 1} channel`}
@@ -561,24 +629,36 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
 
                   {action.type === "CREATE_TASK" ? (
                     <div className="space-y-3">
-                      <Field label="Task title" htmlFor={id(`action-${index}-title`)}>
+                      <Field
+                        label="Task title"
+                        htmlFor={id(`action-${index}-title`)}
+                      >
                         <Input
                           id={id(`action-${index}-title`)}
                           value={action.title}
                           onChange={(event) =>
-                            patchAction(index, { ...action, title: event.target.value })
+                            patchAction(index, {
+                              ...action,
+                              title: event.target.value,
+                            })
                           }
                           maxLength={160}
                           invalid={Boolean(error)}
                           placeholder="Call the customer to book the next visit"
                         />
                       </Field>
-                      <Field label="Task notes" htmlFor={id(`action-${index}-body`)}>
+                      <Field
+                        label="Task notes"
+                        htmlFor={id(`action-${index}-body`)}
+                      >
                         <Textarea
                           id={id(`action-${index}-body`)}
                           value={action.body}
                           onChange={(event) =>
-                            patchAction(index, { ...action, body: event.target.value })
+                            patchAction(index, {
+                              ...action,
+                              body: event.target.value,
+                            })
                           }
                           maxLength={2000}
                           rows={2}
@@ -589,12 +669,18 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                   ) : null}
 
                   {action.type === "SEND_MESSAGE" ? (
-                    <Field label="Message" htmlFor={id(`action-${index}-message`)}>
+                    <Field
+                      label="Message"
+                      htmlFor={id(`action-${index}-message`)}
+                    >
                       <Textarea
                         id={id(`action-${index}-message`)}
                         value={action.body}
                         onChange={(event) =>
-                          patchAction(index, { ...action, body: event.target.value })
+                          patchAction(index, {
+                            ...action,
+                            body: event.target.value,
+                          })
                         }
                         maxLength={2000}
                         rows={3}
@@ -609,7 +695,10 @@ export function RuleModal({ rule, onClose, onSaved }: RuleModalProps) {
                         id={id(`action-${index}-tag`)}
                         value={action.tag}
                         onChange={(event) =>
-                          patchAction(index, { ...action, tag: event.target.value })
+                          patchAction(index, {
+                            ...action,
+                            tag: event.target.value,
+                          })
                         }
                         maxLength={30}
                         invalid={Boolean(error)}

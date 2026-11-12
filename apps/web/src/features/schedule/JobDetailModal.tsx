@@ -63,8 +63,15 @@ export function JobDetailModal({
   });
 
   const estimatesQuery = useQuery({
-    queryKey: queryKeys.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 50 }),
-    queryFn: () => api.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 50 }),
+    queryKey: queryKeys.estimates.list({
+      customerId: jobQuery.data?.customer.id,
+      pageSize: 50,
+    }),
+    queryFn: () =>
+      api.estimates.list({
+        customerId: jobQuery.data?.customer.id,
+        pageSize: 50,
+      }),
     enabled: Boolean(jobQuery.data?.customer.id),
   });
 
@@ -81,7 +88,9 @@ export function JobDetailModal({
 
   function invalidate(job: Job) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.detail(job.id) });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.jobs.detail(job.id),
+    });
     void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
@@ -121,10 +130,15 @@ export function JobDetailModal({
   );
   const invoiceTotal = invoicesQuery.data?.meta.total ?? 0;
   const invoiceTotalPages = invoicesQuery.data?.meta.totalPages ?? 1;
-  const invoicePageSize = invoicesQuery.data?.meta.pageSize ?? INVOICE_PAGE_SIZE;
+  const invoicePageSize =
+    invoicesQuery.data?.meta.pageSize ?? INVOICE_PAGE_SIZE;
   const invoiceCurrentPage = invoicesQuery.data?.meta.page ?? invoicePage;
-  const invoiceRangeStart = invoiceTotal === 0 ? 0 : (invoiceCurrentPage - 1) * invoicePageSize + 1;
-  const invoiceRangeEnd = Math.min(invoiceCurrentPage * invoicePageSize, invoiceTotal);
+  const invoiceRangeStart =
+    invoiceTotal === 0 ? 0 : (invoiceCurrentPage - 1) * invoicePageSize + 1;
+  const invoiceRangeEnd = Math.min(
+    invoiceCurrentPage * invoicePageSize,
+    invoiceTotal,
+  );
 
   useEffect(() => {
     setInvoicePage(1);
@@ -160,8 +174,12 @@ export function JobDetailModal({
         </div>
       ) : jobQuery.isError ? (
         <div className="rounded-card border border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm font-medium text-danger">Could not load this job.</p>
-          <p className="mt-1 text-sm text-muted">{apiErrorMessage(jobQuery.error)}</p>
+          <p className="text-sm font-medium text-danger">
+            Could not load this job.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {apiErrorMessage(jobQuery.error)}
+          </p>
           <Button
             size="sm"
             variant="secondary"
@@ -209,9 +227,14 @@ export function JobDetailModal({
             <div className="min-w-0 sm:col-span-2">
               <dt className="label-micro">Service location</dt>
               <dd className="mt-1 flex items-start gap-2 text-sm text-fg">
-                <MapPin className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+                <MapPin
+                  className="mt-0.5 size-4 shrink-0 text-muted"
+                  aria-hidden="true"
+                />
                 <span>
-                  <span className="block font-medium">{job.location.label}</span>
+                  <span className="block font-medium">
+                    {job.location.label}
+                  </span>
                   <span className="block text-muted">
                     {[
                       job.location.line1,
@@ -229,7 +252,9 @@ export function JobDetailModal({
               <dt className="label-micro">Customer</dt>
               <dd className="mt-1 flex items-center gap-2 text-sm text-fg">
                 <span className="truncate">{job.customer.name}</span>
-                <Badge tone="neutral">{customerTypeLabel(job.customer.customerType)}</Badge>
+                <Badge tone="neutral">
+                  {customerTypeLabel(job.customer.customerType)}
+                </Badge>
               </dd>
             </div>
             <div className="min-w-0">
@@ -247,18 +272,27 @@ export function JobDetailModal({
             <div className="min-w-0">
               <dt className="label-micro">Schedule</dt>
               <dd className="mt-1 flex items-center gap-2 text-sm text-fg">
-                <CalendarClock className="size-3.5 text-muted" aria-hidden="true" />
-                {job.scheduledStart ? formatDateTime(job.scheduledStart) : "Unscheduled"}
+                <CalendarClock
+                  className="size-3.5 text-muted"
+                  aria-hidden="true"
+                />
+                {job.scheduledStart
+                  ? formatDateTime(job.scheduledStart)
+                  : "Unscheduled"}
               </dd>
             </div>
             <div className="min-w-0">
               <dt className="label-micro">Duration</dt>
-              <dd className="num mt-1 text-sm text-fg">{job.durationMinutes} min</dd>
+              <dd className="num mt-1 text-sm text-fg">
+                {job.durationMinutes} min
+              </dd>
             </div>
             {job.recurrence ? (
               <div className="min-w-0">
                 <dt className="label-micro">Repeats</dt>
-                <dd className="mt-1 text-sm text-fg">{RECURRENCE_LABEL[job.recurrence]}</dd>
+                <dd className="mt-1 text-sm text-fg">
+                  {RECURRENCE_LABEL[job.recurrence]}
+                </dd>
               </div>
             ) : null}
             <div className="min-w-0">
@@ -319,7 +353,11 @@ export function JobDetailModal({
                 </Button>
               ) : null}
               {job.status !== "CANCELED" ? (
-                <Button size="sm" variant="danger" onClick={() => setCanceling(true)}>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setCanceling(true)}
+                >
                   <XCircle className="size-4" aria-hidden="true" />
                   Cancel
                 </Button>
@@ -383,14 +421,21 @@ export function JobDetailModal({
             ) : (
               <ul className="divide-y divide-border overflow-hidden rounded-card border border-border text-sm">
                 {job.lineItems.map((line) => (
-                  <li key={line.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                  <li
+                    key={line.id}
+                    className="flex items-start justify-between gap-3 px-4 py-3"
+                  >
                     <span className="min-w-0">
-                      <span className="block truncate text-fg">{line.name}</span>
+                      <span className="block truncate text-fg">
+                        {line.name}
+                      </span>
                       <span className="num text-xs text-muted">
                         {line.quantity} × {money(line.unitPrice, currency)}
                       </span>
                     </span>
-                    <span className="num shrink-0 text-fg">{money(line.total, currency)}</span>
+                    <span className="num shrink-0 text-fg">
+                      {money(line.total, currency)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -398,7 +443,9 @@ export function JobDetailModal({
             <dl className="mt-3 grid gap-2 rounded-card border border-border bg-surface-2/40 p-4 text-sm sm:grid-cols-3">
               <div>
                 <dt className="label-micro">Subtotal</dt>
-                <dd className="num mt-1 text-fg">{money(job.subtotal, currency)}</dd>
+                <dd className="num mt-1 text-fg">
+                  {money(job.subtotal, currency)}
+                </dd>
               </div>
               <div>
                 <dt className="label-micro">Tax ({job.taxRate.toFixed(2)}%)</dt>
@@ -406,14 +453,22 @@ export function JobDetailModal({
               </div>
               <div>
                 <dt className="label-micro">Total</dt>
-                <dd className="num mt-1 text-base text-fg">{money(job.total, currency)}</dd>
+                <dd className="num mt-1 text-base text-fg">
+                  {money(job.total, currency)}
+                </dd>
               </div>
             </dl>
           </section>
 
-          <section aria-labelledby="job-documents-heading" className="space-y-3">
+          <section
+            aria-labelledby="job-documents-heading"
+            className="space-y-3"
+          >
             <div className="flex items-center justify-between gap-3">
-              <h3 id="job-documents-heading" className="text-sm font-medium text-fg">
+              <h3
+                id="job-documents-heading"
+                className="text-sm font-medium text-fg"
+              >
                 Linked documents
               </h3>
               <Button size="sm" variant="secondary" onClick={createInvoice}>
@@ -425,8 +480,12 @@ export function JobDetailModal({
               <Skeleton className="h-12" />
             ) : invoicesQuery.isError ? (
               <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
-                <p className="font-medium text-danger">Could not load invoices.</p>
-                <p className="mt-1 text-muted">{apiErrorMessage(invoicesQuery.error)}</p>
+                <p className="font-medium text-danger">
+                  Could not load invoices.
+                </p>
+                <p className="mt-1 text-muted">
+                  {apiErrorMessage(invoicesQuery.error)}
+                </p>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -444,29 +503,42 @@ export function JobDetailModal({
               <>
                 <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
                   {openInvoices.map((invoice) => (
-                    <li key={invoice.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <li
+                      key={invoice.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
                       <span className="min-w-0">
-                        <span className="block truncate text-sm text-fg">{invoice.number}</span>
+                        <span className="block truncate text-sm text-fg">
+                          {invoice.number}
+                        </span>
                         <span className="block truncate text-xs text-muted">
                           Issued {formatDate(invoice.issuedAt)}
                         </span>
                       </span>
                       <span className="flex items-center gap-2">
-                        <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
-                        <span className="num text-sm text-fg">{formatMoney(invoice.amount, currency)}</span>
+                        <InvoiceStatusBadge
+                          status={invoice.status}
+                          overdue={invoice.overdue}
+                        />
+                        <span className="num text-sm text-fg">
+                          {formatMoney(invoice.amount, currency)}
+                        </span>
                       </span>
                     </li>
                   ))}
                 </ul>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="num text-xs text-muted">
-                    Showing {invoiceRangeStart}–{invoiceRangeEnd} of {invoiceTotal}
+                    Showing {invoiceRangeStart}–{invoiceRangeEnd} of{" "}
+                    {invoiceTotal}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => setInvoicePage((current) => Math.max(1, current - 1))}
+                      onClick={() =>
+                        setInvoicePage((current) => Math.max(1, current - 1))
+                      }
                       disabled={invoiceCurrentPage <= 1}
                       aria-label="Previous invoice page"
                     >
@@ -479,7 +551,9 @@ export function JobDetailModal({
                       size="sm"
                       variant="secondary"
                       onClick={() =>
-                        setInvoicePage((current) => Math.min(invoiceTotalPages, current + 1))
+                        setInvoicePage((current) =>
+                          Math.min(invoiceTotalPages, current + 1),
+                        )
                       }
                       disabled={invoiceCurrentPage >= invoiceTotalPages}
                       aria-label="Next invoice page"
@@ -492,8 +566,12 @@ export function JobDetailModal({
             )}
             {estimatesQuery.isError ? (
               <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
-                <p className="font-medium text-danger">Could not load estimates.</p>
-                <p className="mt-1 text-muted">{apiErrorMessage(estimatesQuery.error)}</p>
+                <p className="font-medium text-danger">
+                  Could not load estimates.
+                </p>
+                <p className="mt-1 text-muted">
+                  {apiErrorMessage(estimatesQuery.error)}
+                </p>
                 <Button
                   size="sm"
                   variant="secondary"
@@ -510,12 +588,17 @@ export function JobDetailModal({
                 </p>
                 <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
                   {linkedEstimates.map((estimate) => (
-                    <li key={estimate.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <li
+                      key={estimate.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
                       <span className="min-w-0">
                         <span className="block truncate text-sm text-fg">
                           {estimate.number} · {estimate.title}
                         </span>
-                        <span className="block truncate text-xs text-muted">Estimate</span>
+                        <span className="block truncate text-xs text-muted">
+                          Estimate
+                        </span>
                       </span>
                       <span className="flex items-center gap-2">
                         <EstimateStatusBadge status={estimate.status} />

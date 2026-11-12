@@ -16,11 +16,15 @@ export function haversineMeters(
   const lat1 = a.latitude * toRadians;
   const lat2 = b.latitude * toRadians;
   const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function pathDistance(start: RoutePoint, points: readonly RoutePoint[]): number {
+function pathDistance(
+  start: RoutePoint,
+  points: readonly RoutePoint[],
+): number {
   let total = 0;
   let previous = start;
   for (const point of points) {
@@ -30,7 +34,11 @@ function pathDistance(start: RoutePoint, points: readonly RoutePoint[]): number 
   return total;
 }
 
-function reverseSegment<T>(points: readonly T[], from: number, to: number): T[] {
+function reverseSegment<T>(
+  points: readonly T[],
+  from: number,
+  to: number,
+): T[] {
   return [
     ...points.slice(0, from),
     ...points.slice(from, to + 1).reverse(),
@@ -79,7 +87,10 @@ export function optimizeRoute<T extends RoutePoint>(
       for (let i = 0; i < ordered.length - 1; i += 1) {
         for (let j = i + 1; j < ordered.length; j += 1) {
           const candidate = reverseSegment(ordered, i, j);
-          const candidateDistance = pathDistance({ id: "__start__", ...start }, candidate);
+          const candidateDistance = pathDistance(
+            { id: "__start__", ...start },
+            candidate,
+          );
           if (candidateDistance + 1 < distance) {
             ordered.splice(0, ordered.length, ...candidate);
             distance = candidateDistance;

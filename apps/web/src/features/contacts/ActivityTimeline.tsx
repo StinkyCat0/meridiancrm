@@ -1,8 +1,9 @@
-import { api, type Activity, type CreateActivityInput } from "@meridian/api-client";
 import {
-  ACTIVITY_TYPE_META,
-  type ActivityType,
-} from "@meridian/contracts";
+  api,
+  type Activity,
+  type CreateActivityInput,
+} from "@meridian/api-client";
+import { ACTIVITY_TYPE_META, type ActivityType } from "@meridian/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -37,7 +38,9 @@ interface ContactActivityTimelineProps {
   contactId: string;
 }
 
-export function ContactActivityTimeline({ contactId }: ContactActivityTimelineProps) {
+export function ContactActivityTimeline({
+  contactId,
+}: ContactActivityTimelineProps) {
   const queryClient = useQueryClient();
   const scope = { contactId, pageSize: 50 };
   const [title, setTitle] = useState("");
@@ -104,11 +107,16 @@ export function ContactActivityTimeline({ contactId }: ContactActivityTimelinePr
   return (
     <section aria-labelledby="contact-activity-heading" className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 id="contact-activity-heading" className="text-sm font-medium text-fg">
+        <h3
+          id="contact-activity-heading"
+          className="text-sm font-medium text-fg"
+        >
           Activity
         </h3>
         <span className="num text-xs text-muted">
-          {activitiesQuery.data ? `${activitiesQuery.data.meta.total} entries` : "—"}
+          {activitiesQuery.data
+            ? `${activitiesQuery.data.meta.total} entries`
+            : "—"}
         </span>
       </div>
 
@@ -143,7 +151,12 @@ export function ContactActivityTimeline({ contactId }: ContactActivityTimelinePr
           rows={3}
         />
         <div className="flex justify-end">
-          <Button type="submit" size="sm" variant="secondary" loading={createNote.isPending}>
+          <Button
+            type="submit"
+            size="sm"
+            variant="secondary"
+            loading={createNote.isPending}
+          >
             <Plus aria-hidden="true" className="size-3.5" />
             Log note
           </Button>
@@ -164,7 +177,9 @@ export function ContactActivityTimeline({ contactId }: ContactActivityTimelinePr
         </div>
       ) : activitiesQuery.isError ? (
         <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm text-danger">
-          <p>Could not load activity. {apiErrorMessage(activitiesQuery.error)}</p>
+          <p>
+            Could not load activity. {apiErrorMessage(activitiesQuery.error)}
+          </p>
           <Button
             size="sm"
             variant="secondary"
@@ -201,7 +216,9 @@ export function ContactActivityTimeline({ contactId }: ContactActivityTimelinePr
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="label-micro">{ACTIVITY_TYPE_META[activity.type].label}</span>
+                      <span className="label-micro">
+                        {ACTIVITY_TYPE_META[activity.type].label}
+                      </span>
                       <span className="text-[11px] text-muted">
                         {relativeTime(activity.createdAt)}
                       </span>
@@ -220,7 +237,9 @@ export function ContactActivityTimeline({ contactId }: ContactActivityTimelinePr
                           disabled={taskPending}
                           onChange={() => toggleTask.mutate(activity)}
                           aria-label={
-                            completed ? `Reopen ${activity.title}` : `Complete ${activity.title}`
+                            completed
+                              ? `Reopen ${activity.title}`
+                              : `Complete ${activity.title}`
                           }
                           className="mt-0.5 size-4 shrink-0 cursor-pointer accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed"
                         />

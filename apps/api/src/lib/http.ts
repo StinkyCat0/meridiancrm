@@ -8,7 +8,12 @@ export class AppError extends Error {
   readonly code: string;
   readonly details?: unknown;
 
-  constructor(statusCode: number, code: string, message: string, details?: unknown) {
+  constructor(
+    statusCode: number,
+    code: string,
+    message: string,
+    details?: unknown,
+  ) {
     super(message);
     this.name = "AppError";
     this.statusCode = statusCode;
@@ -32,7 +37,10 @@ export const notFound = (entity = "Resource") =>
 export const conflict = (message: string, details?: unknown) =>
   new AppError(409, ERROR_CODES.CONFLICT, message, details);
 
-export function parseOrThrow<S extends ZodTypeAny>(schema: S, value: unknown): ZodOutput<S> {
+export function parseOrThrow<S extends ZodTypeAny>(
+  schema: S,
+  value: unknown,
+): ZodOutput<S> {
   const result = schema.safeParse(value);
   if (!result.success) {
     throw new AppError(
@@ -45,15 +53,26 @@ export function parseOrThrow<S extends ZodTypeAny>(schema: S, value: unknown): Z
   return result.data;
 }
 
-export function pageMeta(total: number, page: number, pageSize: number): PageMeta {
-  return { total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+export function pageMeta(
+  total: number,
+  page: number,
+  pageSize: number,
+): PageMeta {
+  return {
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 export function parseTags(raw: string | null | undefined): string[] {
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((tag): tag is string => typeof tag === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((tag): tag is string => typeof tag === "string")
+      : [];
   } catch {
     return [];
   }
@@ -80,7 +99,11 @@ export function registerErrorHandler(app: FastifyInstance): void {
   app.setErrorHandler((error: FastifyError, request, reply) => {
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({
-        error: { code: error.code, message: error.message, details: error.details },
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        },
       });
     }
     if (error instanceof ZodError) {
@@ -123,13 +146,15 @@ export function registerErrorHandler(app: FastifyInstance): void {
         },
       });
     }
-    const statusCode = error.statusCode && error.statusCode >= 400 ? error.statusCode : 500;
+    const statusCode =
+      error.statusCode && error.statusCode >= 400 ? error.statusCode : 500;
     if (statusCode >= 500) {
       request.log.error({ err: error }, "unhandled request error");
       return reply.status(500).send({
         error: {
           code: ERROR_CODES.INTERNAL,
-          message: "Something went wrong on our side. The request was not completed.",
+          message:
+            "Something went wrong on our side. The request was not completed.",
         },
       });
     }

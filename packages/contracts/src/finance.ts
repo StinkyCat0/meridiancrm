@@ -5,7 +5,13 @@ import {
   type ExpenseCategory,
   type PaymentMethod,
 } from "./enums.js";
-import { idSchema, optionalDate, optionalText, optionalUrl, paginationSchema } from "./common.js";
+import {
+  idSchema,
+  optionalDate,
+  optionalText,
+  optionalUrl,
+  paginationSchema,
+} from "./common.js";
 import type { PublicUser } from "./entities.js";
 import type { CustomerSummary } from "./service.js";
 

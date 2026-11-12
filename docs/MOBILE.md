@@ -32,17 +32,17 @@ Expo app
 
 ### Screen map
 
-| Web area              | Expo Router route                          | Notes                                                   |
-| --------------------- | ------------------------------------------ | ------------------------------------------------------- |
-| Login / register      | `app/(auth)/login.tsx`, `register.tsx`     | Same auth endpoints; native secure token storage.       |
-| Invite acceptance     | `app/(auth)/invite/[token].tsx`            | Uses `GET /auth/invite/:token` then accept.             |
-| Dashboard / overview  | `app/(tabs)/index.tsx`                     | `GET /dashboard`; pull-to-refresh.                      |
-| Contacts              | `app/(tabs)/contacts/index.tsx`            | List + `[id].tsx` detail; search via `q`.               |
-| Companies             | `app/(tabs)/companies/index.tsx`           | Linked from contacts and deals.                         |
-| Deals                 | `app/(tabs)/deals/index.tsx`               | Stage columns or grouped list; `[id].tsx` detail.       |
-| Activities            | `app/(tabs)/activities/index.tsx`          | Segmented by type; due tasks first.                     |
-| Settings / team       | `app/(tabs)/settings/index.tsx`            | Profile, password, members, invites, audit (ADMIN+).    |
-| Command palette       | `app/search.tsx` (modal)                   | `GET /search?q=`; debounced.                            |
+| Web area             | Expo Router route                      | Notes                                                |
+| -------------------- | -------------------------------------- | ---------------------------------------------------- |
+| Login / register     | `app/(auth)/login.tsx`, `register.tsx` | Same auth endpoints; native secure token storage.    |
+| Invite acceptance    | `app/(auth)/invite/[token].tsx`        | Uses `GET /auth/invite/:token` then accept.          |
+| Dashboard / overview | `app/(tabs)/index.tsx`                 | `GET /dashboard`; pull-to-refresh.                   |
+| Contacts             | `app/(tabs)/contacts/index.tsx`        | List + `[id].tsx` detail; search via `q`.            |
+| Companies            | `app/(tabs)/companies/index.tsx`       | Linked from contacts and deals.                      |
+| Deals                | `app/(tabs)/deals/index.tsx`           | Stage columns or grouped list; `[id].tsx` detail.    |
+| Activities           | `app/(tabs)/activities/index.tsx`      | Segmented by type; due tasks first.                  |
+| Settings / team      | `app/(tabs)/settings/index.tsx`        | Profile, password, members, invites, audit (ADMIN+). |
+| Command palette      | `app/search.tsx` (modal)               | `GET /search?q=`; debounced.                         |
 
 Tabs: overview, contacts, deals, activities, settings. Companies live inside contacts navigation to
 avoid a sixth tab.
@@ -64,17 +64,17 @@ Access and refresh tokens must go in `expo-secure-store` (Keychain / Keystore), 
 
 ## Shared primitives
 
-| Web primitive         | React Native equivalent                          |
-| --------------------- | ------------------------------------------------ |
-| Tailwind classes      | `StyleSheet` + shared token module (colors, spacing). |
-| React Router          | Expo Router (file-based).                         |
-| TanStack Query        | Same package; `focusManager` from AppState.       |
-| `fetch` api-client    | Same; inject base URL and auth header provider.   |
-| dnd-kit board         | `react-native-gesture-handler` / Reanimated, or stage picker sheet. |
-| Recharts              | `victory-native` or compact native sparklines.    |
-| Sonner toasts         | Native toast/snackbar component.                  |
-| Lucide icons          | `lucide-react-native`.                            |
-| CSS focus rings       | Native accessibility focus (no hover state).      |
+| Web primitive      | React Native equivalent                                             |
+| ------------------ | ------------------------------------------------------------------- |
+| Tailwind classes   | `StyleSheet` + shared token module (colors, spacing).               |
+| React Router       | Expo Router (file-based).                                           |
+| TanStack Query     | Same package; `focusManager` from AppState.                         |
+| `fetch` api-client | Same; inject base URL and auth header provider.                     |
+| dnd-kit board      | `react-native-gesture-handler` / Reanimated, or stage picker sheet. |
+| Recharts           | `victory-native` or compact native sparklines.                      |
+| Sonner toasts      | Native toast/snackbar component.                                    |
+| Lucide icons       | `lucide-react-native`.                                              |
+| CSS focus rings    | Native accessibility focus (no hover state).                        |
 
 Keep components dumb: formatting helpers from `@meridian/contracts` (`formatMoney`, `initials`,
 `computeMomentum`) are portable TypeScript; do not reimplement them.

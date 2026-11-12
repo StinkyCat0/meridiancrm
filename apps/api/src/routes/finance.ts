@@ -24,8 +24,18 @@ import type { Prisma } from "@prisma/client";
 import { authenticate, getAuth, requireRole } from "../lib/auth.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/db.js";
-import { badRequest, likeTerm, notFound, pageMeta, parseOrThrow } from "../lib/http.js";
-import { customerSelect, toCustomerSummary, userSelect } from "../lib/service-ops.js";
+import {
+  badRequest,
+  likeTerm,
+  notFound,
+  pageMeta,
+  parseOrThrow,
+} from "../lib/http.js";
+import {
+  customerSelect,
+  toCustomerSummary,
+  userSelect,
+} from "../lib/service-ops.js";
 
 const DAY_MS = 86_400_000;
 const DEFAULT_RANGE_DAYS = 90;
@@ -91,7 +101,9 @@ function toExpense(row: ExpenseRow): Expense {
 /* -------------------------------------------------------------------------- */
 
 function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 function addDays(date: Date, days: number): Date {
@@ -103,7 +115,9 @@ function startOfUtcMonth(date: Date): Date {
 }
 
 function addUtcMonths(date: Date, months: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1),
+  );
 }
 
 function monthKey(date: Date): string {
@@ -127,12 +141,16 @@ interface ResolvedRange {
 
 function resolveSummaryRange(from?: Date, to?: Date): ResolvedRange {
   const endDay = startOfUtcDay(to ?? new Date());
-  const requestedStart = startOfUtcDay(from ?? new Date(endDay.getTime() - DEFAULT_RANGE_DAYS * DAY_MS));
+  const requestedStart = startOfUtcDay(
+    from ?? new Date(endDay.getTime() - DEFAULT_RANGE_DAYS * DAY_MS),
+  );
   if (requestedStart.getTime() > endDay.getTime()) {
     throw badRequest("`from` must be on or before `to`");
   }
 
-  const earliestStart = new Date(endDay.getTime() - (MAX_RANGE_DAYS - 1) * DAY_MS);
+  const earliestStart = new Date(
+    endDay.getTime() - (MAX_RANGE_DAYS - 1) * DAY_MS,
+  );
   const start = requestedStart < earliestStart ? earliestStart : requestedStart;
   const endExclusive = addDays(endDay, 1);
 
@@ -183,7 +201,9 @@ function sortByRevenueThenName<T extends { revenue: number }>(
   rows: T[],
   nameOf: (row: T) => string,
 ): T[] {
-  return rows.sort((a, b) => b.revenue - a.revenue || nameOf(a).localeCompare(nameOf(b)));
+  return rows.sort(
+    (a, b) => b.revenue - a.revenue || nameOf(a).localeCompare(nameOf(b)),
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -246,50 +266,71 @@ interface MonthAccumulator {
   cogs: number;
 }
 
-function buildMonthSeries(start: Date, endDay: Date): Map<string, MonthAccumulator> {
+function buildMonthSeries(
+  start: Date,
+  endDay: Date,
+): Map<string, MonthAccumulator> {
   const rangeMonthStart = startOfUtcMonth(start);
-  const minimumStart = addUtcMonths(startOfUtcMonth(endDay), -(MIN_SERIES_MONTHS - 1));
-  const seriesStart = rangeMonthStart < minimumStart ? rangeMonthStart : minimumStart;
+  const minimumStart = addUtcMonths(
+    startOfUtcMonth(endDay),
+    -(MIN_SERIES_MONTHS - 1),
+  );
+  const seriesStart =
+    rangeMonthStart < minimumStart ? rangeMonthStart : minimumStart;
 
   const series = new Map<string, MonthAccumulator>();
-  for (let cursor = seriesStart; cursor.getTime() <= endDay.getTime(); cursor = addUtcMonths(cursor, 1)) {
+  for (
+    let cursor = seriesStart;
+    cursor.getTime() <= endDay.getTime();
+    cursor = addUtcMonths(cursor, 1)
+  ) {
     series.set(monthKey(cursor), { revenue: 0, expenses: 0, cogs: 0 });
   }
   return series;
 }
 
-async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise<FinanceSummary> {
+async function loadSummary(
+  workspaceId: string,
+  from?: Date,
+  to?: Date,
+): Promise<FinanceSummary> {
   const { start, endExclusive, endDay, range } = resolveSummaryRange(from, to);
   const now = new Date();
 
-  const [workspace, payments, expenses, invoiced, openInvoices] = await Promise.all([
-    prisma.workspace.findUnique({
-      where: { id: workspaceId },
-      select: { currency: true },
-    }),
-    prisma.payment.findMany({
-      where: { workspaceId, receivedAt: { gte: start, lt: endExclusive } },
-      select: summaryPaymentSelect,
-      orderBy: { receivedAt: "asc" },
-    }),
-    prisma.expense.findMany({
-      where: { workspaceId, incurredAt: { gte: start, lt: endExclusive } },
-      select: { category: true, amount: true, incurredAt: true },
-      orderBy: { incurredAt: "asc" },
-    }),
-    prisma.invoice.aggregate({
-      where: {
-        workspaceId,
-        status: { not: "VOID" },
-        issuedAt: { gte: start, lt: endExclusive },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.invoice.findMany({
-      where: { workspaceId, status: { notIn: ["DRAFT", "VOID"] } },
-      select: { customerId: true, amount: true, amountPaid: true, dueAt: true },
-    }),
-  ]);
+  const [workspace, payments, expenses, invoiced, openInvoices] =
+    await Promise.all([
+      prisma.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { currency: true },
+      }),
+      prisma.payment.findMany({
+        where: { workspaceId, receivedAt: { gte: start, lt: endExclusive } },
+        select: summaryPaymentSelect,
+        orderBy: { receivedAt: "asc" },
+      }),
+      prisma.expense.findMany({
+        where: { workspaceId, incurredAt: { gte: start, lt: endExclusive } },
+        select: { category: true, amount: true, incurredAt: true },
+        orderBy: { incurredAt: "asc" },
+      }),
+      prisma.invoice.aggregate({
+        where: {
+          workspaceId,
+          status: { not: "VOID" },
+          issuedAt: { gte: start, lt: endExclusive },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.invoice.findMany({
+        where: { workspaceId, status: { notIn: ["DRAFT", "VOID"] } },
+        select: {
+          customerId: true,
+          amount: true,
+          amountPaid: true,
+          dueAt: true,
+        },
+      }),
+    ]);
 
   if (!workspace) throw notFound("Workspace");
 
@@ -354,8 +395,14 @@ async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise
     if (month) month.cogs += paymentCost;
 
     if (job && totalLineTotal > 0) {
-      const revenueShares = allocate(amount, lineCosts.map((line) => line.total));
-      const costShares = allocate(paymentCost, lineCosts.map((line) => line.cost));
+      const revenueShares = allocate(
+        amount,
+        lineCosts.map((line) => line.total),
+      );
+      const costShares = allocate(
+        paymentCost,
+        lineCosts.map((line) => line.cost),
+      );
 
       lineCosts.forEach((line, index) => {
         const lineRevenue = revenueShares[index] ?? 0;
@@ -365,7 +412,11 @@ async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise
         const entry =
           categoryStats.get(line.category) ??
           (() => {
-            const created: CategoryAccumulator = { revenue: 0, cost: 0, jobs: new Set<string>() };
+            const created: CategoryAccumulator = {
+              revenue: 0,
+              cost: 0,
+              jobs: new Set<string>(),
+            };
             categoryStats.set(line.category, created);
             return created;
           })();
@@ -416,7 +467,10 @@ async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise
   for (const expense of expenses) {
     expensesTotal += expense.amount;
     const category = expense.category as ExpenseCategory;
-    expensesByCategoryMap.set(category, (expensesByCategoryMap.get(category) ?? 0) + expense.amount);
+    expensesByCategoryMap.set(
+      category,
+      (expensesByCategoryMap.get(category) ?? 0) + expense.amount,
+    );
     const month = months.get(monthKey(expense.incurredAt));
     if (month) month.expenses += expense.amount;
   }
@@ -438,12 +492,14 @@ async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise
     }
   }
 
-  const monthly: FinanceMonth[] = Array.from(months.entries()).map(([month, values]) => ({
-    month,
-    revenue: values.revenue,
-    expenses: values.expenses,
-    profit: values.revenue - values.expenses - values.cogs,
-  }));
+  const monthly: FinanceMonth[] = Array.from(months.entries()).map(
+    ([month, values]) => ({
+      month,
+      revenue: values.revenue,
+      expenses: values.expenses,
+      profit: values.revenue - values.expenses - values.cogs,
+    }),
+  );
 
   const expensesByCategory = Array.from(expensesByCategoryMap.entries())
     .filter(([, amount]) => amount !== 0)
@@ -451,7 +507,8 @@ async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise
     .sort(
       (a, b) =>
         b.amount - a.amount ||
-        EXPENSE_CATEGORIES.indexOf(a.category) - EXPENSE_CATEGORIES.indexOf(b.category),
+        EXPENSE_CATEGORIES.indexOf(a.category) -
+          EXPENSE_CATEGORIES.indexOf(b.category),
     );
 
   const serviceMargins: CategoryMargin[] = sortByRevenueThenName(
@@ -505,7 +562,8 @@ async function loadSummary(workspaceId: string, from?: Date, to?: Date): Promise
     expenses: expensesTotal,
     grossProfit,
     grossMarginPct: marginPct(grossProfit, revenue),
-    averageTicket: paidInvoiceIds.size > 0 ? Math.round(revenue / paidInvoiceIds.size) : 0,
+    averageTicket:
+      paidInvoiceIds.size > 0 ? Math.round(revenue / paidInvoiceIds.size) : 0,
     paymentCount: payments.length,
     monthly,
     expensesByCategory,
@@ -527,7 +585,10 @@ async function assertJob(workspaceId: string, jobId: string): Promise<void> {
   if (!job) throw notFound("Job");
 }
 
-async function assertWorkspaceUser(workspaceId: string, userId: string): Promise<void> {
+async function assertWorkspaceUser(
+  workspaceId: string,
+  userId: string,
+): Promise<void> {
   const membership = await prisma.membership.findUnique({
     where: { userId_workspaceId: { userId, workspaceId } },
     select: { id: true },
@@ -562,7 +623,11 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const auth = getAuth(request);
       const query = parseOrThrow(financeRangeSchema, request.query);
-      return loadSummary(auth.workspaceId, query.from ?? undefined, query.to ?? undefined);
+      return loadSummary(
+        auth.workspaceId,
+        query.from ?? undefined,
+        query.to ?? undefined,
+      );
     },
   );
 
@@ -579,12 +644,17 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const query = parseOrThrow(paymentListQuerySchema, request.query);
-      const receivedAt = dayRange(query.from ?? undefined, query.to ?? undefined);
+      const receivedAt = dayRange(
+        query.from ?? undefined,
+        query.to ?? undefined,
+      );
 
       const where: Prisma.PaymentWhereInput = {
         workspaceId: auth.workspaceId,
         ...(Object.keys(receivedAt).length > 0 ? { receivedAt } : {}),
-        ...(query.customerId ? { invoice: { is: { customerId: query.customerId } } } : {}),
+        ...(query.customerId
+          ? { invoice: { is: { customerId: query.customerId } } }
+          : {}),
         ...(query.invoiceId ? { invoiceId: query.invoiceId } : {}),
       };
 
@@ -593,18 +663,23 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
         where.OR = [
           { reference: { contains: term } },
           { invoice: { is: { number: { contains: term } } } },
-          { invoice: { is: { customer: { is: { name: { contains: term } } } } } },
+          {
+            invoice: { is: { customer: { is: { name: { contains: term } } } } },
+          },
         ];
       }
 
       const allowedSorts = ["receivedAt", "amount", "createdAt"] as const;
-      const sortField = allowedSorts.find((field) => field === query.sort) ?? "receivedAt";
+      const sortField =
+        allowedSorts.find((field) => field === query.sort) ?? "receivedAt";
 
       const [rows, total] = await prisma.$transaction([
         prisma.payment.findMany({
           where,
           include: paymentInclude,
-          orderBy: { [sortField]: query.order } as Prisma.PaymentOrderByWithRelationInput,
+          orderBy: {
+            [sortField]: query.order,
+          } as Prisma.PaymentOrderByWithRelationInput,
           skip: (query.page - 1) * query.pageSize,
           take: query.pageSize,
         }),
@@ -631,7 +706,10 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const query = parseOrThrow(expenseListQuerySchema, request.query);
-      const incurredAt = dayRange(query.from ?? undefined, query.to ?? undefined);
+      const incurredAt = dayRange(
+        query.from ?? undefined,
+        query.to ?? undefined,
+      );
 
       const where: Prisma.ExpenseWhereInput = {
         workspaceId: auth.workspaceId,
@@ -649,13 +727,16 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const allowedSorts = ["incurredAt", "amount", "createdAt"] as const;
-      const sortField = allowedSorts.find((field) => field === query.sort) ?? "incurredAt";
+      const sortField =
+        allowedSorts.find((field) => field === query.sort) ?? "incurredAt";
 
       const [rows, total] = await prisma.$transaction([
         prisma.expense.findMany({
           where,
           include: expenseInclude,
-          orderBy: { [sortField]: query.order } as Prisma.ExpenseOrderByWithRelationInput,
+          orderBy: {
+            [sortField]: query.order,
+          } as Prisma.ExpenseOrderByWithRelationInput,
           skip: (query.page - 1) * query.pageSize,
           take: query.pageSize,
         }),

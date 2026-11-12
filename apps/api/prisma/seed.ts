@@ -19,7 +19,11 @@ import {
 } from "@meridian/contracts";
 import { hashPassword } from "../src/lib/auth.js";
 import { prisma } from "../src/lib/db.js";
-import { priceLineItems, toLineItemCreate, totalsFor } from "../src/lib/service-ops.js";
+import {
+  priceLineItems,
+  toLineItemCreate,
+  totalsFor,
+} from "../src/lib/service-ops.js";
 
 const WORKSPACE_SLUG = "meridian-studio";
 const DEMO_EMAIL = "demo@meridian.studio";
@@ -101,7 +105,13 @@ function atHour(dayOffset: number, hour: number, minute = 0): Date {
     .filter((part) => part.type !== "literal")
     .map((part) => [part.type, Number(part.value)] as const);
   const values = Object.fromEntries(parts) as Record<string, number>;
-  return chicagoWallClockToUtc(values.year!, values.month!, values.day!, hour, minute);
+  return chicagoWallClockToUtc(
+    values.year!,
+    values.month!,
+    values.day!,
+    hour,
+    minute,
+  );
 }
 
 /** Communications and tasks should never carry a timestamp in the future. */
@@ -120,12 +130,48 @@ function must<T>(value: T | undefined, label: string): T {
 
 type UserKey = "demo" | "jordan" | "maya" | "chris" | "sofia";
 
-const userSeeds: Array<{ key: UserKey; email: string; name: string; role: string; joinedDaysAgo: number }> = [
-  { key: "demo", email: DEMO_EMAIL, name: "Avery Meridian", role: "OWNER", joinedDaysAgo: 210 },
-  { key: "jordan", email: MEMBER_EMAIL, name: "Jordan Reyes", role: "ADMIN", joinedDaysAgo: 180 },
-  { key: "maya", email: "maya@meridian.studio", name: "Maya Patel", role: "MEMBER", joinedDaysAgo: 140 },
-  { key: "chris", email: "chris@meridian.studio", name: "Chris Nguyen", role: "MEMBER", joinedDaysAgo: 120 },
-  { key: "sofia", email: "sofia@meridian.studio", name: "Sofia Brooks", role: "MEMBER", joinedDaysAgo: 95 },
+const userSeeds: Array<{
+  key: UserKey;
+  email: string;
+  name: string;
+  role: string;
+  joinedDaysAgo: number;
+}> = [
+  {
+    key: "demo",
+    email: DEMO_EMAIL,
+    name: "Avery Meridian",
+    role: "OWNER",
+    joinedDaysAgo: 210,
+  },
+  {
+    key: "jordan",
+    email: MEMBER_EMAIL,
+    name: "Jordan Reyes",
+    role: "ADMIN",
+    joinedDaysAgo: 180,
+  },
+  {
+    key: "maya",
+    email: "maya@meridian.studio",
+    name: "Maya Patel",
+    role: "MEMBER",
+    joinedDaysAgo: 140,
+  },
+  {
+    key: "chris",
+    email: "chris@meridian.studio",
+    name: "Chris Nguyen",
+    role: "MEMBER",
+    joinedDaysAgo: 120,
+  },
+  {
+    key: "sofia",
+    email: "sofia@meridian.studio",
+    name: "Sofia Brooks",
+    role: "MEMBER",
+    joinedDaysAgo: 95,
+  },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -179,7 +225,8 @@ const customerSeeds: CustomerSeed[] = [
     phone: "+1 512 555 0110",
     email: "ops@harborviewgroup.com",
     website: "harborviewgroup.com",
-    notes: "Six-building portfolio. Window and common-area contract renews each spring.",
+    notes:
+      "Six-building portfolio. Window and common-area contract renews each spring.",
     tags: ["portfolio", "recurring", "key-account"],
     owner: "demo",
     createdDaysAgo: 205,
@@ -192,7 +239,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78701",
         latitude: 30.2669,
         longitude: -97.7428,
-        accessNotes: "Loading dock on 4th. Sign in with security, ask for the building engineer.",
+        accessNotes:
+          "Loading dock on 4th. Sign in with security, ask for the building engineer.",
         gateCode: "4412",
         contactName: "Dana Whitfield",
         contactPhone: "+1 512 555 0111",
@@ -206,7 +254,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78702",
         latitude: 30.2657,
         longitude: -97.7273,
-        accessNotes: "Roof access code changes monthly; call the site lead before arrival.",
+        accessNotes:
+          "Roof access code changes monthly; call the site lead before arrival.",
         gateCode: "7781",
         isPrimary: false,
       },
@@ -319,7 +368,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78704",
         latitude: 30.2489,
         longitude: -97.7644,
-        accessNotes: "Mop closet is behind the break room. Use the eco line only.",
+        accessNotes:
+          "Mop closet is behind the break room. Use the eco line only.",
         gateCode: "2214",
         isPrimary: true,
       },
@@ -375,7 +425,8 @@ const customerSeeds: CustomerSeed[] = [
     industry: "Property Management",
     phone: "+1 512 555 0160",
     email: "board@parksidehoa.org",
-    notes: "Quarterly pressure washing for 42 units. The board approves expenses over $500.",
+    notes:
+      "Quarterly pressure washing for 42 units. The board approves expenses over $500.",
     tags: ["hoa", "quarterly"],
     owner: "demo",
     createdDaysAgo: 175,
@@ -388,7 +439,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78757",
         latitude: 30.3493,
         longitude: -97.7388,
-        accessNotes: "Use visitor lot by the clubhouse. Water spigot at the north fence.",
+        accessNotes:
+          "Use visitor lot by the clubhouse. Water spigot at the north fence.",
         gateCode: "1102",
         isPrimary: true,
       },
@@ -470,7 +522,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78753",
         latitude: 30.3615,
         longitude: -97.7173,
-        accessNotes: "Wash pad behind the service building. Bring the long hose.",
+        accessNotes:
+          "Wash pad behind the service building. Bring the long hose.",
         gateCode: "3302",
         isPrimary: false,
       },
@@ -512,7 +565,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78702",
         latitude: 30.2627,
         longitude: -97.7311,
-        accessNotes: "Load-in through the alley. Event manager signs off on completion.",
+        accessNotes:
+          "Load-in through the alley. Event manager signs off on completion.",
         gateCode: "8805",
         contactName: "Simone Park",
         contactPhone: "+1 512 555 0191",
@@ -548,7 +602,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78741",
         latitude: 30.2377,
         longitude: -97.722,
-        accessNotes: "Check in at leasing office for unit keys and parking pass.",
+        accessNotes:
+          "Check in at leasing office for unit keys and parking pass.",
         gateCode: "6140",
         isPrimary: true,
       },
@@ -560,7 +615,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78704",
         latitude: 30.247,
         longitude: -97.758,
-        accessNotes: "Building C service closet on the second floor. Code at the call box.",
+        accessNotes:
+          "Building C service closet on the second floor. Code at the call box.",
         gateCode: "6141",
         isPrimary: false,
       },
@@ -622,7 +678,8 @@ const customerSeeds: CustomerSeed[] = [
     phone: "+1 512 555 0220",
     email: "hello@willowandvine.com",
     website: "willowandvine.com",
-    notes: "Nine chairs and two treatment rooms. Prefers morning service windows.",
+    notes:
+      "Nine chairs and two treatment rooms. Prefers morning service windows.",
     tags: ["salon", "recurring"],
     owner: "sofia",
     createdDaysAgo: 110,
@@ -635,7 +692,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78756",
         latitude: 30.307,
         longitude: -97.7395,
-        accessNotes: "Back door code rotates quarterly; ask front desk for the current code.",
+        accessNotes:
+          "Back door code rotates quarterly; ask front desk for the current code.",
         gateCode: "4127",
         isPrimary: true,
       },
@@ -657,7 +715,8 @@ const customerSeeds: CustomerSeed[] = [
     phone: "+1 512 555 0230",
     email: "ops@zilkerbistro.com",
     website: "zilkerbistro.com",
-    notes: "Kitchen remodel finishing next quarter. Duct work deferred until then.",
+    notes:
+      "Kitchen remodel finishing next quarter. Duct work deferred until then.",
     tags: ["commercial", "deferred"],
     owner: "chris",
     createdDaysAgo: 95,
@@ -670,7 +729,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78704",
         latitude: 30.2507,
         longitude: -97.7704,
-        accessNotes: "Service entrance on the alley. Ask for the kitchen manager.",
+        accessNotes:
+          "Service entrance on the alley. Ask for the kitchen manager.",
         gateCode: "9090",
         isPrimary: true,
       },
@@ -704,7 +764,8 @@ const customerSeeds: CustomerSeed[] = [
         postalCode: "78731",
         latitude: 30.354,
         longitude: -97.762,
-        accessNotes: "Gate sticks in humid weather. Dog is friendly but keep the gate shut.",
+        accessNotes:
+          "Gate sticks in humid weather. Dog is friendly but keep the gate shut.",
         isPrimary: true,
       },
     ],
@@ -739,7 +800,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "AC diagnostic",
     category: "HVAC",
-    description: "Full diagnostic with refrigerant pressure and electrical check.",
+    description:
+      "Full diagnostic with refrigerant pressure and electrical check.",
     unit: "VISIT",
     durationMinutes: 60,
     price: 8_900,
@@ -749,7 +811,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "HVAC seasonal tune-up",
     category: "HVAC",
-    description: "Seasonal inspection, filter change, coil rinse and thermostat check.",
+    description:
+      "Seasonal inspection, filter change, coil rinse and thermostat check.",
     unit: "UNIT",
     durationMinutes: 90,
     price: 14_900,
@@ -769,7 +832,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "Duct cleaning",
     category: "HVAC",
-    description: "Negative-pressure duct cleaning up to 12 vents, including returns.",
+    description:
+      "Negative-pressure duct cleaning up to 12 vents, including returns.",
     unit: "VISIT",
     durationMinutes: 240,
     price: 42_000,
@@ -789,7 +853,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "HVAC maintenance plan",
     category: "HVAC",
-    description: "Annual plan with two tune-ups, priority dispatch and no trip fees.",
+    description:
+      "Annual plan with two tune-ups, priority dispatch and no trip fees.",
     unit: "UNIT",
     durationMinutes: 60,
     price: 24_900,
@@ -859,7 +924,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "Nail station sanitizing",
     category: "Salon",
-    description: "Hospital-grade sanitizing of stations, tools and pedicure chairs.",
+    description:
+      "Hospital-grade sanitizing of stations, tools and pedicure chairs.",
     unit: "VISIT",
     durationMinutes: 75,
     price: 9_500,
@@ -879,7 +945,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "Janitorial service",
     category: "Commercial",
-    description: "Trash, surfaces, floors and restrooms. Billed hourly per cleaner.",
+    description:
+      "Trash, surfaces, floors and restrooms. Billed hourly per cleaner.",
     unit: "HOUR",
     durationMinutes: 60,
     price: 6_500,
@@ -889,7 +956,8 @@ const serviceSeeds: ServiceSeed[] = [
   {
     name: "Post-event turnover",
     category: "Commercial",
-    description: "Full venue reset after events, including restrooms and bar area.",
+    description:
+      "Full venue reset after events, including restrooms and bar area.",
     unit: "VISIT",
     durationMinutes: 180,
     price: 28_000,
@@ -1489,7 +1557,8 @@ const jobSeeds: JobSeed[] = [
     assignee: "chris",
     source: "Recurring contract",
     lines: [{ service: 8, quantity: 180 }],
-    notes: "Harness crew detailed the north and east elevations; Luis signed off.",
+    notes:
+      "Harness crew detailed the north and east elevations; Luis signed off.",
     rating: 5,
   },
   {
@@ -1633,16 +1702,22 @@ function resolveJobStart(seed: JobSeed): Date | null {
 function assertNoOverlappingJobs(): void {
   const resolved: ResolvedJobSeed[] = jobSeeds.map((seed) => {
     const start = resolveJobStart(seed);
-    const end = start ? new Date(start.getTime() + seed.durationMinutes * 60_000) : null;
+    const end = start
+      ? new Date(start.getTime() + seed.durationMinutes * 60_000)
+      : null;
     return { seed, start, end };
   });
   for (let a = 0; a < resolved.length; a += 1) {
     for (let b = a + 1; b < resolved.length; b += 1) {
       const left = resolved[a]!;
       const right = resolved[b]!;
-      if (!left.seed.assignee || left.seed.assignee !== right.seed.assignee) continue;
+      if (!left.seed.assignee || left.seed.assignee !== right.seed.assignee)
+        continue;
       if (!left.start || !left.end || !right.start || !right.end) continue;
-      if (left.start.getTime() < right.end.getTime() && left.end.getTime() > right.start.getTime()) {
+      if (
+        left.start.getTime() < right.end.getTime() &&
+        left.end.getTime() > right.start.getTime()
+      ) {
         throw new Error(
           `Overlapping jobs for ${left.seed.assignee}: ${left.seed.key} and ${right.seed.key}`,
         );
@@ -1901,7 +1976,8 @@ const invoiceSeeds: InvoiceSeed[] = [
     status: "VOID",
     issuedDaysAgo: 9,
     dueInDays: 21,
-    notes: "Voided — superseded by the corrected Willow invoice after a scheduling change.",
+    notes:
+      "Voided — superseded by the corrected Willow invoice after a scheduling change.",
     payments: [],
   },
   {
@@ -2108,26 +2184,173 @@ interface ExpenseSeed {
 }
 
 const expenseSeeds: ExpenseSeed[] = [
-  { category: "SUPPLIES", vendor: "Austin Window Supply", description: "Squeegees, blades and microfiber pads", amount: 12_400, incurredDaysAgo: 60, job: "job-harborview-annual", user: "chris" },
-  { category: "FUEL", vendor: "Shell", description: "Van fuel — north route", amount: 9_200, incurredDaysAgo: 58, user: "jordan" },
-  { category: "PAYROLL", vendor: "Gusto", description: "Technician payroll — period 10", amount: 175_000, incurredDaysAgo: 56, user: "demo" },
-  { category: "SUPPLIES", vendor: "Eco Cleaning Co", description: "Eco floor cleaner and mop heads", amount: 18_600, incurredDaysAgo: 50, job: "job-lumen-deep-clean", user: "sofia" },
-  { category: "EQUIPMENT", vendor: "Grainger", description: "Commercial wet/dry vacuum", amount: 52_000, incurredDaysAgo: 44, user: "sofia" },
-  { category: "INSURANCE", vendor: "Next Insurance", description: "General liability premium", amount: 64_000, incurredDaysAgo: 42, user: "demo" },
-  { category: "RENT", vendor: "East Austin Storage", description: "Equipment storage unit", amount: 120_000, incurredDaysAgo: 40, user: "demo" },
-  { category: "FUEL", vendor: "Chevron", description: "Van fuel — south route", amount: 8_400, incurredDaysAgo: 35, user: "maya" },
-  { category: "SOFTWARE", vendor: "Jobber", description: "Field service software subscription", amount: 14_200, incurredDaysAgo: 33, user: "demo" },
-  { category: "MARKETING", vendor: "Google Ads", description: "Local HVAC search campaign", amount: 42_000, incurredDaysAgo: 28, user: "demo" },
-  { category: "SUPPLIES", vendor: "HVAC Parts Direct", description: "Capacitors and filters", amount: 28_000, incurredDaysAgo: 26, job: "job-chen-ac-tuneup", user: "maya" },
-  { category: "FUEL", vendor: "Shell", description: "Van fuel — central route", amount: 10_800, incurredDaysAgo: 22, user: "chris" },
-  { category: "SUPPLIES", vendor: "Salon Supply ATX", description: "Sanitizer concentrate and gloves", amount: 13_500, incurredDaysAgo: 18, job: "job-cedar-deep-clean", user: "sofia" },
-  { category: "EQUIPMENT", vendor: "Home Depot", description: "Pressure-wash surface cleaner replacement", amount: 24_000, incurredDaysAgo: 12, job: "job-glasshouse-turnover", user: "jordan" },
-  { category: "PAYROLL", vendor: "Gusto", description: "Technician payroll — period 11", amount: 180_000, incurredDaysAgo: 10, user: "demo" },
-  { category: "OTHER", vendor: "Downtown Parking", description: "Parking for tower service", amount: 3_600, incurredDaysAgo: 6, job: "job-harborview-tower-nov", user: "chris" },
-  { category: "SUPPLIES", vendor: "Austin Window Supply", description: "Replacement glass scraper blades", amount: 9_800, incurredDaysAgo: 2, job: "job-harborview-tower-nov", user: "chris" },
-  { category: "FUEL", vendor: "Chevron", description: "Van fuel — east route", amount: 7_300, incurredDaysAgo: 1, user: "jordan" },
-  { category: "SOFTWARE", vendor: "Twilio", description: "SMS and voice usage", amount: 5_600, incurredDaysAgo: 1, user: "demo" },
-  { category: "MARKETING", vendor: "Yelp Ads", description: "Salon and property-manager lead campaign", amount: 22_000, incurredDaysAgo: 4, user: "demo" },
+  {
+    category: "SUPPLIES",
+    vendor: "Austin Window Supply",
+    description: "Squeegees, blades and microfiber pads",
+    amount: 12_400,
+    incurredDaysAgo: 60,
+    job: "job-harborview-annual",
+    user: "chris",
+  },
+  {
+    category: "FUEL",
+    vendor: "Shell",
+    description: "Van fuel — north route",
+    amount: 9_200,
+    incurredDaysAgo: 58,
+    user: "jordan",
+  },
+  {
+    category: "PAYROLL",
+    vendor: "Gusto",
+    description: "Technician payroll — period 10",
+    amount: 175_000,
+    incurredDaysAgo: 56,
+    user: "demo",
+  },
+  {
+    category: "SUPPLIES",
+    vendor: "Eco Cleaning Co",
+    description: "Eco floor cleaner and mop heads",
+    amount: 18_600,
+    incurredDaysAgo: 50,
+    job: "job-lumen-deep-clean",
+    user: "sofia",
+  },
+  {
+    category: "EQUIPMENT",
+    vendor: "Grainger",
+    description: "Commercial wet/dry vacuum",
+    amount: 52_000,
+    incurredDaysAgo: 44,
+    user: "sofia",
+  },
+  {
+    category: "INSURANCE",
+    vendor: "Next Insurance",
+    description: "General liability premium",
+    amount: 64_000,
+    incurredDaysAgo: 42,
+    user: "demo",
+  },
+  {
+    category: "RENT",
+    vendor: "East Austin Storage",
+    description: "Equipment storage unit",
+    amount: 120_000,
+    incurredDaysAgo: 40,
+    user: "demo",
+  },
+  {
+    category: "FUEL",
+    vendor: "Chevron",
+    description: "Van fuel — south route",
+    amount: 8_400,
+    incurredDaysAgo: 35,
+    user: "maya",
+  },
+  {
+    category: "SOFTWARE",
+    vendor: "Jobber",
+    description: "Field service software subscription",
+    amount: 14_200,
+    incurredDaysAgo: 33,
+    user: "demo",
+  },
+  {
+    category: "MARKETING",
+    vendor: "Google Ads",
+    description: "Local HVAC search campaign",
+    amount: 42_000,
+    incurredDaysAgo: 28,
+    user: "demo",
+  },
+  {
+    category: "SUPPLIES",
+    vendor: "HVAC Parts Direct",
+    description: "Capacitors and filters",
+    amount: 28_000,
+    incurredDaysAgo: 26,
+    job: "job-chen-ac-tuneup",
+    user: "maya",
+  },
+  {
+    category: "FUEL",
+    vendor: "Shell",
+    description: "Van fuel — central route",
+    amount: 10_800,
+    incurredDaysAgo: 22,
+    user: "chris",
+  },
+  {
+    category: "SUPPLIES",
+    vendor: "Salon Supply ATX",
+    description: "Sanitizer concentrate and gloves",
+    amount: 13_500,
+    incurredDaysAgo: 18,
+    job: "job-cedar-deep-clean",
+    user: "sofia",
+  },
+  {
+    category: "EQUIPMENT",
+    vendor: "Home Depot",
+    description: "Pressure-wash surface cleaner replacement",
+    amount: 24_000,
+    incurredDaysAgo: 12,
+    job: "job-glasshouse-turnover",
+    user: "jordan",
+  },
+  {
+    category: "PAYROLL",
+    vendor: "Gusto",
+    description: "Technician payroll — period 11",
+    amount: 180_000,
+    incurredDaysAgo: 10,
+    user: "demo",
+  },
+  {
+    category: "OTHER",
+    vendor: "Downtown Parking",
+    description: "Parking for tower service",
+    amount: 3_600,
+    incurredDaysAgo: 6,
+    job: "job-harborview-tower-nov",
+    user: "chris",
+  },
+  {
+    category: "SUPPLIES",
+    vendor: "Austin Window Supply",
+    description: "Replacement glass scraper blades",
+    amount: 9_800,
+    incurredDaysAgo: 2,
+    job: "job-harborview-tower-nov",
+    user: "chris",
+  },
+  {
+    category: "FUEL",
+    vendor: "Chevron",
+    description: "Van fuel — east route",
+    amount: 7_300,
+    incurredDaysAgo: 1,
+    user: "jordan",
+  },
+  {
+    category: "SOFTWARE",
+    vendor: "Twilio",
+    description: "SMS and voice usage",
+    amount: 5_600,
+    incurredDaysAgo: 1,
+    user: "demo",
+  },
+  {
+    category: "MARKETING",
+    vendor: "Yelp Ads",
+    description: "Salon and property-manager lead campaign",
+    amount: 22_000,
+    incurredDaysAgo: 4,
+    user: "demo",
+  },
 ];
 
 interface CommunicationSeed {
@@ -2151,52 +2374,715 @@ interface CommunicationSeed {
 }
 
 const communicationSeeds: CommunicationSeed[] = [
-  { channel: "CALL", direction: "INBOUND", status: "MISSED", intent: "RESCHEDULE", sentiment: "NEGATIVE", body: "Missed call from Simone about moving Saturday's turnover to Sunday.", customer: 8, contact: 0, job: "job-glasshouse-event", user: "jordan", unread: true, dayOffset: 0, hour: 9, minute: 12 },
-  { channel: "CALL", direction: "OUTBOUND", status: "SENT", intent: "REMINDER", sentiment: "POSITIVE", body: "Called Ellis to confirm the 10:30 tune-up window; he asked for a text on arrival.", customer: 1, contact: 0, job: "job-chen-today", user: "maya", dayOffset: 0, hour: 10, minute: 5 },
-  { channel: "CALL", direction: "OUTBOUND", status: "SENT", intent: "FOLLOW_UP", sentiment: "NEUTRAL", body: "Called Marisol about the semi-annual gutter visit. Voicemail left.", customer: 6, contact: 0, user: "chris", dayOffset: 0, hour: 11, minute: 20 },
-  { channel: "CALL", direction: "INBOUND", status: "RECEIVED", intent: "QUOTE", sentiment: "POSITIVE", body: "Dana asked for the annual window proposal to go to the board packet.", customer: 0, contact: 0, user: "demo", dayOffset: -1, hour: 15, minute: 40 },
-  { channel: "CALL", direction: "OUTBOUND", status: "SENT", intent: "PAYMENT", sentiment: "NEGATIVE", body: "Called Northgate about the past-due balance; practice manager will review Friday.", customer: 2, contact: 0, user: "jordan", unread: true, dayOffset: -3, hour: 9, minute: 35 },
-  { channel: "CALL", direction: "INBOUND", status: "MISSED", intent: "GENERAL", sentiment: "NEUTRAL", body: "Missed call from Marcus about thermostat options.", customer: 13, contact: 0, user: "chris", unread: true, dayOffset: -1, hour: 16, minute: 10 },
-  { channel: "CALL", direction: "OUTBOUND", status: "SENT", intent: "REMINDER", sentiment: "POSITIVE", body: "Reminded Greta that the crew arrives Thursday at nine for the quarterly wash.", customer: 5, contact: 0, job: "job-parkside-quarterly", user: "jordan", dayOffset: -2, hour: 13, minute: 5 },
-  { channel: "CALL", direction: "INBOUND", status: "RECEIVED", intent: "REVIEW", sentiment: "POSITIVE", body: "Ivy called to say the salon looked great after the last deep clean.", customer: 11, contact: 0, user: "sofia", dayOffset: -5, hour: 10, minute: 15 },
-  { channel: "CALL", direction: "OUTBOUND", status: "SENT", intent: "GENERAL", sentiment: "POSITIVE", body: "Walked Wes through the substation access checklist for next week.", customer: 7, contact: 0, job: "job-ridgeline-substation", user: "chris", dayOffset: -6, hour: 14, minute: 30 },
-  { channel: "SMS", direction: "OUTBOUND", status: "DELIVERED", intent: "REMINDER", sentiment: "POSITIVE", body: "Hi Ellis, Maya is on the way and will arrive around 10:30. We'll text before we pull in.", customer: 1, contact: 0, job: "job-chen-today", user: "maya", aiGenerated: true, aiRationale: "Customer prefers a text heads-up before arrival.", dayOffset: 0, hour: 8, minute: 45 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "RESCHEDULE", sentiment: "NEUTRAL", body: "Can we push to 11? The dentist is running behind.", customer: 1, contact: 0, job: "job-chen-today", user: "maya", dayOffset: 0, hour: 9, minute: 2 },
-  { channel: "SMS", direction: "OUTBOUND", status: "DELIVERED", intent: "PAYMENT", sentiment: "NEUTRAL", body: "Northgate reminder: invoice INV-1002 is past due. Reply if you need a copy.", customer: 2, contact: 0, job: "job-northgate-week45", user: "jordan", aiGenerated: true, aiRationale: "Overdue-invoice automation, second nudge.", dayOffset: 0, hour: 9, minute: 30 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "GENERAL", sentiment: "NEGATIVE", body: "Still deciding on the thermostat. Please stop the reminders for now.", customer: 13, contact: 0, user: "chris", unread: true, dayOffset: -1, hour: 17, minute: 25 },
-  { channel: "SMS", direction: "OUTBOUND", status: "SENT", intent: "REVIEW", sentiment: "POSITIVE", body: "Thanks for having us at Lumen! A quick review helps our small crew a lot.", customer: 3, contact: 0, user: "sofia", aiGenerated: true, aiRationale: "Review request sent after a completed recurring clean.", dayOffset: -1, hour: 18, minute: 5 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "RESCHEDULE", sentiment: "NEUTRAL", body: "Nadia here — can the Building C turns move one day later?", customer: 9, contact: 0, job: "job-easton-turns", user: "sofia", dayOffset: -3, hour: 11, minute: 45 },
-  { channel: "SMS", direction: "OUTBOUND", status: "DELIVERED", intent: "REMINDER", sentiment: "POSITIVE", body: "Parkside reminder: crew arrives Thursday at 9 for the quarterly pressure wash.", customer: 5, contact: 0, job: "job-parkside-quarterly", user: "jordan", aiGenerated: true, aiRationale: "Appointment reminder with gate instructions omitted for brevity.", dayOffset: -2, hour: 12, minute: 0 },
-  { channel: "SMS", direction: "OUTBOUND", status: "DELIVERED", intent: "FOLLOW_UP", sentiment: "POSITIVE", body: "Hi Ivy, checking that Thursday mornings still work for the recurring maintenance visit.", customer: 11, contact: 0, job: "job-willow-maintenance", user: "sofia", dayOffset: -4, hour: 9, minute: 10 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "REVIEW", sentiment: "POSITIVE", body: "Rowan: five stars, the team was great. Leaving a Google review now.", customer: 4, contact: 0, user: "sofia", dayOffset: -5, hour: 15, minute: 55 },
-  { channel: "SMS", direction: "OUTBOUND", status: "SENT", intent: "QUOTE", sentiment: "NEUTRAL", body: "Dana, the revised annual window proposal is in your inbox. Happy to walk the board through it.", customer: 0, contact: 0, user: "demo", dayOffset: -6, hour: 10, minute: 25 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "GENERAL", sentiment: "POSITIVE", body: "Priya: the tune-up was quick and the house already feels better. Thank you!", customer: 10, contact: 0, user: "maya", dayOffset: -8, hour: 13, minute: 40 },
-  { channel: "SMS", direction: "OUTBOUND", status: "DELIVERED", intent: "REMINDER", sentiment: "NEUTRAL", body: "Simone, confirming the post-event reset for Saturday at 9pm.", customer: 8, contact: 0, job: "job-glasshouse-event", user: "jordan", dayOffset: -9, hour: 16, minute: 0 },
-  { channel: "SMS", direction: "OUTBOUND", status: "FAILED", intent: "GENERAL", sentiment: "NEGATIVE", body: "Attempted thermostat follow-up; the number on file rejected the message.", customer: 13, contact: 0, user: "chris", dayOffset: -10, hour: 11, minute: 5 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "PAYMENT", sentiment: "NEGATIVE", body: "Anika from Northgate: please resend the statement to the new billing address.", customer: 2, contact: 0, user: "jordan", unread: true, dayOffset: -12, hour: 14, minute: 20 },
-  { channel: "SMS", direction: "OUTBOUND", status: "SENT", intent: "WINBACK", sentiment: "POSITIVE", body: "Marisol, we have a fall gutter special if you'd like to lock in a visit before the holidays.", customer: 6, contact: 0, user: "chris", aiGenerated: true, aiRationale: "No completed job in 90 days; winback offer drafted.", dayOffset: -20, hour: 10, minute: 50 },
-  { channel: "SMS", direction: "OUTBOUND", status: "DELIVERED", intent: "REVIEW", sentiment: "POSITIVE", body: "Thanks for the Parkside pressure wash! Before/after photos are in the shared folder.", customer: 5, contact: 0, user: "jordan", dayOffset: -22, hour: 17, minute: 15 },
-  { channel: "SMS", direction: "INBOUND", status: "RECEIVED", intent: "QUOTE", sentiment: "POSITIVE", body: "Marco: the window quote looks good, but hold the duct work until the remodel wraps.", customer: 12, contact: 0, user: "maya", dayOffset: -24, hour: 12, minute: 35 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "QUOTE", sentiment: "NEUTRAL", subject: "Annual window contract — revised proposal", body: "Hi Dana, attached is the revised proposal for six buildings on a monthly cadence. It includes priority scheduling and quarterly high-rise detail.", customer: 0, contact: 0, user: "demo", aiGenerated: true, aiRationale: "Proposal recap generated from estimate EST-1001.", dayOffset: -1, hour: 8, minute: 30 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "PAYMENT", sentiment: "NEGATIVE", subject: "Invoice INV-1002 past due", body: "Hi Anika, invoice INV-1002 is now three days past due. The balance is $140.73 and can be settled from the link below.", customer: 2, contact: 0, job: "job-northgate-week45", user: "jordan", aiGenerated: true, aiRationale: "Overdue-invoice automation escalation after the SMS nudge.", dayOffset: -2, hour: 9, minute: 0 },
-  { channel: "EMAIL", direction: "INBOUND", status: "RECEIVED", intent: "GENERAL", sentiment: "POSITIVE", subject: "December event calendar", body: "Sharing our December calendar so you can hold the turnover dates. Six events, two of them back-to-back weekends.", customer: 8, contact: 0, user: "jordan", dayOffset: -3, hour: 14, minute: 5 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "FOLLOW_UP", sentiment: "NEUTRAL", subject: "Before/after photos from the pressure wash", body: "Hi Greta, the photos from the clubhouse wash are attached. The board asked for the north walkway close-up as well.", customer: 5, contact: 0, user: "jordan", dayOffset: -4, hour: 10, minute: 45 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "QUOTE", sentiment: "POSITIVE", subject: "Unit turn cleaning proposal", body: "Hi Nadia, the per-unit turn cleaning proposal is attached. We can start with Building C and scale to the rest of the portfolio.", customer: 9, contact: 0, user: "sofia", aiGenerated: true, aiRationale: "Portfolio upsell based on recurring unit-turn demand.", dayOffset: -5, hour: 11, minute: 20 },
-  { channel: "EMAIL", direction: "INBOUND", status: "RECEIVED", intent: "GENERAL", sentiment: "NEUTRAL", subject: "Gutter appointment question", body: "Marisol here — is the semi-annual gutter visit still happening this month? The side gate sticks so I'll leave it open.", customer: 6, contact: 0, user: "chris", unread: true, dayOffset: -6, hour: 9, minute: 50 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "REMINDER", sentiment: "NEUTRAL", subject: "Tuesday early-morning access", body: "Hi Rowan, confirming the 8am Tuesday slot. The side door keypad code is on file and the front desk will leave the mop closet open.", customer: 4, contact: 0, user: "sofia", dayOffset: -7, hour: 16, minute: 30 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "REVIEW", sentiment: "POSITIVE", subject: "How did we do?", body: "Hi Ivy, thanks for the kind words on the phone. If you have a moment, a short review would help other local businesses find us.", customer: 11, contact: 0, user: "sofia", aiGenerated: true, aiRationale: "Review request following a positive inbound call.", dayOffset: -8, hour: 9, minute: 40 },
-  { channel: "EMAIL", direction: "INBOUND", status: "RECEIVED", intent: "GENERAL", sentiment: "NEGATIVE", subject: "Thermostat quote follow-up", body: "Please pause the thermostat reminders. I'll reach out when I've picked a model.", customer: 13, contact: 0, user: "chris", unread: true, dayOffset: -9, hour: 13, minute: 15 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "WINBACK", sentiment: "POSITIVE", subject: "Fall gutter special — Marisol", body: "Hi Marisol, our fall gutter special is open for the last two weeks of the month. Reply with a day that works and we'll hold it.", customer: 6, contact: 0, user: "chris", dayOffset: -15, hour: 10, minute: 0 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "FOLLOW_UP", sentiment: "NEUTRAL", subject: "Duct cleaning recommendation", body: "Hi Ellis, after the tune-up we recommend a duct cleaning. The estimate is attached and there is no pressure to book this week.", customer: 1, contact: 0, user: "maya", aiGenerated: true, aiRationale: "Upsell generated from completed tune-up and air-quality notes.", dayOffset: -16, hour: 15, minute: 10 },
-  { channel: "EMAIL", direction: "INBOUND", status: "RECEIVED", intent: "QUOTE", sentiment: "POSITIVE", subject: "Annual maintenance agreement", body: "Anika here — the maintenance agreement looks reasonable. Can we split it into two payments?", customer: 2, contact: 0, user: "jordan", dayOffset: -18, hour: 11, minute: 25 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "FOLLOW_UP", sentiment: "NEUTRAL", subject: "Easton Ridge turn schedule", body: "Hi Nadia, proposed schedule for the Building C turns is attached. We can hold the Tuesday slot for three units.", customer: 9, contact: 0, user: "sofia", dayOffset: -11, hour: 14, minute: 45 },
-  { channel: "EMAIL", direction: "INBOUND", status: "RECEIVED", intent: "GENERAL", sentiment: "POSITIVE", subject: "Thank you from Priya", body: "The duct cleaning crew was tidy and explained everything. Please put us on the semi-annual list.", customer: 10, contact: 0, user: "maya", dayOffset: -13, hour: 10, minute: 30 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "REVIEW", sentiment: "POSITIVE", subject: "Zilker Bistro review request", body: "Hi Marco, thanks for the window cleaning booking. If you're happy with the result, a quick review would mean a lot.", customer: 12, contact: 0, user: "maya", dayOffset: -14, hour: 17, minute: 0 },
-  { channel: "EMAIL", direction: "INBOUND", status: "MISSED", intent: "GENERAL", sentiment: "NEUTRAL", subject: "Access code rotation", body: "Ivy here — the back door code rotates next week. Call the front desk before the next visit.", customer: 11, contact: 0, user: "sofia", unread: true, dayOffset: -17, hour: 8, minute: 55 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "QUOTE", sentiment: "NEUTRAL", subject: "Easton Ridge common-area windows", body: "Hi Owen, quoting the common-area windows for Building C. This is separate from the unit-turn work.", customer: 9, contact: 1, user: "sofia", dayOffset: -19, hour: 12, minute: 15 },
-  { channel: "EMAIL", direction: "INBOUND", status: "RECEIVED", intent: "PAYMENT", sentiment: "NEGATIVE", subject: "Remittance question", body: "Tara from Ridgeline — the wash invoice needs a PO number before we can release payment.", customer: 7, contact: 1, job: "job-ridgeline-wash", user: "jordan", unread: true, dayOffset: -21, hour: 13, minute: 5 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "DELIVERED", intent: "REMINDER", sentiment: "POSITIVE", subject: "Saturday turnover checklist", body: "Hi Simone, attached is the turnover checklist for Saturday. We'll confirm the event end time on Friday.", customer: 8, contact: 0, job: "job-glasshouse-event", user: "jordan", dayOffset: -26, hour: 9, minute: 35 },
-  { channel: "EMAIL", direction: "OUTBOUND", status: "SENT", intent: "FOLLOW_UP", sentiment: "NEUTRAL", subject: "Harborview retainer renewal", body: "Hi Dana, the monthly common-area retainer renews next month. The invoice is already in your portal.", customer: 0, contact: 0, user: "demo", dayOffset: -28, hour: 10, minute: 20 },
+  {
+    channel: "CALL",
+    direction: "INBOUND",
+    status: "MISSED",
+    intent: "RESCHEDULE",
+    sentiment: "NEGATIVE",
+    body: "Missed call from Simone about moving Saturday's turnover to Sunday.",
+    customer: 8,
+    contact: 0,
+    job: "job-glasshouse-event",
+    user: "jordan",
+    unread: true,
+    dayOffset: 0,
+    hour: 9,
+    minute: 12,
+  },
+  {
+    channel: "CALL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "REMINDER",
+    sentiment: "POSITIVE",
+    body: "Called Ellis to confirm the 10:30 tune-up window; he asked for a text on arrival.",
+    customer: 1,
+    contact: 0,
+    job: "job-chen-today",
+    user: "maya",
+    dayOffset: 0,
+    hour: 10,
+    minute: 5,
+  },
+  {
+    channel: "CALL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "FOLLOW_UP",
+    sentiment: "NEUTRAL",
+    body: "Called Marisol about the semi-annual gutter visit. Voicemail left.",
+    customer: 6,
+    contact: 0,
+    user: "chris",
+    dayOffset: 0,
+    hour: 11,
+    minute: 20,
+  },
+  {
+    channel: "CALL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "QUOTE",
+    sentiment: "POSITIVE",
+    body: "Dana asked for the annual window proposal to go to the board packet.",
+    customer: 0,
+    contact: 0,
+    user: "demo",
+    dayOffset: -1,
+    hour: 15,
+    minute: 40,
+  },
+  {
+    channel: "CALL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "PAYMENT",
+    sentiment: "NEGATIVE",
+    body: "Called Northgate about the past-due balance; practice manager will review Friday.",
+    customer: 2,
+    contact: 0,
+    user: "jordan",
+    unread: true,
+    dayOffset: -3,
+    hour: 9,
+    minute: 35,
+  },
+  {
+    channel: "CALL",
+    direction: "INBOUND",
+    status: "MISSED",
+    intent: "GENERAL",
+    sentiment: "NEUTRAL",
+    body: "Missed call from Marcus about thermostat options.",
+    customer: 13,
+    contact: 0,
+    user: "chris",
+    unread: true,
+    dayOffset: -1,
+    hour: 16,
+    minute: 10,
+  },
+  {
+    channel: "CALL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "REMINDER",
+    sentiment: "POSITIVE",
+    body: "Reminded Greta that the crew arrives Thursday at nine for the quarterly wash.",
+    customer: 5,
+    contact: 0,
+    job: "job-parkside-quarterly",
+    user: "jordan",
+    dayOffset: -2,
+    hour: 13,
+    minute: 5,
+  },
+  {
+    channel: "CALL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "REVIEW",
+    sentiment: "POSITIVE",
+    body: "Ivy called to say the salon looked great after the last deep clean.",
+    customer: 11,
+    contact: 0,
+    user: "sofia",
+    dayOffset: -5,
+    hour: 10,
+    minute: 15,
+  },
+  {
+    channel: "CALL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "GENERAL",
+    sentiment: "POSITIVE",
+    body: "Walked Wes through the substation access checklist for next week.",
+    customer: 7,
+    contact: 0,
+    job: "job-ridgeline-substation",
+    user: "chris",
+    dayOffset: -6,
+    hour: 14,
+    minute: 30,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "REMINDER",
+    sentiment: "POSITIVE",
+    body: "Hi Ellis, Maya is on the way and will arrive around 10:30. We'll text before we pull in.",
+    customer: 1,
+    contact: 0,
+    job: "job-chen-today",
+    user: "maya",
+    aiGenerated: true,
+    aiRationale: "Customer prefers a text heads-up before arrival.",
+    dayOffset: 0,
+    hour: 8,
+    minute: 45,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "RESCHEDULE",
+    sentiment: "NEUTRAL",
+    body: "Can we push to 11? The dentist is running behind.",
+    customer: 1,
+    contact: 0,
+    job: "job-chen-today",
+    user: "maya",
+    dayOffset: 0,
+    hour: 9,
+    minute: 2,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "PAYMENT",
+    sentiment: "NEUTRAL",
+    body: "Northgate reminder: invoice INV-1002 is past due. Reply if you need a copy.",
+    customer: 2,
+    contact: 0,
+    job: "job-northgate-week45",
+    user: "jordan",
+    aiGenerated: true,
+    aiRationale: "Overdue-invoice automation, second nudge.",
+    dayOffset: 0,
+    hour: 9,
+    minute: 30,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "GENERAL",
+    sentiment: "NEGATIVE",
+    body: "Still deciding on the thermostat. Please stop the reminders for now.",
+    customer: 13,
+    contact: 0,
+    user: "chris",
+    unread: true,
+    dayOffset: -1,
+    hour: 17,
+    minute: 25,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "REVIEW",
+    sentiment: "POSITIVE",
+    body: "Thanks for having us at Lumen! A quick review helps our small crew a lot.",
+    customer: 3,
+    contact: 0,
+    user: "sofia",
+    aiGenerated: true,
+    aiRationale: "Review request sent after a completed recurring clean.",
+    dayOffset: -1,
+    hour: 18,
+    minute: 5,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "RESCHEDULE",
+    sentiment: "NEUTRAL",
+    body: "Nadia here — can the Building C turns move one day later?",
+    customer: 9,
+    contact: 0,
+    job: "job-easton-turns",
+    user: "sofia",
+    dayOffset: -3,
+    hour: 11,
+    minute: 45,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "REMINDER",
+    sentiment: "POSITIVE",
+    body: "Parkside reminder: crew arrives Thursday at 9 for the quarterly pressure wash.",
+    customer: 5,
+    contact: 0,
+    job: "job-parkside-quarterly",
+    user: "jordan",
+    aiGenerated: true,
+    aiRationale:
+      "Appointment reminder with gate instructions omitted for brevity.",
+    dayOffset: -2,
+    hour: 12,
+    minute: 0,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "FOLLOW_UP",
+    sentiment: "POSITIVE",
+    body: "Hi Ivy, checking that Thursday mornings still work for the recurring maintenance visit.",
+    customer: 11,
+    contact: 0,
+    job: "job-willow-maintenance",
+    user: "sofia",
+    dayOffset: -4,
+    hour: 9,
+    minute: 10,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "REVIEW",
+    sentiment: "POSITIVE",
+    body: "Rowan: five stars, the team was great. Leaving a Google review now.",
+    customer: 4,
+    contact: 0,
+    user: "sofia",
+    dayOffset: -5,
+    hour: 15,
+    minute: 55,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "QUOTE",
+    sentiment: "NEUTRAL",
+    body: "Dana, the revised annual window proposal is in your inbox. Happy to walk the board through it.",
+    customer: 0,
+    contact: 0,
+    user: "demo",
+    dayOffset: -6,
+    hour: 10,
+    minute: 25,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "GENERAL",
+    sentiment: "POSITIVE",
+    body: "Priya: the tune-up was quick and the house already feels better. Thank you!",
+    customer: 10,
+    contact: 0,
+    user: "maya",
+    dayOffset: -8,
+    hour: 13,
+    minute: 40,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "REMINDER",
+    sentiment: "NEUTRAL",
+    body: "Simone, confirming the post-event reset for Saturday at 9pm.",
+    customer: 8,
+    contact: 0,
+    job: "job-glasshouse-event",
+    user: "jordan",
+    dayOffset: -9,
+    hour: 16,
+    minute: 0,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "FAILED",
+    intent: "GENERAL",
+    sentiment: "NEGATIVE",
+    body: "Attempted thermostat follow-up; the number on file rejected the message.",
+    customer: 13,
+    contact: 0,
+    user: "chris",
+    dayOffset: -10,
+    hour: 11,
+    minute: 5,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "PAYMENT",
+    sentiment: "NEGATIVE",
+    body: "Anika from Northgate: please resend the statement to the new billing address.",
+    customer: 2,
+    contact: 0,
+    user: "jordan",
+    unread: true,
+    dayOffset: -12,
+    hour: 14,
+    minute: 20,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "WINBACK",
+    sentiment: "POSITIVE",
+    body: "Marisol, we have a fall gutter special if you'd like to lock in a visit before the holidays.",
+    customer: 6,
+    contact: 0,
+    user: "chris",
+    aiGenerated: true,
+    aiRationale: "No completed job in 90 days; winback offer drafted.",
+    dayOffset: -20,
+    hour: 10,
+    minute: 50,
+  },
+  {
+    channel: "SMS",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "REVIEW",
+    sentiment: "POSITIVE",
+    body: "Thanks for the Parkside pressure wash! Before/after photos are in the shared folder.",
+    customer: 5,
+    contact: 0,
+    user: "jordan",
+    dayOffset: -22,
+    hour: 17,
+    minute: 15,
+  },
+  {
+    channel: "SMS",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "QUOTE",
+    sentiment: "POSITIVE",
+    body: "Marco: the window quote looks good, but hold the duct work until the remodel wraps.",
+    customer: 12,
+    contact: 0,
+    user: "maya",
+    dayOffset: -24,
+    hour: 12,
+    minute: 35,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "QUOTE",
+    sentiment: "NEUTRAL",
+    subject: "Annual window contract — revised proposal",
+    body: "Hi Dana, attached is the revised proposal for six buildings on a monthly cadence. It includes priority scheduling and quarterly high-rise detail.",
+    customer: 0,
+    contact: 0,
+    user: "demo",
+    aiGenerated: true,
+    aiRationale: "Proposal recap generated from estimate EST-1001.",
+    dayOffset: -1,
+    hour: 8,
+    minute: 30,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "PAYMENT",
+    sentiment: "NEGATIVE",
+    subject: "Invoice INV-1002 past due",
+    body: "Hi Anika, invoice INV-1002 is now three days past due. The balance is $140.73 and can be settled from the link below.",
+    customer: 2,
+    contact: 0,
+    job: "job-northgate-week45",
+    user: "jordan",
+    aiGenerated: true,
+    aiRationale: "Overdue-invoice automation escalation after the SMS nudge.",
+    dayOffset: -2,
+    hour: 9,
+    minute: 0,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "GENERAL",
+    sentiment: "POSITIVE",
+    subject: "December event calendar",
+    body: "Sharing our December calendar so you can hold the turnover dates. Six events, two of them back-to-back weekends.",
+    customer: 8,
+    contact: 0,
+    user: "jordan",
+    dayOffset: -3,
+    hour: 14,
+    minute: 5,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "FOLLOW_UP",
+    sentiment: "NEUTRAL",
+    subject: "Before/after photos from the pressure wash",
+    body: "Hi Greta, the photos from the clubhouse wash are attached. The board asked for the north walkway close-up as well.",
+    customer: 5,
+    contact: 0,
+    user: "jordan",
+    dayOffset: -4,
+    hour: 10,
+    minute: 45,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "QUOTE",
+    sentiment: "POSITIVE",
+    subject: "Unit turn cleaning proposal",
+    body: "Hi Nadia, the per-unit turn cleaning proposal is attached. We can start with Building C and scale to the rest of the portfolio.",
+    customer: 9,
+    contact: 0,
+    user: "sofia",
+    aiGenerated: true,
+    aiRationale: "Portfolio upsell based on recurring unit-turn demand.",
+    dayOffset: -5,
+    hour: 11,
+    minute: 20,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "GENERAL",
+    sentiment: "NEUTRAL",
+    subject: "Gutter appointment question",
+    body: "Marisol here — is the semi-annual gutter visit still happening this month? The side gate sticks so I'll leave it open.",
+    customer: 6,
+    contact: 0,
+    user: "chris",
+    unread: true,
+    dayOffset: -6,
+    hour: 9,
+    minute: 50,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "REMINDER",
+    sentiment: "NEUTRAL",
+    subject: "Tuesday early-morning access",
+    body: "Hi Rowan, confirming the 8am Tuesday slot. The side door keypad code is on file and the front desk will leave the mop closet open.",
+    customer: 4,
+    contact: 0,
+    user: "sofia",
+    dayOffset: -7,
+    hour: 16,
+    minute: 30,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "REVIEW",
+    sentiment: "POSITIVE",
+    subject: "How did we do?",
+    body: "Hi Ivy, thanks for the kind words on the phone. If you have a moment, a short review would help other local businesses find us.",
+    customer: 11,
+    contact: 0,
+    user: "sofia",
+    aiGenerated: true,
+    aiRationale: "Review request following a positive inbound call.",
+    dayOffset: -8,
+    hour: 9,
+    minute: 40,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "GENERAL",
+    sentiment: "NEGATIVE",
+    subject: "Thermostat quote follow-up",
+    body: "Please pause the thermostat reminders. I'll reach out when I've picked a model.",
+    customer: 13,
+    contact: 0,
+    user: "chris",
+    unread: true,
+    dayOffset: -9,
+    hour: 13,
+    minute: 15,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "WINBACK",
+    sentiment: "POSITIVE",
+    subject: "Fall gutter special — Marisol",
+    body: "Hi Marisol, our fall gutter special is open for the last two weeks of the month. Reply with a day that works and we'll hold it.",
+    customer: 6,
+    contact: 0,
+    user: "chris",
+    dayOffset: -15,
+    hour: 10,
+    minute: 0,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "FOLLOW_UP",
+    sentiment: "NEUTRAL",
+    subject: "Duct cleaning recommendation",
+    body: "Hi Ellis, after the tune-up we recommend a duct cleaning. The estimate is attached and there is no pressure to book this week.",
+    customer: 1,
+    contact: 0,
+    user: "maya",
+    aiGenerated: true,
+    aiRationale:
+      "Upsell generated from completed tune-up and air-quality notes.",
+    dayOffset: -16,
+    hour: 15,
+    minute: 10,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "QUOTE",
+    sentiment: "POSITIVE",
+    subject: "Annual maintenance agreement",
+    body: "Anika here — the maintenance agreement looks reasonable. Can we split it into two payments?",
+    customer: 2,
+    contact: 0,
+    user: "jordan",
+    dayOffset: -18,
+    hour: 11,
+    minute: 25,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "FOLLOW_UP",
+    sentiment: "NEUTRAL",
+    subject: "Easton Ridge turn schedule",
+    body: "Hi Nadia, proposed schedule for the Building C turns is attached. We can hold the Tuesday slot for three units.",
+    customer: 9,
+    contact: 0,
+    user: "sofia",
+    dayOffset: -11,
+    hour: 14,
+    minute: 45,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "GENERAL",
+    sentiment: "POSITIVE",
+    subject: "Thank you from Priya",
+    body: "The duct cleaning crew was tidy and explained everything. Please put us on the semi-annual list.",
+    customer: 10,
+    contact: 0,
+    user: "maya",
+    dayOffset: -13,
+    hour: 10,
+    minute: 30,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "REVIEW",
+    sentiment: "POSITIVE",
+    subject: "Zilker Bistro review request",
+    body: "Hi Marco, thanks for the window cleaning booking. If you're happy with the result, a quick review would mean a lot.",
+    customer: 12,
+    contact: 0,
+    user: "maya",
+    dayOffset: -14,
+    hour: 17,
+    minute: 0,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "MISSED",
+    intent: "GENERAL",
+    sentiment: "NEUTRAL",
+    subject: "Access code rotation",
+    body: "Ivy here — the back door code rotates next week. Call the front desk before the next visit.",
+    customer: 11,
+    contact: 0,
+    user: "sofia",
+    unread: true,
+    dayOffset: -17,
+    hour: 8,
+    minute: 55,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "QUOTE",
+    sentiment: "NEUTRAL",
+    subject: "Easton Ridge common-area windows",
+    body: "Hi Owen, quoting the common-area windows for Building C. This is separate from the unit-turn work.",
+    customer: 9,
+    contact: 1,
+    user: "sofia",
+    dayOffset: -19,
+    hour: 12,
+    minute: 15,
+  },
+  {
+    channel: "EMAIL",
+    direction: "INBOUND",
+    status: "RECEIVED",
+    intent: "PAYMENT",
+    sentiment: "NEGATIVE",
+    subject: "Remittance question",
+    body: "Tara from Ridgeline — the wash invoice needs a PO number before we can release payment.",
+    customer: 7,
+    contact: 1,
+    job: "job-ridgeline-wash",
+    user: "jordan",
+    unread: true,
+    dayOffset: -21,
+    hour: 13,
+    minute: 5,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "DELIVERED",
+    intent: "REMINDER",
+    sentiment: "POSITIVE",
+    subject: "Saturday turnover checklist",
+    body: "Hi Simone, attached is the turnover checklist for Saturday. We'll confirm the event end time on Friday.",
+    customer: 8,
+    contact: 0,
+    job: "job-glasshouse-event",
+    user: "jordan",
+    dayOffset: -26,
+    hour: 9,
+    minute: 35,
+  },
+  {
+    channel: "EMAIL",
+    direction: "OUTBOUND",
+    status: "SENT",
+    intent: "FOLLOW_UP",
+    sentiment: "NEUTRAL",
+    subject: "Harborview retainer renewal",
+    body: "Hi Dana, the monthly common-area retainer renews next month. The invoice is already in your portal.",
+    customer: 0,
+    contact: 0,
+    user: "demo",
+    dayOffset: -28,
+    hour: 10,
+    minute: 20,
+  },
 ];
 
 interface RuleSeed {
@@ -2222,7 +3108,8 @@ interface RuleSeed {
 const automationRuleSeeds: RuleSeed[] = [
   {
     name: "Review request after every completed job",
-    description: "Sends a review request by text once a job is marked complete, then creates a task to log the response.",
+    description:
+      "Sends a review request by text once a job is marked complete, then creates a task to log the response.",
     trigger: "JOB_COMPLETED",
     conditions: {},
     actions: [
@@ -2233,61 +3120,154 @@ const automationRuleSeeds: RuleSeed[] = [
     runCount: 128,
     lastRunDaysAgo: 0,
     runs: [
-      { trigger: "JOB_COMPLETED", status: "SUCCESS", entityType: "job", entityKey: "job-harborview-tower-nov", detail: "Review request sent to Dana Whitfield.", daysAgo: 1 },
-      { trigger: "JOB_COMPLETED", status: "SUCCESS", entityType: "job", entityKey: "job-northgate-week45", detail: "Review request sent to Anika Rao.", daysAgo: 2 },
-      { trigger: "JOB_COMPLETED", status: "SKIPPED", entityType: "job", entityKey: "job-easton-turn-clean", detail: "Skipped — customer already reviewed this month.", daysAgo: 3 },
+      {
+        trigger: "JOB_COMPLETED",
+        status: "SUCCESS",
+        entityType: "job",
+        entityKey: "job-harborview-tower-nov",
+        detail: "Review request sent to Dana Whitfield.",
+        daysAgo: 1,
+      },
+      {
+        trigger: "JOB_COMPLETED",
+        status: "SUCCESS",
+        entityType: "job",
+        entityKey: "job-northgate-week45",
+        detail: "Review request sent to Anika Rao.",
+        daysAgo: 2,
+      },
+      {
+        trigger: "JOB_COMPLETED",
+        status: "SKIPPED",
+        entityType: "job",
+        entityKey: "job-easton-turn-clean",
+        detail: "Skipped — customer already reviewed this month.",
+        daysAgo: 3,
+      },
     ],
   },
   {
     name: "Overdue invoice nudge",
-    description: "Emails the billing contact and opens a collection task when an invoice is past due.",
+    description:
+      "Emails the billing contact and opens a collection task when an invoice is past due.",
     trigger: "INVOICE_OVERDUE",
     conditions: { minTotal: 10_000 },
     actions: [
-      { type: "SEND_MESSAGE", channel: "EMAIL", intent: "PAYMENT", body: "Friendly reminder that your invoice is past due." },
-      { type: "CREATE_TASK", title: "Call about overdue invoice", body: "Confirm the billing contact received the statement.", dueInHours: 24 },
+      {
+        type: "SEND_MESSAGE",
+        channel: "EMAIL",
+        intent: "PAYMENT",
+        body: "Friendly reminder that your invoice is past due.",
+      },
+      {
+        type: "CREATE_TASK",
+        title: "Call about overdue invoice",
+        body: "Confirm the billing contact received the statement.",
+        dueInHours: 24,
+      },
     ],
     enabled: true,
     runCount: 34,
     lastRunDaysAgo: 2,
     runs: [
-      { trigger: "INVOICE_OVERDUE", status: "SUCCESS", entityType: "invoice", entityKey: "inv-northgate-week45", detail: "Email sent to office@northgatedental.com.", daysAgo: 2 },
-      { trigger: "INVOICE_OVERDUE", status: "SKIPPED", entityType: "invoice", entityKey: "inv-cedar-maint-quarter", detail: "Skipped — invoice is still a draft.", daysAgo: 6 },
-      { trigger: "INVOICE_OVERDUE", status: "FAILED", entityType: "invoice", entityKey: "inv-harborview-retainer", detail: "Provider rejected the email address on file.", daysAgo: 9 },
+      {
+        trigger: "INVOICE_OVERDUE",
+        status: "SUCCESS",
+        entityType: "invoice",
+        entityKey: "inv-northgate-week45",
+        detail: "Email sent to office@northgatedental.com.",
+        daysAgo: 2,
+      },
+      {
+        trigger: "INVOICE_OVERDUE",
+        status: "SKIPPED",
+        entityType: "invoice",
+        entityKey: "inv-cedar-maint-quarter",
+        detail: "Skipped — invoice is still a draft.",
+        daysAgo: 6,
+      },
+      {
+        trigger: "INVOICE_OVERDUE",
+        status: "FAILED",
+        entityType: "invoice",
+        entityKey: "inv-harborview-retainer",
+        detail: "Provider rejected the email address on file.",
+        daysAgo: 9,
+      },
     ],
   },
   {
     name: "Quote follow-up sequence",
-    description: "Creates a follow-up task and texts the customer three days after a quote is sent.",
+    description:
+      "Creates a follow-up task and texts the customer three days after a quote is sent.",
     trigger: "QUOTE_SENT",
     conditions: { customerTypes: ["COMMERCIAL", "PROPERTY_MANAGER"] },
     actions: [
       { type: "CREATE_TASK", title: "Follow up on sent quote", dueInHours: 72 },
-      { type: "SEND_MESSAGE", channel: "SMS", intent: "FOLLOW_UP", body: "Checking in on the quote we sent — happy to adjust the scope." },
+      {
+        type: "SEND_MESSAGE",
+        channel: "SMS",
+        intent: "FOLLOW_UP",
+        body: "Checking in on the quote we sent — happy to adjust the scope.",
+      },
     ],
     enabled: true,
     runCount: 52,
     lastRunDaysAgo: 4,
     runs: [
-      { trigger: "QUOTE_SENT", status: "SUCCESS", entityType: "estimate", entityKey: "est-harborview-annual", detail: "Follow-up task created for Avery Meridian.", daysAgo: 4 },
-      { trigger: "QUOTE_SENT", status: "SUCCESS", entityType: "estimate", entityKey: "est-zilker-duct", detail: "Follow-up task created for Avery Meridian.", daysAgo: 3 },
+      {
+        trigger: "QUOTE_SENT",
+        status: "SUCCESS",
+        entityType: "estimate",
+        entityKey: "est-harborview-annual",
+        detail: "Follow-up task created for Avery Meridian.",
+        daysAgo: 4,
+      },
+      {
+        trigger: "QUOTE_SENT",
+        status: "SUCCESS",
+        entityType: "estimate",
+        entityKey: "est-zilker-duct",
+        detail: "Follow-up task created for Avery Meridian.",
+        daysAgo: 3,
+      },
     ],
   },
   {
     name: "Upcoming appointment reminder",
-    description: "Sends a reminder 24 hours before a scheduled appointment. Paused while the message templates are revised.",
+    description:
+      "Sends a reminder 24 hours before a scheduled appointment. Paused while the message templates are revised.",
     trigger: "APPOINTMENT_UPCOMING",
     conditions: { priorities: ["HIGH", "URGENT"] },
     actions: [
-      { type: "SEND_MESSAGE", channel: "SMS", intent: "REMINDER", body: "Reminder: your service appointment is tomorrow." },
+      {
+        type: "SEND_MESSAGE",
+        channel: "SMS",
+        intent: "REMINDER",
+        body: "Reminder: your service appointment is tomorrow.",
+      },
       { type: "ADD_TAG", tag: "reminder-sent" },
     ],
     enabled: false,
     runCount: 19,
     lastRunDaysAgo: 12,
     runs: [
-      { trigger: "APPOINTMENT_UPCOMING", status: "SUCCESS", entityType: "job", entityKey: "job-parkside-quarterly", detail: "Reminder sent to Greta Lund.", daysAgo: 12 },
-      { trigger: "APPOINTMENT_UPCOMING", status: "SKIPPED", entityType: "job", entityKey: "job-ridgeline-substation", detail: "Rule disabled — no message sent.", daysAgo: 13 },
+      {
+        trigger: "APPOINTMENT_UPCOMING",
+        status: "SUCCESS",
+        entityType: "job",
+        entityKey: "job-parkside-quarterly",
+        detail: "Reminder sent to Greta Lund.",
+        daysAgo: 12,
+      },
+      {
+        trigger: "APPOINTMENT_UPCOMING",
+        status: "SKIPPED",
+        entityType: "job",
+        entityKey: "job-ridgeline-substation",
+        detail: "Rule disabled — no message sent.",
+        daysAgo: 13,
+      },
     ],
   },
 ];
@@ -2305,29 +3285,228 @@ interface ActivitySeed {
 }
 
 const activitySeeds: ActivitySeed[] = [
-  { type: "NOTE", title: "Walkthrough with Dana at Harborview Tower", body: "Confirmed loading dock access and the monthly cadence.", customer: 0, contact: 0, owner: "demo", createdDaysAgo: 5, completedDaysAgo: 5 },
-  { type: "CALL", title: "Called Ellis about duct cleaning", body: "He wants the estimate by email and will decide after the holidays.", customer: 1, contact: 0, owner: "maya", createdDaysAgo: 4, completedDaysAgo: 4 },
-  { type: "NOTE", title: "Mina approved the biweekly deep clean", body: "Keep the eco line stocked in the mop closet.", customer: 3, contact: 0, owner: "sofia", createdDaysAgo: 6, completedDaysAgo: 6 },
-  { type: "NOTE", title: "Board requested before/after photos", body: "Send to Greta after the pressure wash.", customer: 5, contact: 0, owner: "jordan", createdDaysAgo: 7, completedDaysAgo: 7 },
-  { type: "EMAIL", title: "Sent alarm-code update instructions", body: "New code is texted the morning of each visit.", customer: 2, contact: 0, owner: "jordan", createdDaysAgo: 8, completedDaysAgo: 8 },
-  { type: "MEETING", title: "Event calendar walkthrough with Simone", body: "Six events in the next month; two back-to-back weekends.", customer: 8, contact: 0, owner: "jordan", createdDaysAgo: 9, completedDaysAgo: 9 },
-  { type: "CALL", title: "Easton Ridge turn scope confirmed", body: "Three units in Building C: 204, 207 and 311.", customer: 9, contact: 0, owner: "sofia", createdDaysAgo: 3, completedDaysAgo: 3 },
-  { type: "NOTE", title: "Escort clearance renewed for Ridgeline", body: "Badge pickup at the north gate, valid through next quarter.", customer: 7, contact: 0, owner: "chris", createdDaysAgo: 11, completedDaysAgo: 11 },
-  { type: "NOTE", title: "Priya approved the duct cleaning estimate", body: "Schedule after the tune-up; she prefers morning windows.", customer: 10, contact: 0, owner: "maya", createdDaysAgo: 10, completedDaysAgo: 10 },
-  { type: "NOTE", title: "Willow asked to shift visits to mornings", body: "Front desk opens at 8:30; back door code rotates quarterly.", customer: 11, contact: 0, owner: "sofia", createdDaysAgo: 12, completedDaysAgo: 12 },
-  { type: "EMAIL", title: "Zilker window quote sent", body: "Hold the duct work until the remodel finishes.", customer: 12, contact: 0, owner: "chris", createdDaysAgo: 2, completedDaysAgo: 2 },
-  { type: "CALL", title: "Left voicemail about thermostat options", body: "Customer asked to pause reminders until they choose a model.", customer: 13, contact: 0, owner: "chris", createdDaysAgo: 1, completedDaysAgo: 1 },
-  { type: "NOTE", title: "Harborview retainer renewal conversation", body: "Dana wants the renewal invoice routed to the board portal.", customer: 0, contact: 0, owner: "demo", createdDaysAgo: 1, completedDaysAgo: 1 },
-  { type: "NOTE", title: "Cedar requested the eco product list", body: "Rowan wants a copy for their own supplier comparison.", customer: 4, contact: 0, owner: "sofia", createdDaysAgo: 14, completedDaysAgo: 14 },
-  { type: "TASK", title: "Send Zilker quote", customer: 12, contact: 0, owner: "chris", createdDaysAgo: 4, dueInDays: -3, completedDaysAgo: 3 },
-  { type: "TASK", title: "Collect certificate of insurance — Ridgeline", customer: 7, contact: 1, owner: "jordan", createdDaysAgo: 6, dueInDays: -1 },
-  { type: "TASK", title: "Confirm event end time for Saturday turnover", customer: 8, contact: 0, owner: "jordan", createdDaysAgo: 2, dueInDays: 1 },
-  { type: "TASK", title: "Send revised window contract to Harborview board", customer: 0, contact: 0, owner: "demo", createdDaysAgo: 3, dueInDays: 3 },
-  { type: "TASK", title: "Order pressure-wash fuel for Parkside", customer: 5, contact: 0, owner: "jordan", createdDaysAgo: 2, dueInDays: 4 },
-  { type: "TASK", title: "Confirm alarm code rotation with Northgate", customer: 2, contact: 0, owner: "jordan", createdDaysAgo: 1, dueInDays: 2 },
-  { type: "TASK", title: "Schedule unit-turn crew for Easton Ridge", customer: 9, contact: 0, owner: "sofia", createdDaysAgo: 2, dueInDays: 5 },
-  { type: "TASK", title: "Follow up on thermostat model selection", customer: 13, contact: 0, owner: "chris", createdDaysAgo: 5, dueInDays: -2 },
-  { type: "TASK", title: "Book duct cleaning reminder call", customer: 10, contact: 0, owner: "maya", createdDaysAgo: 1, dueInDays: 6 },
+  {
+    type: "NOTE",
+    title: "Walkthrough with Dana at Harborview Tower",
+    body: "Confirmed loading dock access and the monthly cadence.",
+    customer: 0,
+    contact: 0,
+    owner: "demo",
+    createdDaysAgo: 5,
+    completedDaysAgo: 5,
+  },
+  {
+    type: "CALL",
+    title: "Called Ellis about duct cleaning",
+    body: "He wants the estimate by email and will decide after the holidays.",
+    customer: 1,
+    contact: 0,
+    owner: "maya",
+    createdDaysAgo: 4,
+    completedDaysAgo: 4,
+  },
+  {
+    type: "NOTE",
+    title: "Mina approved the biweekly deep clean",
+    body: "Keep the eco line stocked in the mop closet.",
+    customer: 3,
+    contact: 0,
+    owner: "sofia",
+    createdDaysAgo: 6,
+    completedDaysAgo: 6,
+  },
+  {
+    type: "NOTE",
+    title: "Board requested before/after photos",
+    body: "Send to Greta after the pressure wash.",
+    customer: 5,
+    contact: 0,
+    owner: "jordan",
+    createdDaysAgo: 7,
+    completedDaysAgo: 7,
+  },
+  {
+    type: "EMAIL",
+    title: "Sent alarm-code update instructions",
+    body: "New code is texted the morning of each visit.",
+    customer: 2,
+    contact: 0,
+    owner: "jordan",
+    createdDaysAgo: 8,
+    completedDaysAgo: 8,
+  },
+  {
+    type: "MEETING",
+    title: "Event calendar walkthrough with Simone",
+    body: "Six events in the next month; two back-to-back weekends.",
+    customer: 8,
+    contact: 0,
+    owner: "jordan",
+    createdDaysAgo: 9,
+    completedDaysAgo: 9,
+  },
+  {
+    type: "CALL",
+    title: "Easton Ridge turn scope confirmed",
+    body: "Three units in Building C: 204, 207 and 311.",
+    customer: 9,
+    contact: 0,
+    owner: "sofia",
+    createdDaysAgo: 3,
+    completedDaysAgo: 3,
+  },
+  {
+    type: "NOTE",
+    title: "Escort clearance renewed for Ridgeline",
+    body: "Badge pickup at the north gate, valid through next quarter.",
+    customer: 7,
+    contact: 0,
+    owner: "chris",
+    createdDaysAgo: 11,
+    completedDaysAgo: 11,
+  },
+  {
+    type: "NOTE",
+    title: "Priya approved the duct cleaning estimate",
+    body: "Schedule after the tune-up; she prefers morning windows.",
+    customer: 10,
+    contact: 0,
+    owner: "maya",
+    createdDaysAgo: 10,
+    completedDaysAgo: 10,
+  },
+  {
+    type: "NOTE",
+    title: "Willow asked to shift visits to mornings",
+    body: "Front desk opens at 8:30; back door code rotates quarterly.",
+    customer: 11,
+    contact: 0,
+    owner: "sofia",
+    createdDaysAgo: 12,
+    completedDaysAgo: 12,
+  },
+  {
+    type: "EMAIL",
+    title: "Zilker window quote sent",
+    body: "Hold the duct work until the remodel finishes.",
+    customer: 12,
+    contact: 0,
+    owner: "chris",
+    createdDaysAgo: 2,
+    completedDaysAgo: 2,
+  },
+  {
+    type: "CALL",
+    title: "Left voicemail about thermostat options",
+    body: "Customer asked to pause reminders until they choose a model.",
+    customer: 13,
+    contact: 0,
+    owner: "chris",
+    createdDaysAgo: 1,
+    completedDaysAgo: 1,
+  },
+  {
+    type: "NOTE",
+    title: "Harborview retainer renewal conversation",
+    body: "Dana wants the renewal invoice routed to the board portal.",
+    customer: 0,
+    contact: 0,
+    owner: "demo",
+    createdDaysAgo: 1,
+    completedDaysAgo: 1,
+  },
+  {
+    type: "NOTE",
+    title: "Cedar requested the eco product list",
+    body: "Rowan wants a copy for their own supplier comparison.",
+    customer: 4,
+    contact: 0,
+    owner: "sofia",
+    createdDaysAgo: 14,
+    completedDaysAgo: 14,
+  },
+  {
+    type: "TASK",
+    title: "Send Zilker quote",
+    customer: 12,
+    contact: 0,
+    owner: "chris",
+    createdDaysAgo: 4,
+    dueInDays: -3,
+    completedDaysAgo: 3,
+  },
+  {
+    type: "TASK",
+    title: "Collect certificate of insurance — Ridgeline",
+    customer: 7,
+    contact: 1,
+    owner: "jordan",
+    createdDaysAgo: 6,
+    dueInDays: -1,
+  },
+  {
+    type: "TASK",
+    title: "Confirm event end time for Saturday turnover",
+    customer: 8,
+    contact: 0,
+    owner: "jordan",
+    createdDaysAgo: 2,
+    dueInDays: 1,
+  },
+  {
+    type: "TASK",
+    title: "Send revised window contract to Harborview board",
+    customer: 0,
+    contact: 0,
+    owner: "demo",
+    createdDaysAgo: 3,
+    dueInDays: 3,
+  },
+  {
+    type: "TASK",
+    title: "Order pressure-wash fuel for Parkside",
+    customer: 5,
+    contact: 0,
+    owner: "jordan",
+    createdDaysAgo: 2,
+    dueInDays: 4,
+  },
+  {
+    type: "TASK",
+    title: "Confirm alarm code rotation with Northgate",
+    customer: 2,
+    contact: 0,
+    owner: "jordan",
+    createdDaysAgo: 1,
+    dueInDays: 2,
+  },
+  {
+    type: "TASK",
+    title: "Schedule unit-turn crew for Easton Ridge",
+    customer: 9,
+    contact: 0,
+    owner: "sofia",
+    createdDaysAgo: 2,
+    dueInDays: 5,
+  },
+  {
+    type: "TASK",
+    title: "Follow up on thermostat model selection",
+    customer: 13,
+    contact: 0,
+    owner: "chris",
+    createdDaysAgo: 5,
+    dueInDays: -2,
+  },
+  {
+    type: "TASK",
+    title: "Book duct cleaning reminder call",
+    customer: 10,
+    contact: 0,
+    owner: "maya",
+    createdDaysAgo: 1,
+    dueInDays: 6,
+  },
 ];
 
 interface DealSeed {
@@ -2344,14 +3523,97 @@ interface DealSeed {
 }
 
 const dealSeeds: DealSeed[] = [
-  { title: "Annual window contract — Harborview", customer: 0, contact: 0, stage: 2, value: 11_640_000, expectedInDays: 14, createdDaysAgo: 12, description: "Six buildings on a monthly cadence. Awaiting board signature.", owner: "demo" },
-  { title: "HVAC maintenance agreement — Northgate", customer: 2, contact: 0, stage: 1, value: 2_160_000, expectedInDays: 21, createdDaysAgo: 9, description: "Quarterly tune-ups across two rooftop units.", owner: "jordan" },
-  { title: "Salon group cleaning — Lumen + Cedar", customer: 3, contact: 0, stage: 0, value: 1_680_000, expectedInDays: 30, createdDaysAgo: 4, description: "Multi-site recurring clean bundled across both salons.", owner: "sofia" },
-  { title: "Ridgeline substation compliance program", customer: 7, contact: 0, stage: 1, value: 9_000_000, expectedInDays: 45, createdDaysAgo: 20, description: "Quarterly wash program with compliance documentation.", owner: "demo" },
-  { title: "Parkside HOA common-area contract", customer: 5, contact: 0, stage: 2, value: 1_320_000, expectedInDays: 10, createdDaysAgo: 15, description: "Year-round maintenance for 42 units.", owner: "jordan" },
-  { title: "Glass House event retainer", customer: 8, contact: 0, stage: 3, value: 2_400_000, expectedInDays: null, createdDaysAgo: 60, description: "Scheduled turnover crew for the season.", owner: "jordan", closedDaysAgo: 3 },
-  { title: "Easton Ridge unit-turn program", customer: 9, contact: 0, stage: 0, value: 860_000, expectedInDays: 25, createdDaysAgo: 6, description: "Per-unit turnover pricing across the portfolio.", owner: "sofia" },
-  { title: "Cedar & Co. quarterly refresh", customer: 4, contact: 0, stage: 4, value: 540_000, expectedInDays: null, createdDaysAgo: 40, description: "Lost on price; revisit at renewal.", owner: "demo", closedDaysAgo: 20 },
+  {
+    title: "Annual window contract — Harborview",
+    customer: 0,
+    contact: 0,
+    stage: 2,
+    value: 11_640_000,
+    expectedInDays: 14,
+    createdDaysAgo: 12,
+    description:
+      "Six buildings on a monthly cadence. Awaiting board signature.",
+    owner: "demo",
+  },
+  {
+    title: "HVAC maintenance agreement — Northgate",
+    customer: 2,
+    contact: 0,
+    stage: 1,
+    value: 2_160_000,
+    expectedInDays: 21,
+    createdDaysAgo: 9,
+    description: "Quarterly tune-ups across two rooftop units.",
+    owner: "jordan",
+  },
+  {
+    title: "Salon group cleaning — Lumen + Cedar",
+    customer: 3,
+    contact: 0,
+    stage: 0,
+    value: 1_680_000,
+    expectedInDays: 30,
+    createdDaysAgo: 4,
+    description: "Multi-site recurring clean bundled across both salons.",
+    owner: "sofia",
+  },
+  {
+    title: "Ridgeline substation compliance program",
+    customer: 7,
+    contact: 0,
+    stage: 1,
+    value: 9_000_000,
+    expectedInDays: 45,
+    createdDaysAgo: 20,
+    description: "Quarterly wash program with compliance documentation.",
+    owner: "demo",
+  },
+  {
+    title: "Parkside HOA common-area contract",
+    customer: 5,
+    contact: 0,
+    stage: 2,
+    value: 1_320_000,
+    expectedInDays: 10,
+    createdDaysAgo: 15,
+    description: "Year-round maintenance for 42 units.",
+    owner: "jordan",
+  },
+  {
+    title: "Glass House event retainer",
+    customer: 8,
+    contact: 0,
+    stage: 3,
+    value: 2_400_000,
+    expectedInDays: null,
+    createdDaysAgo: 60,
+    description: "Scheduled turnover crew for the season.",
+    owner: "jordan",
+    closedDaysAgo: 3,
+  },
+  {
+    title: "Easton Ridge unit-turn program",
+    customer: 9,
+    contact: 0,
+    stage: 0,
+    value: 860_000,
+    expectedInDays: 25,
+    createdDaysAgo: 6,
+    description: "Per-unit turnover pricing across the portfolio.",
+    owner: "sofia",
+  },
+  {
+    title: "Cedar & Co. quarterly refresh",
+    customer: 4,
+    contact: 0,
+    stage: 4,
+    value: 540_000,
+    expectedInDays: null,
+    createdDaysAgo: 40,
+    description: "Lost on price; revisit at renewal.",
+    owner: "demo",
+    closedDaysAgo: 20,
+  },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -2412,11 +3674,41 @@ async function main(): Promise<void> {
       createdAt: daysAgo(205),
       stages: {
         create: [
-          { name: "New lead", order: 0, probability: 10, kind: "OPEN", targetDays: 7 },
-          { name: "Site visit", order: 1, probability: 30, kind: "OPEN", targetDays: 10 },
-          { name: "Quote sent", order: 2, probability: 55, kind: "OPEN", targetDays: 7 },
-          { name: "Won", order: 3, probability: 100, kind: "WON", targetDays: 30 },
-          { name: "Lost", order: 4, probability: 0, kind: "LOST", targetDays: 30 },
+          {
+            name: "New lead",
+            order: 0,
+            probability: 10,
+            kind: "OPEN",
+            targetDays: 7,
+          },
+          {
+            name: "Site visit",
+            order: 1,
+            probability: 30,
+            kind: "OPEN",
+            targetDays: 10,
+          },
+          {
+            name: "Quote sent",
+            order: 2,
+            probability: 55,
+            kind: "OPEN",
+            targetDays: 7,
+          },
+          {
+            name: "Won",
+            order: 3,
+            probability: 100,
+            kind: "WON",
+            targetDays: 30,
+          },
+          {
+            name: "Lost",
+            order: 4,
+            probability: 0,
+            kind: "LOST",
+            targetDays: 30,
+          },
         ],
       },
     },
@@ -2434,7 +3726,9 @@ async function main(): Promise<void> {
   for (const seed of customerSeeds) {
     const primaries = seed.locations.filter((location) => location.isPrimary);
     if (primaries.length !== 1) {
-      throw new Error(`Customer ${seed.name} must have exactly one primary location`);
+      throw new Error(
+        `Customer ${seed.name} must have exactly one primary location`,
+      );
     }
 
     const primary = must(primaries[0], `${seed.name} primary location`);
@@ -2511,7 +3805,10 @@ async function main(): Promise<void> {
 
   for (const seed of dealSeeds) {
     const closed = seed.expectedInDays === null;
-    const currentStageId = must(stageIds[seed.stage], `deal stage ${seed.stage}`);
+    const currentStageId = must(
+      stageIds[seed.stage],
+      `deal stage ${seed.stage}`,
+    );
     const history = [
       {
         stageId: must(stageIds[0], "stage 0"),
@@ -2536,10 +3833,19 @@ async function main(): Promise<void> {
         title: seed.title,
         value: seed.value,
         currency: "USD",
-        contactId: must(contactIds[seed.customer]![seed.contact], "deal contact"),
-        companyId: must(customerIds[seed.customer], `deal customer ${seed.customer}`),
+        contactId: must(
+          contactIds[seed.customer]![seed.contact],
+          "deal contact",
+        ),
+        companyId: must(
+          customerIds[seed.customer],
+          `deal customer ${seed.customer}`,
+        ),
         ownerId: must(userByKey.get(seed.owner), seed.owner).id,
-        expectedCloseDate: seed.expectedInDays === null ? null : daysFromNow(seed.expectedInDays),
+        expectedCloseDate:
+          seed.expectedInDays === null
+            ? null
+            : daysFromNow(seed.expectedInDays),
         closedAt: closed ? daysAgo(seed.closedDaysAgo ?? 3) : null,
         description: seed.description,
         tags: JSON.stringify(["service"]),
@@ -2577,8 +3883,14 @@ async function main(): Promise<void> {
 
   function buildLines(lines: LineSeed[]) {
     const items = lines.map((line) => {
-      const service = must(serviceSeeds[line.service], `service ${line.service}`);
-      const serviceId = must(serviceIds[line.service], `service id ${line.service}`);
+      const service = must(
+        serviceSeeds[line.service],
+        `service ${line.service}`,
+      );
+      const serviceId = must(
+        serviceIds[line.service],
+        `service id ${line.service}`,
+      );
       return {
         serviceId,
         name: service.name,
@@ -2609,7 +3921,9 @@ async function main(): Promise<void> {
     const priced = buildLines(seed.lines);
     const totals = totalsFor(priced.subtotal, TAX_BPS);
     const start = resolveJobStart(seed);
-    const end = start ? new Date(start.getTime() + seed.durationMinutes * 60_000) : null;
+    const end = start
+      ? new Date(start.getTime() + seed.durationMinutes * 60_000)
+      : null;
     const number = `JOB-${1001 + index}`;
     const createdAt = start
       ? new Date(Math.min(now.getTime() - DAY_MS, start.getTime() - 6 * DAY_MS))
@@ -2624,14 +3938,26 @@ async function main(): Promise<void> {
         status: seed.status,
         priority: seed.priority,
         source: seed.source,
-        customerId: must(customerIds[seed.customer], `customer ${seed.customer}`),
-        locationId: must(locationIds[seed.customer]![seed.location], `location ${seed.location}`),
-        contactId: must(contactIds[seed.customer]![seed.contact], `contact ${seed.contact}`),
-        assigneeId: seed.assignee ? must(userByKey.get(seed.assignee), seed.assignee).id : null,
+        customerId: must(
+          customerIds[seed.customer],
+          `customer ${seed.customer}`,
+        ),
+        locationId: must(
+          locationIds[seed.customer]![seed.location],
+          `location ${seed.location}`,
+        ),
+        contactId: must(
+          contactIds[seed.customer]![seed.contact],
+          `contact ${seed.contact}`,
+        ),
+        assigneeId: seed.assignee
+          ? must(userByKey.get(seed.assignee), seed.assignee).id
+          : null,
         scheduledStart: start,
         scheduledEnd: end,
         arrivedAt:
-          start && (seed.status === "COMPLETED" || seed.status === "IN_PROGRESS")
+          start &&
+          (seed.status === "COMPLETED" || seed.status === "IN_PROGRESS")
             ? new Date(start.getTime() + 5 * 60_000)
             : null,
         completedAt,
@@ -2681,12 +4007,24 @@ async function main(): Promise<void> {
         number: `EST-${1001 + index}`,
         title: seed.title,
         status: seed.status,
-        customerId: must(customerIds[seed.customer], `estimate customer ${seed.customer}`),
-        locationId: must(locationIds[seed.customer]![seed.location], "estimate location"),
-        contactId: must(contactIds[seed.customer]![seed.contact], "estimate contact"),
+        customerId: must(
+          customerIds[seed.customer],
+          `estimate customer ${seed.customer}`,
+        ),
+        locationId: must(
+          locationIds[seed.customer]![seed.location],
+          "estimate location",
+        ),
+        contactId: must(
+          contactIds[seed.customer]![seed.contact],
+          "estimate contact",
+        ),
         ownerId: must(userByKey.get(seed.owner), seed.owner).id,
-        jobId: seed.convertedJob ? must(jobRefs.get(seed.convertedJob), seed.convertedJob).id : null,
-        issuedAt: seed.issuedDaysAgo === null ? null : atHour(-seed.issuedDaysAgo, 10),
+        jobId: seed.convertedJob
+          ? must(jobRefs.get(seed.convertedJob), seed.convertedJob).id
+          : null,
+        issuedAt:
+          seed.issuedDaysAgo === null ? null : atHour(-seed.issuedDaysAgo, 10),
         expiresAt: atHour(seed.expiresInDays, 17),
         taxRate: TAX_BPS,
         subtotal: totals.subtotal,
@@ -2702,8 +4040,15 @@ async function main(): Promise<void> {
   }
 
   const estimateStatuses = new Set(estimateSeeds.map((seed) => seed.status));
-  for (const status of ["DRAFT", "SENT", "APPROVED", "DECLINED", "EXPIRED"] as const) {
-    if (!estimateStatuses.has(status)) throw new Error(`Estimate seed missing status ${status}`);
+  for (const status of [
+    "DRAFT",
+    "SENT",
+    "APPROVED",
+    "DECLINED",
+    "EXPIRED",
+  ] as const) {
+    if (!estimateStatuses.has(status))
+      throw new Error(`Estimate seed missing status ${status}`);
   }
 
   // Invoices and payments --------------------------------------------------
@@ -2712,19 +4057,38 @@ async function main(): Promise<void> {
 
   for (const [index, seed] of invoiceSeeds.entries()) {
     const jobRef = seed.job ? must(jobRefs.get(seed.job), seed.job) : undefined;
-    const amount = jobRef ? jobRef.total : must(seed.amount, `${seed.key} amount`);
-    const paymentTotal = seed.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const amount = jobRef
+      ? jobRef.total
+      : must(seed.amount, `${seed.key} amount`);
+    const paymentTotal = seed.payments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0,
+    );
     if (paymentTotal !== seed.amountPaid) {
-      throw new Error(`Invoice ${seed.key} payments ${paymentTotal} != amountPaid ${seed.amountPaid}`);
+      throw new Error(
+        `Invoice ${seed.key} payments ${paymentTotal} != amountPaid ${seed.amountPaid}`,
+      );
     }
     if (seed.status === "PAID" && seed.amountPaid !== amount) {
-      throw new Error(`Paid invoice ${seed.key} does not settle the full amount`);
+      throw new Error(
+        `Paid invoice ${seed.key} does not settle the full amount`,
+      );
     }
-    if (seed.status === "PARTIAL" && !(seed.amountPaid > 0 && seed.amountPaid < amount)) {
-      throw new Error(`Partial invoice ${seed.key} has an inconsistent amountPaid`);
+    if (
+      seed.status === "PARTIAL" &&
+      !(seed.amountPaid > 0 && seed.amountPaid < amount)
+    ) {
+      throw new Error(
+        `Partial invoice ${seed.key} has an inconsistent amountPaid`,
+      );
     }
-    if ((seed.status === "SENT" || seed.status === "DRAFT") && seed.amountPaid !== 0) {
-      throw new Error(`${seed.status} invoice ${seed.key} should not carry payments`);
+    if (
+      (seed.status === "SENT" || seed.status === "DRAFT") &&
+      seed.amountPaid !== 0
+    ) {
+      throw new Error(
+        `${seed.status} invoice ${seed.key} should not carry payments`,
+      );
     }
     if (seed.status === "DRAFT" && seed.issuedDaysAgo !== null) {
       throw new Error(`Draft invoice ${seed.key} must not have issuedAt`);
@@ -2736,14 +4100,20 @@ async function main(): Promise<void> {
         number: `INV-${1001 + index}`,
         title: seed.title,
         status: seed.status,
-        customerId: jobRef?.customerId ?? must(customerIds[seed.customer], "invoice customer"),
-        locationId: jobRef?.locationId ?? must(locationIds[seed.customer]![seed.location], "invoice location"),
+        customerId:
+          jobRef?.customerId ??
+          must(customerIds[seed.customer], "invoice customer"),
+        locationId:
+          jobRef?.locationId ??
+          must(locationIds[seed.customer]![seed.location], "invoice location"),
         jobId: jobRef?.id ?? null,
         amount,
         amountPaid: seed.amountPaid,
-        issuedAt: seed.issuedDaysAgo === null ? null : atHour(-seed.issuedDaysAgo, 9),
+        issuedAt:
+          seed.issuedDaysAgo === null ? null : atHour(-seed.issuedDaysAgo, 9),
         dueAt: seed.dueInDays === null ? null : atHour(seed.dueInDays, 17),
-        paidAt: seed.paidDaysAgo === undefined ? null : atHour(-seed.paidDaysAgo, 16),
+        paidAt:
+          seed.paidDaysAgo === undefined ? null : atHour(-seed.paidDaysAgo, 16),
         notes: seed.notes ?? null,
         createdAt: atHour(-((seed.issuedDaysAgo ?? 1) + 1), 9),
         updatedAt: daysAgo(1),
@@ -2763,7 +4133,10 @@ async function main(): Promise<void> {
             method: payment.method,
             reference: payment.reference ?? null,
             receivedAt,
-            recordedById: must(userByKey.get(payment.recordedBy), payment.recordedBy).id,
+            recordedById: must(
+              userByKey.get(payment.recordedBy),
+              payment.recordedBy,
+            ).id,
             createdAt: receivedAt,
           };
         }),
@@ -2808,15 +4181,23 @@ async function main(): Promise<void> {
         sentiment: seed.sentiment,
         subject: seed.subject ?? null,
         body: seed.body,
-        customerId: must(customerIds[seed.customer], `communication customer ${seed.customer}`),
-        contactId: must(contactIds[seed.customer]![seed.contact], "communication contact"),
+        customerId: must(
+          customerIds[seed.customer],
+          `communication customer ${seed.customer}`,
+        ),
+        contactId: must(
+          contactIds[seed.customer]![seed.contact],
+          "communication contact",
+        ),
         jobId: seed.job ? must(jobRefs.get(seed.job), seed.job).id : null,
         userId: must(userByKey.get(seed.user), seed.user).id,
         provider: "log",
         externalId: null,
         aiGenerated: seed.aiGenerated ?? false,
         aiRationale: seed.aiGenerated ? (seed.aiRationale ?? null) : null,
-        readAt: seed.unread ? null : new Date(occurredAt.getTime() + 10 * 60_000),
+        readAt: seed.unread
+          ? null
+          : new Date(occurredAt.getTime() + 10 * 60_000),
         occurredAt,
         createdAt: occurredAt,
         updatedAt: occurredAt,
@@ -2826,11 +4207,17 @@ async function main(): Promise<void> {
 
   // Automation -------------------------------------------------------------
 
-  function resolveRunEntityId(entityType: string, entityKey?: string, entityId?: string): string | null {
+  function resolveRunEntityId(
+    entityType: string,
+    entityKey?: string,
+    entityId?: string,
+  ): string | null {
     if (!entityKey) return entityId ?? null;
     if (entityType === "job") return must(jobRefs.get(entityKey), entityKey).id;
-    if (entityType === "invoice") return must(invoiceRefs.get(entityKey), entityKey);
-    if (entityType === "estimate") return must(estimateRefs.get(entityKey), entityKey);
+    if (entityType === "invoice")
+      return must(invoiceRefs.get(entityKey), entityKey);
+    if (entityType === "estimate")
+      return must(estimateRefs.get(entityKey), entityKey);
     return entityId ?? null;
   }
 
@@ -2845,7 +4232,8 @@ async function main(): Promise<void> {
         actions: JSON.stringify(seed.actions),
         enabled: seed.enabled,
         runCount: seed.runCount,
-        lastRunAt: seed.lastRunDaysAgo === null ? null : daysAgo(seed.lastRunDaysAgo),
+        lastRunAt:
+          seed.lastRunDaysAgo === null ? null : daysAgo(seed.lastRunDaysAgo),
         createdAt: daysAgo(60),
         updatedAt: daysAgo(seed.lastRunDaysAgo ?? 30),
         runs: {
@@ -2854,7 +4242,11 @@ async function main(): Promise<void> {
             trigger: run.trigger,
             status: run.status,
             entityType: run.entityType,
-            entityId: resolveRunEntityId(run.entityType, run.entityKey, run.entityId),
+            entityId: resolveRunEntityId(
+              run.entityType,
+              run.entityKey,
+              run.entityId,
+            ),
             detail: run.detail,
             createdAt: daysAgo(run.daysAgo),
           })),
@@ -2873,11 +4265,20 @@ async function main(): Promise<void> {
         type: seed.type,
         title: seed.title,
         body: seed.body ?? null,
-        dueAt: seed.dueInDays === undefined ? null : daysFromNow(seed.dueInDays),
+        dueAt:
+          seed.dueInDays === undefined ? null : daysFromNow(seed.dueInDays),
         completedAt:
-          seed.completedDaysAgo === undefined ? null : daysAgo(seed.completedDaysAgo),
-        companyId: must(customerIds[seed.customer], `activity customer ${seed.customer}`),
-        contactId: must(contactIds[seed.customer]![seed.contact], "activity contact"),
+          seed.completedDaysAgo === undefined
+            ? null
+            : daysAgo(seed.completedDaysAgo),
+        companyId: must(
+          customerIds[seed.customer],
+          `activity customer ${seed.customer}`,
+        ),
+        contactId: must(
+          contactIds[seed.customer]![seed.contact],
+          "activity contact",
+        ),
         ownerId: must(userByKey.get(seed.owner), seed.owner).id,
         createdAt,
         updatedAt: createdAt,
@@ -2895,7 +4296,10 @@ async function main(): Promise<void> {
         action: "workspace.created",
         entityType: "workspace",
         entityId: workspace.id,
-        metadata: JSON.stringify({ name: workspace.name, slug: workspace.slug }),
+        metadata: JSON.stringify({
+          name: workspace.name,
+          slug: workspace.slug,
+        }),
         createdAt: daysAgo(210),
       },
       {
@@ -2913,7 +4317,11 @@ async function main(): Promise<void> {
         action: "invoice.payment",
         entityType: "invoice",
         entityId: null,
-        metadata: JSON.stringify({ number: "INV-1001", amount: 30_000, method: "ACH" }),
+        metadata: JSON.stringify({
+          number: "INV-1001",
+          amount: 30_000,
+          method: "ACH",
+        }),
         createdAt: daysAgo(2),
       },
       {
@@ -2922,7 +4330,11 @@ async function main(): Promise<void> {
         action: "invoice.payment",
         entityType: "invoice",
         entityId: null,
-        metadata: JSON.stringify({ number: "INV-1001", amount: 2_475, method: "CARD" }),
+        metadata: JSON.stringify({
+          number: "INV-1001",
+          amount: 2_475,
+          method: "CARD",
+        }),
         createdAt: daysAgo(1),
       },
       {
@@ -2940,7 +4352,10 @@ async function main(): Promise<void> {
         action: "job.dispatched",
         entityType: "job",
         entityId: must(jobRefs.get("job-cedar-today"), "audit job").id,
-        metadata: JSON.stringify({ number: "JOB-1019", assignee: "Chris Nguyen" }),
+        metadata: JSON.stringify({
+          number: "JOB-1019",
+          assignee: "Chris Nguyen",
+        }),
         createdAt: daysAgo(0),
       },
       {
@@ -2949,7 +4364,10 @@ async function main(): Promise<void> {
         action: "automation.rule.updated",
         entityType: "automationRule",
         entityId: null,
-        metadata: JSON.stringify({ name: "Upcoming appointment reminder", enabled: false }),
+        metadata: JSON.stringify({
+          name: "Upcoming appointment reminder",
+          enabled: false,
+        }),
         createdAt: daysAgo(12),
       },
       {
@@ -2958,7 +4376,10 @@ async function main(): Promise<void> {
         action: "expense.created",
         entityType: "expense",
         entityId: null,
-        metadata: JSON.stringify({ vendor: "Salon Supply ATX", amount: 13_500 }),
+        metadata: JSON.stringify({
+          vendor: "Salon Supply ATX",
+          amount: 13_500,
+        }),
         createdAt: daysAgo(18),
       },
     ],
@@ -2987,7 +4408,10 @@ async function main(): Promise<void> {
   });
 
   for (const invoice of seededInvoices) {
-    const paymentTotal = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const paymentTotal = invoice.payments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0,
+    );
     if (paymentTotal !== invoice.amountPaid) {
       throw new Error(
         `Invoice ${invoice.number} payments ${paymentTotal} do not match amountPaid ${invoice.amountPaid}`,
@@ -2997,12 +4421,17 @@ async function main(): Promise<void> {
       throw new Error(`Draft invoice ${invoice.number} must not have issuedAt`);
     }
     if (invoice.job) {
-      const lineTotal = invoice.job.lineItems.reduce((sum, line) => sum + line.total, 0);
+      const lineTotal = invoice.job.lineItems.reduce(
+        (sum, line) => sum + line.total,
+        0,
+      );
       if (
         invoice.job.subtotal !== lineTotal ||
         invoice.job.total !== invoice.job.subtotal + invoice.job.tax
       ) {
-        throw new Error(`Job ${invoice.job.number} totals do not match its line items and tax`);
+        throw new Error(
+          `Job ${invoice.job.number} totals do not match its line items and tax`,
+        );
       }
     }
   }
@@ -3021,44 +4450,47 @@ async function main(): Promise<void> {
   for (const job of seededJobs) {
     const lineTotal = job.lineItems.reduce((sum, line) => sum + line.total, 0);
     if (job.subtotal !== lineTotal || job.total !== job.subtotal + job.tax) {
-      throw new Error(`Job ${job.number} totals do not match its line items and tax`);
+      throw new Error(
+        `Job ${job.number} totals do not match its line items and tax`,
+      );
     }
   }
 
   const rangeStart = daysAgo(90);
-  const [revenueAggregate, expenseAggregate, recentPayments] = await Promise.all([
-    prisma.payment.aggregate({
-      where: { workspaceId: workspace.id, receivedAt: { gte: rangeStart } },
-      _sum: { amount: true },
-    }),
-    prisma.expense.aggregate({
-      where: { workspaceId: workspace.id, incurredAt: { gte: rangeStart } },
-      _sum: { amount: true },
-    }),
-    prisma.payment.findMany({
-      where: { workspaceId: workspace.id, receivedAt: { gte: rangeStart } },
-      select: {
-        amount: true,
-        invoice: {
-          select: {
-            amount: true,
-            job: {
-              select: {
-                assigneeId: true,
-                lineItems: {
-                  select: {
-                    quantity: true,
-                    unitCost: true,
-                    service: { select: { category: true } },
+  const [revenueAggregate, expenseAggregate, recentPayments] =
+    await Promise.all([
+      prisma.payment.aggregate({
+        where: { workspaceId: workspace.id, receivedAt: { gte: rangeStart } },
+        _sum: { amount: true },
+      }),
+      prisma.expense.aggregate({
+        where: { workspaceId: workspace.id, incurredAt: { gte: rangeStart } },
+        _sum: { amount: true },
+      }),
+      prisma.payment.findMany({
+        where: { workspaceId: workspace.id, receivedAt: { gte: rangeStart } },
+        select: {
+          amount: true,
+          invoice: {
+            select: {
+              amount: true,
+              job: {
+                select: {
+                  assigneeId: true,
+                  lineItems: {
+                    select: {
+                      quantity: true,
+                      unitCost: true,
+                      service: { select: { category: true } },
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    }),
-  ]);
+      }),
+    ]);
 
   const revenue = revenueAggregate._sum.amount ?? 0;
   const expenses = expenseAggregate._sum.amount ?? 0;
@@ -3079,7 +4511,10 @@ async function main(): Promise<void> {
       if (category) revenueCategories.add(category);
     }
     if (payment.invoice.amount > 0 && jobCost > 0) {
-      const ratio = Math.max(-1, Math.min(1, payment.amount / payment.invoice.amount));
+      const ratio = Math.max(
+        -1,
+        Math.min(1, payment.amount / payment.invoice.amount),
+      );
       cogs += Math.round(jobCost * ratio);
     }
   }
@@ -3089,16 +4524,24 @@ async function main(): Promise<void> {
   const grossMarginPct = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
 
   if (revenue < 1_800_000 || revenue > 3_500_000) {
-    throw new Error(`Collected revenue ${revenue} is outside the expected 90-day range`);
+    throw new Error(
+      `Collected revenue ${revenue} is outside the expected 90-day range`,
+    );
   }
   if (expenses < 600_000 || expenses > 1_100_000) {
-    throw new Error(`Operating expenses ${expenses} are outside the expected 90-day range`);
+    throw new Error(
+      `Operating expenses ${expenses} are outside the expected 90-day range`,
+    );
   }
   if (grossProfit <= 0 || netProfit <= 0) {
-    throw new Error(`Finance summary must be profitable: gross ${grossProfit}, net ${netProfit}`);
+    throw new Error(
+      `Finance summary must be profitable: gross ${grossProfit}, net ${netProfit}`,
+    );
   }
   if (grossMarginPct < 55 || grossMarginPct > 75) {
-    throw new Error(`Gross margin ${grossMarginPct.toFixed(1)}% is outside the 55-75% target`);
+    throw new Error(
+      `Gross margin ${grossMarginPct.toFixed(1)}% is outside the 55-75% target`,
+    );
   }
   if (revenueTechnicians.size < 4) {
     throw new Error(
@@ -3111,12 +4554,13 @@ async function main(): Promise<void> {
     );
   }
 
-  const [jobCount, invoiceCount, communicationCount, expenseCount] = await Promise.all([
-    prisma.job.count({ where: { workspaceId: workspace.id } }),
-    prisma.invoice.count({ where: { workspaceId: workspace.id } }),
-    prisma.communication.count({ where: { workspaceId: workspace.id } }),
-    prisma.expense.count({ where: { workspaceId: workspace.id } }),
-  ]);
+  const [jobCount, invoiceCount, communicationCount, expenseCount] =
+    await Promise.all([
+      prisma.job.count({ where: { workspaceId: workspace.id } }),
+      prisma.invoice.count({ where: { workspaceId: workspace.id } }),
+      prisma.communication.count({ where: { workspaceId: workspace.id } }),
+      prisma.expense.count({ where: { workspaceId: workspace.id } }),
+    ]);
 
   console.log(
     `Seeded ${workspace.name}: ${customerIds.length} customers, ${serviceSeeds.length} services, ` +

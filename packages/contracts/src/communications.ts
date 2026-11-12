@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { idSchema, optionalDate, optionalText, paginationSchema } from "./common.js";
+import {
+  idSchema,
+  optionalDate,
+  optionalText,
+  paginationSchema,
+} from "./common.js";
 import {
   COMMUNICATION_CHANNELS,
   COMMUNICATION_DIRECTIONS,
@@ -102,10 +107,13 @@ export const communicationInputSchema = z
     ),
     occurredAt: optionalDate,
   })
-  .refine((value) => Boolean(value.customerId ?? value.contactId ?? value.jobId), {
-    message: "A communication needs a customer, contact, or job",
-    path: ["customerId"],
-  });
+  .refine(
+    (value) => Boolean(value.customerId ?? value.contactId ?? value.jobId),
+    {
+      message: "A communication needs a customer, contact, or job",
+      path: ["customerId"],
+    },
+  );
 
 export const communicationPatchSchema = z.object({
   readAt: optionalDate,
@@ -144,5 +152,9 @@ export const communicationSendDraftSchema = communicationInputSchema.extend({
 
 export type CommunicationInput = z.infer<typeof communicationInputSchema>;
 export type CommunicationPatchInput = z.infer<typeof communicationPatchSchema>;
-export type CommunicationListQuery = z.infer<typeof communicationListQuerySchema>;
-export type CommunicationDraftInput = z.infer<typeof communicationDraftInputSchema>;
+export type CommunicationListQuery = z.infer<
+  typeof communicationListQuerySchema
+>;
+export type CommunicationDraftInput = z.infer<
+  typeof communicationDraftInputSchema
+>;

@@ -15,10 +15,19 @@ export interface TabsProps {
   className?: string;
 }
 
-export function Tabs({ items, value, onChange, ariaLabel, className }: TabsProps) {
+export function Tabs({
+  items,
+  value,
+  onChange,
+  ariaLabel,
+  className,
+}: TabsProps) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+  function handleKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) {
     const last = items.length - 1;
     let next = index;
 
@@ -39,7 +48,10 @@ export function Tabs({ items, value, onChange, ariaLabel, className }: TabsProps
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={cn("flex gap-1 overflow-x-auto border-b border-border", className)}
+      className={cn(
+        "flex gap-1 overflow-x-auto border-b border-border",
+        className,
+      )}
     >
       {items.map((item, index) => {
         const selected = item.value === value;
@@ -68,7 +80,9 @@ export function Tabs({ items, value, onChange, ariaLabel, className }: TabsProps
               <span
                 className={cn(
                   "num rounded-full px-1.5 py-px text-[10px]",
-                  selected ? "bg-accent/10 text-accent" : "bg-white/5 text-muted",
+                  selected
+                    ? "bg-accent/10 text-accent"
+                    : "bg-white/5 text-muted",
                 )}
               >
                 {item.count}

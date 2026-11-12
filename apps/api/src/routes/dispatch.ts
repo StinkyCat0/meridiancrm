@@ -28,7 +28,9 @@ const DAY_MS = 86_400_000;
 const BOARD_MINUTES = 480;
 
 function startOfUtcDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 function formatDay(date: Date): string {
@@ -64,7 +66,9 @@ function formatAddress(location: {
   state: string | null;
   postalCode: string | null;
 }): string {
-  const region = [location.state, location.postalCode].filter(Boolean).join(" ");
+  const region = [location.state, location.postalCode]
+    .filter(Boolean)
+    .join(" ");
   return [location.line1, location.city, region].filter(Boolean).join(", ");
 }
 
@@ -121,7 +125,10 @@ async function loadDepot(workspaceId: string): Promise<GeoPoint | null> {
   ) {
     return null;
   }
-  return { latitude: workspace.depotLatitude, longitude: workspace.depotLongitude };
+  return {
+    latitude: workspace.depotLatitude,
+    longitude: workspace.depotLongitude,
+  };
 }
 
 function toDispatchStop(
@@ -209,20 +216,25 @@ export async function dispatchRoutes(app: FastifyInstance): Promise<void> {
         else byAssignee.set(row.assigneeId, [row]);
       }
 
-      const technicians: DispatchTechnician[] = memberships.map((membership) => {
-        const rows = byAssignee.get(membership.userId) ?? [];
-        const scheduledMinutes = rows.reduce((sum, row) => sum + row.durationMinutes, 0);
-        return {
-          user: membership.user,
-          jobs: rows.map(toJob),
-          jobCount: rows.length,
-          scheduledMinutes,
-          utilizationPct: Math.min(
-            100,
-            Math.round((scheduledMinutes / BOARD_MINUTES) * 100),
-          ),
-        };
-      });
+      const technicians: DispatchTechnician[] = memberships.map(
+        (membership) => {
+          const rows = byAssignee.get(membership.userId) ?? [];
+          const scheduledMinutes = rows.reduce(
+            (sum, row) => sum + row.durationMinutes,
+            0,
+          );
+          return {
+            user: membership.user,
+            jobs: rows.map(toJob),
+            jobCount: rows.length,
+            scheduledMinutes,
+            utilizationPct: Math.min(
+              100,
+              Math.round((scheduledMinutes / BOARD_MINUTES) * 100),
+            ),
+          };
+        },
+      );
 
       const unassignedRows = jobs.filter((row) => !row.assigneeId);
 
@@ -256,10 +268,9 @@ export async function dispatchRoutes(app: FastifyInstance): Promise<void> {
         loadDayJobs(auth.workspaceId, day, query.assigneeId),
         loadDepot(auth.workspaceId),
       ]);
-      const coordinates = await loadLocationPoints(
-        auth.workspaceId,
-        [...new Set(jobs.map((row) => row.locationId))],
-      );
+      const coordinates = await loadLocationPoints(auth.workspaceId, [
+        ...new Set(jobs.map((row) => row.locationId)),
+      ]);
 
       const stops: DispatchStop[] = [];
       for (const row of jobs) {
@@ -304,22 +315,27 @@ export async function dispatchRoutes(app: FastifyInstance): Promise<void> {
         loadDayJobs(auth.workspaceId, day, query.assigneeId),
         loadDepot(auth.workspaceId),
       ]);
-      const coordinates = await loadLocationPoints(
-        auth.workspaceId,
-        [...new Set(jobs.map((row) => row.locationId))],
-      );
+      const coordinates = await loadLocationPoints(auth.workspaceId, [
+        ...new Set(jobs.map((row) => row.locationId)),
+      ]);
 
       const points: RoutablePoint[] = [];
       for (const row of jobs) {
         const point = coordinates.get(row.locationId);
         if (!point) continue;
-        points.push({ id: row.id, latitude: point.latitude, longitude: point.longitude, row });
+        points.push({
+          id: row.id,
+          latitude: point.latitude,
+          longitude: point.longitude,
+          row,
+        });
       }
 
       const first = points[0];
       let start: GeoPoint;
       if (depot) start = depot;
-      else if (first) start = { latitude: first.latitude, longitude: first.longitude };
+      else if (first)
+        start = { latitude: first.latitude, longitude: first.longitude };
       else throw badRequest("No routable stops for this day");
       const { ordered, totalDistanceMeters } = optimizeRoute(start, points);
       const stops = ordered.map((point, index) =>
@@ -332,7 +348,10 @@ export async function dispatchRoutes(app: FastifyInstance): Promise<void> {
         start,
         stops,
         totalDistanceMeters,
-        totalDurationMinutes: estimateDriveMinutes(totalDistanceMeters, stops.length),
+        totalDurationMinutes: estimateDriveMinutes(
+          totalDistanceMeters,
+          stops.length,
+        ),
         optimized: stops.length > 1,
       };
       return route;

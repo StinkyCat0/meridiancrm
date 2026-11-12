@@ -94,7 +94,12 @@ export interface DispatchMapViewProps {
   className?: string;
 }
 
-export function DispatchMapView({ stops, depot, center, className }: DispatchMapViewProps) {
+export function DispatchMapView({
+  stops,
+  depot,
+  center,
+  className,
+}: DispatchMapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -130,7 +135,9 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
     map.on("popupopen", (event) => {
       const popup = event.popup.getElement();
       if (!popup) return;
-      const wrapper = popup.querySelector<HTMLElement>(".leaflet-popup-content-wrapper");
+      const wrapper = popup.querySelector<HTMLElement>(
+        ".leaflet-popup-content-wrapper",
+      );
       if (wrapper) {
         wrapper.style.background = "#111111";
         wrapper.style.color = "#f5f5f4";
@@ -139,7 +146,9 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
       }
       const tip = popup.querySelector<HTMLElement>(".leaflet-popup-tip");
       if (tip) tip.style.background = "#111111";
-      const close = popup.querySelector<HTMLElement>(".leaflet-popup-close-button");
+      const close = popup.querySelector<HTMLElement>(
+        ".leaflet-popup-close-button",
+      );
       if (close) close.style.color = "#a8a29e";
     });
 
@@ -173,7 +182,8 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
     layer.clearLayers();
 
     for (const stop of stops) {
-      if (!Number.isFinite(stop.latitude) || !Number.isFinite(stop.longitude)) continue;
+      if (!Number.isFinite(stop.latitude) || !Number.isFinite(stop.longitude))
+        continue;
       const marker = L.circleMarker([stop.latitude, stop.longitude], {
         radius: 9,
         color: "#0a0a0a",
@@ -185,7 +195,11 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
       marker.addTo(layer);
     }
 
-    if (depot && Number.isFinite(depot.latitude) && Number.isFinite(depot.longitude)) {
+    if (
+      depot &&
+      Number.isFinite(depot.latitude) &&
+      Number.isFinite(depot.longitude)
+    ) {
       const depotMarker = L.circleMarker([depot.latitude, depot.longitude], {
         radius: 5,
         color: "#f5f5f4",
@@ -205,7 +219,11 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
         points.push([stop.latitude, stop.longitude]);
       }
     }
-    if (depot && Number.isFinite(depot.latitude) && Number.isFinite(depot.longitude)) {
+    if (
+      depot &&
+      Number.isFinite(depot.latitude) &&
+      Number.isFinite(depot.longitude)
+    ) {
       points.push([depot.latitude, depot.longitude]);
     }
 
@@ -219,7 +237,10 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
       if (mapRef.current !== map) return;
       map.invalidateSize();
       if (points.length > 0) {
-        map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 14 });
+        map.fitBounds(L.latLngBounds(points), {
+          padding: [40, 40],
+          maxZoom: 14,
+        });
       } else if (center) {
         map.setView([center.latitude, center.longitude], 11);
       } else {
@@ -229,7 +250,12 @@ export function DispatchMapView({ stops, depot, center, className }: DispatchMap
   }, [stops, depot, center]);
 
   return (
-    <div className={cn("relative overflow-hidden rounded-card border border-border bg-surface-2", className)}>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-card border border-border bg-surface-2",
+        className,
+      )}
+    >
       <div
         ref={containerRef}
         role="region"

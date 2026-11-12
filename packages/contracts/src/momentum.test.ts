@@ -18,7 +18,8 @@ describe("computeMomentum", () => {
     const momentum = computeMomentum(base);
     expect(momentum.score).toBe(100);
     expect(momentum.band).toBe("hot");
-    for (const item of momentum.breakdown) expect(item.points).toBeLessThanOrEqual(item.max);
+    for (const item of momentum.breakdown)
+      expect(item.points).toBeLessThanOrEqual(item.max);
   });
 
   it("drops to cold when there is no activity and the close date is overdue", () => {
@@ -41,7 +42,10 @@ describe("computeMomentum", () => {
       stageAgeDays: 20,
       expectedCloseDate: null,
     });
-    const sum = momentum.breakdown.reduce((total, item) => total + item.points, 0);
+    const sum = momentum.breakdown.reduce(
+      (total, item) => total + item.points,
+      0,
+    );
     expect(momentum.score).toBe(sum);
     expect(momentum.band).toBe("warm");
   });

@@ -151,7 +151,10 @@ interface EventContext {
   ownerId: string | null;
 }
 
-async function loadCompany(workspaceId: string, id: string): Promise<CompanyContext | null> {
+async function loadCompany(
+  workspaceId: string,
+  id: string,
+): Promise<CompanyContext | null> {
   return prisma.company.findFirst({
     where: { id, workspaceId },
     select: {
@@ -164,7 +167,10 @@ async function loadCompany(workspaceId: string, id: string): Promise<CompanyCont
   });
 }
 
-async function loadJob(workspaceId: string, id: string): Promise<JobContext | null> {
+async function loadJob(
+  workspaceId: string,
+  id: string,
+): Promise<JobContext | null> {
   return prisma.job.findFirst({
     where: { id, workspaceId },
     select: {
@@ -181,14 +187,20 @@ async function loadJob(workspaceId: string, id: string): Promise<JobContext | nu
   });
 }
 
-async function loadContact(workspaceId: string, id: string): Promise<ContactContext | null> {
+async function loadContact(
+  workspaceId: string,
+  id: string,
+): Promise<ContactContext | null> {
   return prisma.contact.findFirst({
     where: { id, workspaceId },
     select: { id: true, firstName: true, lastName: true },
   });
 }
 
-async function loadInvoice(workspaceId: string, id: string): Promise<InvoiceContext | null> {
+async function loadInvoice(
+  workspaceId: string,
+  id: string,
+): Promise<InvoiceContext | null> {
   return prisma.invoice.findFirst({
     where: { id, workspaceId },
     select: {
@@ -201,7 +213,10 @@ async function loadInvoice(workspaceId: string, id: string): Promise<InvoiceCont
   });
 }
 
-async function loadEstimate(workspaceId: string, id: string): Promise<EstimateContext | null> {
+async function loadEstimate(
+  workspaceId: string,
+  id: string,
+): Promise<EstimateContext | null> {
   return prisma.estimate.findFirst({
     where: { id, workspaceId },
     select: {
@@ -218,20 +233,31 @@ async function loadEstimate(workspaceId: string, id: string): Promise<EstimateCo
  * Resolves everything an action needs once per event, so every rule evaluated
  * for that event shares the same tenant-scoped snapshot.
  */
-async function loadEventContext(event: DomainEvent): Promise<EventContext | null> {
-  const [workspace, primaryJob, primaryInvoice, primaryEstimate] = await Promise.all([
-    prisma.workspace.findUnique({
-      where: { id: event.workspaceId },
-      select: { id: true, name: true, businessType: true, serviceArea: true, currency: true },
-    }),
-    event.entityType === "job" ? loadJob(event.workspaceId, event.entityId) : Promise.resolve(null),
-    event.entityType === "invoice"
-      ? loadInvoice(event.workspaceId, event.entityId)
-      : Promise.resolve(null),
-    event.entityType === "estimate"
-      ? loadEstimate(event.workspaceId, event.entityId)
-      : Promise.resolve(null),
-  ]);
+async function loadEventContext(
+  event: DomainEvent,
+): Promise<EventContext | null> {
+  const [workspace, primaryJob, primaryInvoice, primaryEstimate] =
+    await Promise.all([
+      prisma.workspace.findUnique({
+        where: { id: event.workspaceId },
+        select: {
+          id: true,
+          name: true,
+          businessType: true,
+          serviceArea: true,
+          currency: true,
+        },
+      }),
+      event.entityType === "job"
+        ? loadJob(event.workspaceId, event.entityId)
+        : Promise.resolve(null),
+      event.entityType === "invoice"
+        ? loadInvoice(event.workspaceId, event.entityId)
+        : Promise.resolve(null),
+      event.entityType === "estimate"
+        ? loadEstimate(event.workspaceId, event.entityId)
+        : Promise.resolve(null),
+    ]);
   if (!workspace) return null;
 
   const jobId =
@@ -244,11 +270,16 @@ async function loadEventContext(event: DomainEvent): Promise<EventContext | null
   const estimateId = event.estimateId ?? primaryEstimate?.id ?? null;
 
   const [job, invoice, estimate] = await Promise.all([
-    primaryJob ?? (jobId ? loadJob(event.workspaceId, jobId) : Promise.resolve(null)),
+    primaryJob ??
+      (jobId ? loadJob(event.workspaceId, jobId) : Promise.resolve(null)),
     primaryInvoice ??
-      (invoiceId ? loadInvoice(event.workspaceId, invoiceId) : Promise.resolve(null)),
+      (invoiceId
+        ? loadInvoice(event.workspaceId, invoiceId)
+        : Promise.resolve(null)),
     primaryEstimate ??
-      (estimateId ? loadEstimate(event.workspaceId, estimateId) : Promise.resolve(null)),
+      (estimateId
+        ? loadEstimate(event.workspaceId, estimateId)
+        : Promise.resolve(null)),
   ]);
 
   const customerId =
@@ -260,8 +291,12 @@ async function loadEventContext(event: DomainEvent): Promise<EventContext | null
   const contactId = job?.contactId ?? estimate?.contactId ?? null;
 
   const [customer, contact] = await Promise.all([
-    customerId ? loadCompany(event.workspaceId, customerId) : Promise.resolve(null),
-    contactId ? loadContact(event.workspaceId, contactId) : Promise.resolve(null),
+    customerId
+      ? loadCompany(event.workspaceId, customerId)
+      : Promise.resolve(null),
+    contactId
+      ? loadContact(event.workspaceId, contactId)
+      : Promise.resolve(null),
   ]);
 
   return {
@@ -293,7 +328,10 @@ function evaluateConditions(
 
   if (typeof minTotal === "number") {
     if (context.entityTotal === null) {
-      return { ok: false, reason: `A minimum total of ${minTotal} needs a priced entity` };
+      return {
+        ok: false,
+        reason: `A minimum total of ${minTotal} needs a priced entity`,
+      };
     }
     if (context.entityTotal < minTotal) {
       return {
@@ -305,9 +343,14 @@ function evaluateConditions(
 
   if (customerTypes && customerTypes.length > 0) {
     if (!context.customer) {
-      return { ok: false, reason: "A customer type condition needs a customer" };
+      return {
+        ok: false,
+        reason: "A customer type condition needs a customer",
+      };
     }
-    if (!customerTypes.includes(context.customer.customerType as CustomerType)) {
+    if (
+      !customerTypes.includes(context.customer.customerType as CustomerType)
+    ) {
       return {
         ok: false,
         reason: `Customer type ${context.customer.customerType} is not one of ${customerTypes.join(", ")}`,
@@ -347,7 +390,9 @@ function applyPlaceholders(template: string, context: EventContext): string {
   return template.replace(PLACEHOLDER, (_match, key: string) => {
     if (key === "customer") return context.customer?.name ?? "there";
     if (key === "job") {
-      return context.job ? `${context.job.title} (#${context.job.number})` : "your appointment";
+      return context.job
+        ? `${context.job.title} (#${context.job.number})`
+        : "your appointment";
     }
     return context.workspace.name;
   });
@@ -418,9 +463,14 @@ async function executeAction(
 
   if (action.type === "SEND_MESSAGE") {
     if (!context.customer) throw new ActionSkip("no customer to message");
-    const draft = action.body ? null : buildDraft(action.channel, action.intent, context);
-    const body = action.body ? applyPlaceholders(action.body, context) : draft?.body ?? "";
-    const subject = action.channel === "EMAIL" ? draft?.subject ?? null : null;
+    const draft = action.body
+      ? null
+      : buildDraft(action.channel, action.intent, context);
+    const body = action.body
+      ? applyPlaceholders(action.body, context)
+      : (draft?.body ?? "");
+    const subject =
+      action.channel === "EMAIL" ? (draft?.subject ?? null) : null;
 
     const message = await tx.communication.create({
       data: {
@@ -454,7 +504,8 @@ async function executeAction(
     });
     if (!current) throw new ActionSkip("customer no longer exists");
     const tags = parseTags(current.tags);
-    if (tags.includes(tag)) throw new ActionSkip(`tag ${tag} is already present`);
+    if (tags.includes(tag))
+      throw new ActionSkip(`tag ${tag} is already present`);
     const next = [...tags, tag].slice(0, 40);
     await tx.company.update({
       where: { id: context.customer.id },
@@ -463,7 +514,8 @@ async function executeAction(
     return `tag ${tag} added`;
   }
 
-  if (!context.customer) throw new ActionSkip("no customer to request a review from");
+  if (!context.customer)
+    throw new ActionSkip("no customer to request a review from");
   const draft = buildDraft(action.channel, "REVIEW", context);
   const message = await tx.communication.create({
     data: {
@@ -546,7 +598,10 @@ async function runRule(
         lastRunAt: now,
       };
 
-      const verdict = evaluateConditions(safeConditions(rule.conditions), context);
+      const verdict = evaluateConditions(
+        safeConditions(rule.conditions),
+        context,
+      );
       if (!verdict.ok) {
         await tx.automationRun.create({
           data: {
@@ -556,11 +611,17 @@ async function runRule(
             status: "SKIPPED",
             entityType: event.entityType,
             entityId: event.entityId,
-            detail: truncate(verdict.reason ?? "Conditions not met", MAX_DETAIL),
+            detail: truncate(
+              verdict.reason ?? "Conditions not met",
+              MAX_DETAIL,
+            ),
             createdAt: now,
           },
         });
-        await tx.automationRule.update({ where: { id: rule.id }, data: increment });
+        await tx.automationRule.update({
+          where: { id: rule.id },
+          data: increment,
+        });
         written = true;
         return;
       }
@@ -579,7 +640,10 @@ async function runRule(
             createdAt: now,
           },
         });
-        await tx.automationRule.update({ where: { id: rule.id }, data: increment });
+        await tx.automationRule.update({
+          where: { id: rule.id },
+          data: increment,
+        });
         written = true;
         return;
       }
@@ -598,7 +662,8 @@ async function runRule(
         }
       }
 
-      const status: AutomationRunStatus = notes.length > 0 ? "SUCCESS" : "SKIPPED";
+      const status: AutomationRunStatus =
+        notes.length > 0 ? "SUCCESS" : "SKIPPED";
       const detail = [...notes, ...skips].join("; ");
       await tx.automationRun.create({
         data: {
@@ -612,12 +677,16 @@ async function runRule(
           createdAt: now,
         },
       });
-      await tx.automationRule.update({ where: { id: rule.id }, data: increment });
+      await tx.automationRule.update({
+        where: { id: rule.id },
+        data: increment,
+      });
       written = true;
     });
   } catch (error) {
     console.error(`automation rule ${rule.id} failed`, error);
-    const detail = error instanceof Error ? error.message : "Automation run failed";
+    const detail =
+      error instanceof Error ? error.message : "Automation run failed";
     try {
       await prisma.$transaction([
         prisma.automationRun.create({
@@ -639,7 +708,10 @@ async function runRule(
       ]);
       written = true;
     } catch (recordError) {
-      console.error(`automation rule ${rule.id} failure could not be recorded`, recordError);
+      console.error(
+        `automation rule ${rule.id} failure could not be recorded`,
+        recordError,
+      );
     }
   }
 
@@ -767,7 +839,9 @@ export async function runDueAutomations(
       jobId: job.id,
       payload: {
         number: job.number,
-        scheduledStart: job.scheduledStart ? job.scheduledStart.toISOString() : null,
+        scheduledStart: job.scheduledStart
+          ? job.scheduledStart.toISOString()
+          : null,
       },
     });
   }

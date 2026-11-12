@@ -43,8 +43,12 @@ export const contactSummarySelect = {
 } satisfies Prisma.ContactSelect;
 
 type CustomerRow = Prisma.CompanyGetPayload<{ select: typeof customerSelect }>;
-type LocationRow = Prisma.LocationGetPayload<{ select: typeof locationSummarySelect }>;
-type ContactRow = Prisma.ContactGetPayload<{ select: typeof contactSummarySelect }>;
+type LocationRow = Prisma.LocationGetPayload<{
+  select: typeof locationSummarySelect;
+}>;
+type ContactRow = Prisma.ContactGetPayload<{
+  select: typeof contactSummarySelect;
+}>;
 
 export function toCustomerSummary(row: CustomerRow): CustomerSummary {
   return {
@@ -145,9 +149,7 @@ export function priceLineItems(
  * Nested Prisma creates take a relation connect, not the scalar foreign key.
  * Every line item write path goes through this so price-book links survive.
  */
-export function toLineItemCreate(
-  lines: readonly PricedLine[],
-): Array<{
+export function toLineItemCreate(lines: readonly PricedLine[]): Array<{
   name: string;
   quantity: number;
   unitPrice: number;
@@ -257,7 +259,8 @@ export async function allocateNumber(
   // Workspaces seeded before the counter existed can already own this number.
   // Step the counter forward instead of failing on the unique constraint.
   for (let guard = 0; guard < 10_000; guard += 1) {
-    if (!(await documentNumberTaken(tx, workspaceId, prefix, number))) return number;
+    if (!(await documentNumberTaken(tx, workspaceId, prefix, number)))
+      return number;
     counter = await tx.documentCounter.update({
       where: { workspaceId_prefix: { workspaceId, prefix } },
       data: { value: { increment: 1 } },
@@ -287,7 +290,8 @@ async function attemptDocumentWrite<T>(
         { maxWait: 20_000, timeout: 20_000 },
       );
     } catch (error) {
-      if (!isRetryableDocumentError(error) || attempt === DOCUMENT_RETRIES - 1) throw error;
+      if (!isRetryableDocumentError(error) || attempt === DOCUMENT_RETRIES - 1)
+        throw error;
       await pause(25 * (attempt + 1));
     }
   }
@@ -320,7 +324,8 @@ export async function createWithDocumentNumber<T>(
   try {
     return await run;
   } finally {
-    if (documentQueues.get(workspaceId) === queued) documentQueues.delete(workspaceId);
+    if (documentQueues.get(workspaceId) === queued)
+      documentQueues.delete(workspaceId);
   }
 }
 
@@ -353,7 +358,9 @@ export async function applyServiceCosts<
 }
 
 export async function loadCustomer(workspaceId: string, id: string) {
-  const customer = await prisma.company.findFirst({ where: { id, workspaceId } });
+  const customer = await prisma.company.findFirst({
+    where: { id, workspaceId },
+  });
   if (!customer) throw notFound("Customer");
   return customer;
 }
@@ -364,7 +371,11 @@ export async function loadLocation(
   customerId?: string,
 ) {
   const location = await prisma.location.findFirst({
-    where: { id: locationId, workspaceId, ...(customerId ? { customerId } : {}) },
+    where: {
+      id: locationId,
+      workspaceId,
+      ...(customerId ? { customerId } : {}),
+    },
   });
   if (!location) throw notFound("Location");
   return location;
@@ -391,7 +402,8 @@ export async function loadAssignee(workspaceId: string, userId: string) {
     where: { userId_workspaceId: { userId, workspaceId } },
     select: { id: true },
   });
-  if (!membership) throw badRequest("Assignee must be a member of this workspace");
+  if (!membership)
+    throw badRequest("Assignee must be a member of this workspace");
   return userId;
 }
 
@@ -414,18 +426,28 @@ export async function validateServiceIds(
   workspaceId: string,
   items: Array<{ serviceId?: string | null }>,
 ) {
-  const ids = [...new Set(items.map((item) => item.serviceId).filter((id): id is string => Boolean(id)))];
+  const ids = [
+    ...new Set(
+      items
+        .map((item) => item.serviceId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   if (ids.length === 0) return;
   const found = await prisma.serviceItem.findMany({
     where: { workspaceId, id: { in: ids } },
     select: { id: true },
   });
   if (found.length !== ids.length) {
-    throw badRequest("One or more line items reference a service outside this workspace");
+    throw badRequest(
+      "One or more line items reference a service outside this workspace",
+    );
   }
 }
 
-export function assertRecurrence(value: string | null): RecurrenceFrequency | null {
+export function assertRecurrence(
+  value: string | null,
+): RecurrenceFrequency | null {
   return value as RecurrenceFrequency | null;
 }
 

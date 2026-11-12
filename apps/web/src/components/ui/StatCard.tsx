@@ -17,7 +17,14 @@ export interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ label, value, hint, icon, trend, className }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon,
+  trend,
+  className,
+}: StatCardProps) {
   const positive = trend ? trend.value >= 0 : false;
 
   return (
@@ -33,7 +40,9 @@ export function StatCard({ label, value, hint, icon, trend, className }: StatCar
           </span>
         ) : null}
       </div>
-      <p className="num mt-3 text-2xl font-light tracking-tight text-fg sm:text-[28px]">{value}</p>
+      <p className="num mt-3 text-2xl font-light tracking-tight text-fg sm:text-[28px]">
+        {value}
+      </p>
       <div className="mt-1.5 flex items-center gap-2 text-xs">
         {trend ? (
           <span

@@ -11,10 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  SERVICE_UNIT_META,
-  type ServiceUnit,
-} from "@meridian/contracts";
+import { SERVICE_UNIT_META, type ServiceUnit } from "@meridian/contracts";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -75,9 +72,13 @@ export default function ServicesPage() {
   const services = servicesQuery.data?.data ?? [];
   const total = servicesQuery.data?.meta.total ?? 0;
   const categories = Array.from(
-    new Set((allQuery.data?.data ?? []).map((item) => item.category).filter(Boolean)),
+    new Set(
+      (allQuery.data?.data ?? []).map((item) => item.category).filter(Boolean),
+    ),
   ).sort() as string[];
-  const hasFilters = Boolean(search.trim() || category || unit || archive === "archived");
+  const hasFilters = Boolean(
+    search.trim() || category || unit || archive === "archived",
+  );
 
   function invalidate() {
     void queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
@@ -162,16 +163,20 @@ export default function ServicesPage() {
             </Select>
             <Select
               value={unit}
-              onChange={(event) => setUnit(event.target.value as ServiceUnit | "")}
+              onChange={(event) =>
+                setUnit(event.target.value as ServiceUnit | "")
+              }
               aria-label="Filter by unit"
               className="sm:w-40"
             >
               <option value="">All units</option>
-              {(Object.keys(SERVICE_UNIT_META) as ServiceUnit[]).map((option) => (
-                <option key={option} value={option}>
-                  {SERVICE_UNIT_META[option].label}
-                </option>
-              ))}
+              {(Object.keys(SERVICE_UNIT_META) as ServiceUnit[]).map(
+                (option) => (
+                  <option key={option} value={option}>
+                    {SERVICE_UNIT_META[option].label}
+                  </option>
+                ),
+              )}
             </Select>
             <Tabs
               ariaLabel="Service archive filter"
@@ -180,7 +185,9 @@ export default function ServicesPage() {
                 { value: "archived", label: "Archived" },
               ]}
               value={archive}
-              onChange={(value) => setArchive(value === "archived" ? "archived" : "active")}
+              onChange={(value) =>
+                setArchive(value === "archived" ? "archived" : "active")
+              }
               className="border-0"
             />
             <p aria-live="polite" className="num shrink-0 text-xs text-muted">
@@ -198,7 +205,9 @@ export default function ServicesPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load the price book.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load the price book.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(servicesQuery.error)}
             </p>
@@ -214,7 +223,11 @@ export default function ServicesPage() {
       ) : services.length === 0 ? (
         <EmptyState
           icon={<Tags />}
-          title={hasFilters ? "No services match those filters." : "The price book is empty."}
+          title={
+            hasFilters
+              ? "No services match those filters."
+              : "The price book is empty."
+          }
           description={
             hasFilters
               ? "Clear the filters or search for a different service."
@@ -265,8 +278,12 @@ export default function ServicesPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-fg">{service.name}</p>
-                        {service.taxable ? <Badge tone="neutral">Taxable</Badge> : null}
-                        {service.archived ? <Badge tone="warning">Archived</Badge> : null}
+                        {service.taxable ? (
+                          <Badge tone="neutral">Taxable</Badge>
+                        ) : null}
+                        {service.archived ? (
+                          <Badge tone="warning">Archived</Badge>
+                        ) : null}
                       </div>
                       {service.description ? (
                         <p className="mt-0.5 max-w-[360px] truncate text-xs text-muted">
@@ -274,10 +291,15 @@ export default function ServicesPage() {
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-muted">{service.category ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted">
+                      {service.category ?? "—"}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 text-muted">
                       {SERVICE_UNIT_META[service.unit].label}
-                      <span className="num text-xs text-muted/70"> · {service.durationMinutes} min</span>
+                      <span className="num text-xs text-muted/70">
+                        {" "}
+                        · {service.durationMinutes} min
+                      </span>
                     </td>
                     <td className="num whitespace-nowrap px-4 py-3 text-right text-fg">
                       {formatMoney(service.price, currency)}
@@ -299,7 +321,10 @@ export default function ServicesPage() {
                             disabled={busy}
                             onClick={() => restoreService.mutate(service.id)}
                           >
-                            <RotateCcw className="size-3.5" aria-hidden="true" />
+                            <RotateCcw
+                              className="size-3.5"
+                              aria-hidden="true"
+                            />
                             Restore
                           </Button>
                         ) : (

@@ -12,7 +12,12 @@ type DateInput = string | number | Date | null | undefined;
 
 function toDate(value: DateInput): Date | null {
   if (value === null || value === undefined || value === "") return null;
-  const date = value instanceof Date ? value : typeof value === "number" ? new Date(value) : parseISO(value);
+  const date =
+    value instanceof Date
+      ? value
+      : typeof value === "number"
+        ? new Date(value)
+        : parseISO(value);
   return isValid(date) ? date : null;
 }
 
@@ -21,7 +26,10 @@ export function formatDate(value: DateInput, pattern = "MMM d, yyyy"): string {
   return date ? format(date, pattern) : "—";
 }
 
-export function formatDateTime(value: DateInput, pattern = "MMM d, yyyy · h:mm a"): string {
+export function formatDateTime(
+  value: DateInput,
+  pattern = "MMM d, yyyy · h:mm a",
+): string {
   return formatDate(value, pattern);
 }
 
@@ -54,13 +62,15 @@ function parseMajorUnits(input: string): number {
     normalized = cleaned.split(group).join("").replace(decimal, ".");
   } else if (lastComma !== -1) {
     const decimals = cleaned.length - lastComma - 1;
-    normalized = decimals === 3 ? cleaned.split(",").join("") : cleaned.replace(",", ".");
+    normalized =
+      decimals === 3 ? cleaned.split(",").join("") : cleaned.replace(",", ".");
   }
   return Number(normalized);
 }
 
 export function fromCents(cents: number | null | undefined): string {
-  const amount = typeof cents === "number" && Number.isFinite(cents) ? cents / 100 : 0;
+  const amount =
+    typeof cents === "number" && Number.isFinite(cents) ? cents / 100 : 0;
   return amount.toFixed(2);
 }
 

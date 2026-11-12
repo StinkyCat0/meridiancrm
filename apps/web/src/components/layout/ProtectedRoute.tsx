@@ -10,7 +10,11 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center px-6">
-        <div className="w-full max-w-sm space-y-3" role="status" aria-label="Loading workspace">
+        <div
+          className="w-full max-w-sm space-y-3"
+          role="status"
+          aria-label="Loading workspace"
+        >
           <Skeleton className="mx-auto size-10 rounded-full" />
           <Skeleton className="mx-auto h-4 w-2/3" />
           <Skeleton className="mx-auto h-3 w-1/2" />

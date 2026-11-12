@@ -106,7 +106,12 @@ export interface Job {
   source: string | null;
   customer: CustomerSummary;
   location: LocationSummary;
-  contact: { id: string; firstName: string; lastName: string; phone: string | null } | null;
+  contact: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+  } | null;
   assignee: PublicUser | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
@@ -136,7 +141,12 @@ export interface Estimate {
   status: EstimateStatus;
   customer: CustomerSummary;
   location: LocationSummary;
-  contact: { id: string; firstName: string; lastName: string; phone: string | null } | null;
+  contact: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+  } | null;
   lineItems: LineItem[];
   subtotal: number;
   taxRate: number;
@@ -197,7 +207,10 @@ export interface OpsSummary {
 /* Inputs                                                                      */
 /* -------------------------------------------------------------------------- */
 
-const nullableId = z.preprocess((value) => (value === "" ? null : value), idSchema.nullable().optional());
+const nullableId = z.preprocess(
+  (value) => (value === "" ? null : value),
+  idSchema.nullable().optional(),
+);
 
 export const locationInputSchema = z.object({
   customerId: idSchema,
@@ -218,7 +231,9 @@ export const locationInputSchema = z.object({
   archived: z.boolean().optional(),
 });
 
-export const locationPatchSchema = locationInputSchema.partial().omit({ customerId: true });
+export const locationPatchSchema = locationInputSchema
+  .partial()
+  .omit({ customerId: true });
 
 export const serviceInputSchema = z.object({
   name: z.string().trim().min(1).max(160),

@@ -25,7 +25,10 @@ export function computeMomentum(input: MomentumInput): Momentum {
   const recency = scoreRecency(input.lastActivityDaysAgo);
   const engagement = scoreEngagement(input.activityCount30d);
   const stage = scoreStage(input.stageAgeDays, input.stageTargetDays);
-  const closeDate = scoreCloseDate(input.expectedCloseDate, input.now ?? new Date());
+  const closeDate = scoreCloseDate(
+    input.expectedCloseDate,
+    input.now ?? new Date(),
+  );
 
   const breakdown: MomentumBreakdown[] = [
     {

@@ -1,12 +1,7 @@
 import type { CustomerSummary } from "./service.js";
 
 export type TimelineEntryKind =
-  | "activity"
-  | "communication"
-  | "job"
-  | "estimate"
-  | "invoice"
-  | "payment";
+  "activity" | "communication" | "job" | "estimate" | "invoice" | "payment";
 
 export interface TimelineEntry {
   id: string;

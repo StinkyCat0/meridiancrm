@@ -24,7 +24,8 @@ export async function timelineRoutes(app: FastifyInstance): Promise<void> {
       preHandler: authenticate,
       schema: {
         tags: ["companies"],
-        summary: "Merge a customer's activities, messages, jobs and money into one timeline",
+        summary:
+          "Merge a customer's activities, messages, jobs and money into one timeline",
         security: [{ bearerAuth: [] }],
       },
     },
@@ -110,7 +111,11 @@ export async function timelineRoutes(app: FastifyInstance): Promise<void> {
             createdAt: true,
             total: true,
           },
-          orderBy: [{ scheduledStart: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+          orderBy: [
+            { scheduledStart: "desc" },
+            { createdAt: "desc" },
+            { id: "desc" },
+          ],
           take: limit,
         }),
         prisma.estimate.findMany({
@@ -124,7 +129,11 @@ export async function timelineRoutes(app: FastifyInstance): Promise<void> {
             createdAt: true,
             total: true,
           },
-          orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+          orderBy: [
+            { issuedAt: "desc" },
+            { createdAt: "desc" },
+            { id: "desc" },
+          ],
           take: limit,
         }),
         prisma.invoice.findMany({
@@ -138,7 +147,11 @@ export async function timelineRoutes(app: FastifyInstance): Promise<void> {
             createdAt: true,
             amount: true,
           },
-          orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+          orderBy: [
+            { issuedAt: "desc" },
+            { createdAt: "desc" },
+            { id: "desc" },
+          ],
           take: limit,
         }),
         prisma.payment.findMany({
@@ -159,7 +172,9 @@ export async function timelineRoutes(app: FastifyInstance): Promise<void> {
         prisma.job.count({ where: { ...scope, customerId: id } }),
         prisma.estimate.count({ where: { ...scope, customerId: id } }),
         prisma.invoice.count({ where: { ...scope, customerId: id } }),
-        prisma.payment.count({ where: { ...scope, invoice: { customerId: id } } }),
+        prisma.payment.count({
+          where: { ...scope, invoice: { customerId: id } },
+        }),
       ]);
 
       const items: TimelineEntry[] = [];
@@ -198,7 +213,11 @@ export async function timelineRoutes(app: FastifyInstance): Promise<void> {
         items.push({
           id: `job:${row.id}`,
           kind: "job",
-          at: (row.scheduledStart ?? row.completedAt ?? row.createdAt).toISOString(),
+          at: (
+            row.scheduledStart ??
+            row.completedAt ??
+            row.createdAt
+          ).toISOString(),
           title: row.title,
           detail: `Job ${row.number}`,
           status: row.status,

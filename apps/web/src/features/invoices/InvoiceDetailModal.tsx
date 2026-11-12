@@ -52,12 +52,15 @@ export function InvoiceDetailModal({
   const invoice = invoiceQuery.data;
 
   function invalidate(updated?: Invoice) {
-    if (updated) queryClient.setQueryData(queryKeys.invoices.detail(invoiceId), updated);
+    if (updated)
+      queryClient.setQueryData(queryKeys.invoices.detail(invoiceId), updated);
     void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
     void queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.finance.summary() });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.finance.summary(),
+    });
     void queryClient.invalidateQueries({ queryKey: queryKeys.ops.summary() });
     void queryClient.invalidateQueries({ queryKey: ["insights"] });
   }
@@ -73,7 +76,8 @@ export function InvoiceDetailModal({
   });
 
   const recordPayment = useMutation({
-    mutationFn: (amountPaid: number) => api.invoices.recordPayment(invoiceId, amountPaid),
+    mutationFn: (amountPaid: number) =>
+      api.invoices.recordPayment(invoiceId, amountPaid),
     onSuccess: (updated) => {
       invalidate(updated);
       setPayment("");
@@ -119,8 +123,12 @@ export function InvoiceDetailModal({
         </div>
       ) : invoiceQuery.isError ? (
         <div className="rounded-card border border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm font-medium text-danger">Could not load this invoice.</p>
-          <p className="mt-1 text-sm text-muted">{apiErrorMessage(invoiceQuery.error)}</p>
+          <p className="text-sm font-medium text-danger">
+            Could not load this invoice.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {apiErrorMessage(invoiceQuery.error)}
+          </p>
           <Button
             size="sm"
             variant="secondary"
@@ -134,7 +142,10 @@ export function InvoiceDetailModal({
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
+              <InvoiceStatusBadge
+                status={invoice.status}
+                overdue={invoice.overdue}
+              />
               {invoice.jobNumber ? (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                   Job {invoice.jobNumber}
@@ -142,12 +153,20 @@ export function InvoiceDetailModal({
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={() => onEdit(invoice)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onEdit(invoice)}
+              >
                 <Pencil className="size-3.5" aria-hidden="true" />
                 Edit
               </Button>
               {atLeast(role ?? "MEMBER", "ADMIN") ? (
-                <Button size="sm" variant="danger" onClick={() => setConfirmDelete(true)}>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setConfirmDelete(true)}
+                >
                   <Trash2 className="size-3.5" aria-hidden="true" />
                   Delete
                 </Button>
@@ -157,10 +176,12 @@ export function InvoiceDetailModal({
 
           {confirmDelete ? (
             <div className="rounded-card border border-danger/30 bg-danger/5 p-4">
-              <p className="text-sm font-medium text-fg">Delete this invoice?</p>
+              <p className="text-sm font-medium text-fg">
+                Delete this invoice?
+              </p>
               <p className="mt-1 text-xs text-muted">
-                Payments and history for this invoice are removed. Void it instead to keep a
-                record.
+                Payments and history for this invoice are removed. Void it
+                instead to keep a record.
               </p>
               <div className="mt-3 flex gap-2">
                 <Button
@@ -186,7 +207,9 @@ export function InvoiceDetailModal({
           <dl className="grid gap-4 rounded-card border border-border bg-surface-2/40 p-4 sm:grid-cols-2">
             <div className="min-w-0">
               <dt className="label-micro">Customer</dt>
-              <dd className="mt-1 truncate text-sm text-fg">{invoice.customer.name}</dd>
+              <dd className="mt-1 truncate text-sm text-fg">
+                {invoice.customer.name}
+              </dd>
             </div>
             <div className="min-w-0">
               <dt className="label-micro">Service location</dt>
@@ -213,7 +236,9 @@ export function InvoiceDetailModal({
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-card border border-border bg-surface-2/40 p-4">
               <p className="label-micro">Amount</p>
-              <p className="num mt-1 text-lg text-fg">{money(invoice.amount, currency)}</p>
+              <p className="num mt-1 text-lg text-fg">
+                {money(invoice.amount, currency)}
+              </p>
             </div>
             <div className="rounded-card border border-border bg-surface-2/40 p-4">
               <p className="label-micro">Paid</p>
@@ -223,11 +248,16 @@ export function InvoiceDetailModal({
             </div>
             <div className="rounded-card border border-border bg-surface-2/40 p-4">
               <p className="label-micro">Balance</p>
-              <p className="num mt-1 text-lg text-fg">{money(invoice.balance, currency)}</p>
+              <p className="num mt-1 text-lg text-fg">
+                {money(invoice.balance, currency)}
+              </p>
             </div>
           </div>
 
-          <section aria-labelledby="invoice-actions-heading" className="space-y-3">
+          <section
+            aria-labelledby="invoice-actions-heading"
+            className="space-y-3"
+          >
             <h3 id="invoice-actions-heading" className="label-micro">
               Collect payment
             </h3>
@@ -301,7 +331,9 @@ export function InvoiceDetailModal({
                   variant="secondary"
                   onClick={() => {
                     onClose();
-                    navigate(`/app/schedule?job=${encodeURIComponent(invoice.jobId ?? "")}`);
+                    navigate(
+                      `/app/schedule?job=${encodeURIComponent(invoice.jobId ?? "")}`,
+                    );
                   }}
                 >
                   <ArrowRight className="size-4" aria-hidden="true" />
@@ -322,8 +354,9 @@ export function InvoiceDetailModal({
 
           <p className="text-xs text-muted">
             Created {formatDate(invoice.createdAt)}
-            {invoice.paidAt ? ` · paid ${formatDate(invoice.paidAt)}` : ""} ·{" "}
-            {formatMoney(invoice.amount, currency)}
+            {invoice.paidAt
+              ? ` · paid ${formatDate(invoice.paidAt)}`
+              : ""} · {formatMoney(invoice.amount, currency)}
           </p>
         </div>
       ) : null}

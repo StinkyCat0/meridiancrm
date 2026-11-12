@@ -20,15 +20,15 @@ openssl rand -base64 48
 
 ## Scripts
 
-| Command             | Use                                                         |
-| ------------------- | ----------------------------------------------------------- |
-| `npm run dev`       | API + web watch mode.                                       |
-| `npm run build`     | Production builds for API and web.                          |
-| `npm test`          | API integration tests.                                      |
-| `npm run verify`    | Tests + both builds. Run before opening a PR.               |
-| `npm run typecheck` | TypeScript across both apps.                                |
-| `npm run db:setup`  | Migrations + demo seed.                                     |
-| `npm run format`    | Prettier.                                                   |
+| Command             | Use                                           |
+| ------------------- | --------------------------------------------- |
+| `npm run dev`       | API + web watch mode.                         |
+| `npm run build`     | Production builds for API and web.            |
+| `npm test`          | API integration tests.                        |
+| `npm run verify`    | Tests + both builds. Run before opening a PR. |
+| `npm run typecheck` | TypeScript across both apps.                  |
+| `npm run db:setup`  | Migrations + demo seed.                       |
+| `npm run format`    | Prettier.                                     |
 
 ## Branch and PR flow
 

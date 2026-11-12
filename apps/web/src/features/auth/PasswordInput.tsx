@@ -4,7 +4,10 @@ import { IconButton } from "../../components/ui/IconButton";
 import { Input, type InputProps } from "../../components/ui/Input";
 import { cn } from "../../lib/utils";
 
-export function PasswordInput({ className, ...props }: Omit<InputProps, "type">) {
+export function PasswordInput({
+  className,
+  ...props
+}: Omit<InputProps, "type">) {
   const [visible, setVisible] = useState(false);
 
   return (

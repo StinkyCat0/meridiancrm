@@ -100,7 +100,10 @@ async function createJob(
   return response.json<JobRow>();
 }
 
-async function createRule(payload: Record<string, unknown>, target: TestAccount = account) {
+async function createRule(
+  payload: Record<string, unknown>,
+  target: TestAccount = account,
+) {
   return app.inject({
     method: "POST",
     url: "/api/v1/automations",
@@ -128,7 +131,10 @@ interface PageBody<T> {
   meta: { total: number };
 }
 
-async function listRuns(query = "", target: TestAccount = account): Promise<PageBody<RunRow>> {
+async function listRuns(
+  query = "",
+  target: TestAccount = account,
+): Promise<PageBody<RunRow>> {
   const response = await app.inject({
     method: "GET",
     url: `/api/v1/automations/runs${query}`,
@@ -170,7 +176,10 @@ describe("automation rules CRUD", () => {
     }>();
     expect(created.name).toBe("Chase big invoices");
     expect(created.trigger).toBe("INVOICE_OVERDUE");
-    expect(created.conditions).toEqual({ minTotal: 5000, customerTypes: ["COMMERCIAL"] });
+    expect(created.conditions).toEqual({
+      minTotal: 5000,
+      customerTypes: ["COMMERCIAL"],
+    });
     expect(created.actions).toHaveLength(1);
     expect(created.actions[0]?.type).toBe("CREATE_TASK");
     expect(created.actions[0]?.dueInHours).toBe(24);
@@ -200,10 +209,17 @@ describe("automation rules CRUD", () => {
       payload: { name: "Chase invoices", enabled: false },
     });
     expect(patch.statusCode).toBe(200);
-    const patched = patch.json<{ name: string; enabled: boolean; conditions: object }>();
+    const patched = patch.json<{
+      name: string;
+      enabled: boolean;
+      conditions: object;
+    }>();
     expect(patched.name).toBe("Chase invoices");
     expect(patched.enabled).toBe(false);
-    expect(patched.conditions).toEqual({ minTotal: 5000, customerTypes: ["COMMERCIAL"] });
+    expect(patched.conditions).toEqual({
+      minTotal: 5000,
+      customerTypes: ["COMMERCIAL"],
+    });
 
     const remove = await app.inject({
       method: "DELETE",
@@ -222,7 +238,10 @@ describe("automation rules CRUD", () => {
   it("requires an admin role for mutations", async () => {
     await prisma.membership.update({
       where: {
-        userId_workspaceId: { userId: account.userId, workspaceId: account.workspaceId },
+        userId_workspaceId: {
+          userId: account.userId,
+          workspaceId: account.workspaceId,
+        },
       },
       data: { role: "MEMBER" },
     });
@@ -300,7 +319,11 @@ describe("automation event handling", () => {
       name: "Thank the customer",
       trigger: "JOB_COMPLETED",
       actions: [
-        { type: "CREATE_TASK", title: "Follow up on the completed job", dueInHours: 12 },
+        {
+          type: "CREATE_TASK",
+          title: "Follow up on the completed job",
+          dueInHours: 12,
+        },
         {
           type: "SEND_MESSAGE",
           channel: "SMS",
@@ -341,9 +364,10 @@ describe("automation event handling", () => {
       headers: asAccount(),
     });
     expect(messages.statusCode).toBe(200);
-    const messageRows = messages.json<
-      PageBody<{ channel: string; intent: string; body: string | null }>
-    >().data;
+    const messageRows =
+      messages.json<
+        PageBody<{ channel: string; intent: string; body: string | null }>
+      >().data;
     expect(messageRows).toHaveLength(1);
     expect(messageRows[0]?.channel).toBe("SMS");
     expect(messageRows[0]?.intent).toBe("FOLLOW_UP");
@@ -357,7 +381,10 @@ describe("automation event handling", () => {
       url: `/api/v1/automations/${rule.id}`,
       headers: asAccount(),
     });
-    const refreshedRule = refreshed.json<{ runCount: number; lastRunAt: string | null }>();
+    const refreshedRule = refreshed.json<{
+      runCount: number;
+      lastRunAt: string | null;
+    }>();
     expect(refreshedRule.runCount).toBe(1);
     expect(refreshedRule.lastRunAt).not.toBeNull();
 
@@ -370,7 +397,9 @@ describe("automation event handling", () => {
   it("records a SKIPPED run when conditions do not match and applies no actions", async () => {
     const customer = await createCustomer();
     const location = await createLocation(customer.id);
-    const job = await createJob(customer.id, location.id, { priority: "NORMAL" });
+    const job = await createJob(customer.id, location.id, {
+      priority: "NORMAL",
+    });
 
     await createRule({
       name: "Urgent jobs only",
@@ -414,7 +443,9 @@ describe("automation event handling", () => {
     await createRule({
       name: "Chase overdue invoices",
       trigger: "INVOICE_OVERDUE",
-      actions: [{ type: "CREATE_TASK", title: "Call about the overdue invoice" }],
+      actions: [
+        { type: "CREATE_TASK", title: "Call about the overdue invoice" },
+      ],
     });
 
     const first = await app.inject({

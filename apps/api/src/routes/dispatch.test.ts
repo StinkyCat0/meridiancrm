@@ -16,7 +16,9 @@ const DAY = "2026-03-10";
 const NEXT_DAY = "2026-03-11";
 
 function at(hour: number, minute = 0, dayOffset = 0): string {
-  return new Date(Date.UTC(2026, 2, 10 + dayOffset, hour, minute)).toISOString();
+  return new Date(
+    Date.UTC(2026, 2, 10 + dayOffset, hour, minute),
+  ).toISOString();
 }
 
 beforeAll(async () => {
@@ -78,7 +80,11 @@ async function createJob(payload: Record<string, unknown>) {
     payload,
   });
   expect(response.statusCode).toBe(201);
-  return response.json() as { id: string; status: string; assigneeId?: string | null };
+  return response.json() as {
+    id: string;
+    status: string;
+    assigneeId?: string | null;
+  };
 }
 
 async function addTechnician(name: string, workspaceId = owner.workspaceId) {
@@ -109,7 +115,13 @@ type BoardBody = {
     utilizationPct: number;
   }>;
   unassigned: Array<{ id: string }>;
-  stats: { total: number; unassigned: number; inProgress: number; completed: number; noShow: number };
+  stats: {
+    total: number;
+    unassigned: number;
+    inProgress: number;
+    completed: number;
+    noShow: number;
+  };
   depot: { latitude: number; longitude: number } | null;
 };
 
@@ -196,18 +208,28 @@ describe("GET /dispatch/board", () => {
     expect(board.depot).toEqual({ latitude: 45.52, longitude: -122.68 });
     expect(board.technicians).toHaveLength(3);
 
-    const ownerEntry = board.technicians.find((entry) => entry.user.id === owner.userId);
+    const ownerEntry = board.technicians.find(
+      (entry) => entry.user.id === owner.userId,
+    );
     expect(ownerEntry).toBeDefined();
     expect(ownerEntry?.jobCount).toBe(2);
     expect(ownerEntry?.scheduledMinutes).toBe(240);
     expect(ownerEntry?.utilizationPct).toBe(50);
-    expect(ownerEntry?.jobs.map((job) => job.id)).toEqual([ownerMorning.id, ownerAfternoon.id]);
+    expect(ownerEntry?.jobs.map((job) => job.id)).toEqual([
+      ownerMorning.id,
+      ownerAfternoon.id,
+    ]);
 
-    const techEntry = board.technicians.find((entry) => entry.user.id === tech.userId);
+    const techEntry = board.technicians.find(
+      (entry) => entry.user.id === tech.userId,
+    );
     expect(techEntry?.jobCount).toBe(2);
     expect(techEntry?.scheduledMinutes).toBe(120);
     expect(techEntry?.utilizationPct).toBe(25);
-    expect(techEntry?.jobs.map((job) => job.id)).toEqual([techMorning.id, techActive.id]);
+    expect(techEntry?.jobs.map((job) => job.id)).toEqual([
+      techMorning.id,
+      techActive.id,
+    ]);
 
     const idleEntry = board.technicians.find((entry) => entry.jobCount === 0);
     expect(idleEntry?.scheduledMinutes).toBe(0);
@@ -257,9 +279,10 @@ describe("GET /dispatch/board", () => {
     const board = response.json() as BoardBody;
 
     expect(board.date).toBe(todayStart.toISOString().slice(0, 10));
-    expect(board.technicians.find((entry) => entry.user.id === owner.userId)?.utilizationPct).toBe(
-      100,
-    );
+    expect(
+      board.technicians.find((entry) => entry.user.id === owner.userId)
+        ?.utilizationPct,
+    ).toBe(100);
     expect(board.stats.total).toBeGreaterThanOrEqual(1);
     expect(board.unassigned.some((row) => row.id === job.id)).toBe(false);
   });
@@ -293,7 +316,9 @@ describe("GET /dispatch/map", () => {
       latitude: 45.52,
       longitude: -122.68,
     });
-    const ungeocoded = await createLocation(customer.id, { line1: "200 Nowhere Lane" });
+    const ungeocoded = await createLocation(customer.id, {
+      line1: "200 Nowhere Lane",
+    });
     const farStop = await createLocation(customer.id, {
       line1: "300 Far Road",
       latitude: 45.5,
@@ -340,7 +365,10 @@ describe("GET /dispatch/map", () => {
     expect(map.depot).toBeNull();
     expect(map.stops).toHaveLength(2);
     expect(map.missingLocationCount).toBe(1);
-    expect(map.stops.map((stop) => stop.jobId)).toEqual([nearJob.id, farJob.id]);
+    expect(map.stops.map((stop) => stop.jobId)).toEqual([
+      nearJob.id,
+      farJob.id,
+    ]);
     expect(map.stops.map((stop) => stop.routeOrder)).toEqual([null, null]);
 
     const near = map.stops[0];
@@ -547,10 +575,14 @@ describe("POST /dispatch/assign", () => {
     expect(assigned.statusCode).toBe(200);
     expect(assigned.json()).toEqual({ updated: 2 });
 
-    const scheduled = await prisma.job.findUniqueOrThrow({ where: { id: first.id } });
+    const scheduled = await prisma.job.findUniqueOrThrow({
+      where: { id: first.id },
+    });
     expect(scheduled.assigneeId).toBe(tech.userId);
     expect(scheduled.status).toBe("DISPATCHED");
-    const unscheduled = await prisma.job.findUniqueOrThrow({ where: { id: second.id } });
+    const unscheduled = await prisma.job.findUniqueOrThrow({
+      where: { id: second.id },
+    });
     expect(unscheduled.assigneeId).toBe(tech.userId);
     expect(unscheduled.status).toBe("DISPATCHED");
 
@@ -572,7 +604,9 @@ describe("POST /dispatch/assign", () => {
     expect(unassigned.statusCode).toBe(200);
     expect(unassigned.json()).toEqual({ updated: 2 });
 
-    const released = await prisma.job.findUniqueOrThrow({ where: { id: first.id } });
+    const released = await prisma.job.findUniqueOrThrow({
+      where: { id: first.id },
+    });
     expect(released.assigneeId).toBeNull();
     expect(released.status).toBe("SCHEDULED");
   });
@@ -617,10 +651,14 @@ describe("POST /dispatch/assign", () => {
     expect(response.statusCode).toBe(409);
     expect(response.json()).toMatchObject({ error: { code: "CONFLICT" } });
 
-    const untouched = await prisma.job.findUniqueOrThrow({ where: { id: clear.id } });
+    const untouched = await prisma.job.findUniqueOrThrow({
+      where: { id: clear.id },
+    });
     expect(untouched.assigneeId).toBeNull();
     expect(untouched.status).toBe("SCHEDULED");
-    const rejected = await prisma.job.findUniqueOrThrow({ where: { id: conflicting.id } });
+    const rejected = await prisma.job.findUniqueOrThrow({
+      where: { id: conflicting.id },
+    });
     expect(rejected.assigneeId).toBeNull();
   });
 
@@ -688,7 +726,9 @@ describe("POST /dispatch/assign", () => {
     });
     expect(foreignAssignee.statusCode).toBe(404);
 
-    const unchanged = await prisma.job.findUniqueOrThrow({ where: { id: ownJob.id } });
+    const unchanged = await prisma.job.findUniqueOrThrow({
+      where: { id: ownJob.id },
+    });
     expect(unchanged.assigneeId).toBeNull();
 
     const board = await app.inject({

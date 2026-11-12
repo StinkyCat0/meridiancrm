@@ -78,7 +78,12 @@ export class ApiError extends Error {
   readonly code: string;
   readonly details: unknown;
 
-  constructor(status: number, code: string, message: string, details?: unknown) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    details?: unknown,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -107,7 +112,10 @@ async function toApiError(response: Response): Promise<ApiError> {
   } catch {
     payload = null;
   }
-  const code = typeof payload?.error?.code === "string" ? payload.error.code : "HTTP_ERROR";
+  const code =
+    typeof payload?.error?.code === "string"
+      ? payload.error.code
+      : "HTTP_ERROR";
   const message =
     typeof payload?.error?.message === "string"
       ? payload.error.message
@@ -189,7 +197,11 @@ function buildQuery(query?: QueryInput): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query as Record<string, unknown>)) {
     if (value === undefined || value === null || value === "") continue;
-    if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      typeof value !== "boolean"
+    ) {
       continue;
     }
     params.set(key, String(value));
@@ -212,10 +224,15 @@ const NO_REFRESH_PATHS: Record<string, true> = {
   "/auth/accept-invite": true,
 };
 
-async function execute<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function execute<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const headers = new Headers({ Accept: "application/json" });
-  if (options.body !== undefined) headers.set("Content-Type", "application/json");
-  if (!options.skipAuth && accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  if (options.body !== undefined)
+    headers.set("Content-Type", "application/json");
+  if (!options.skipAuth && accessToken)
+    headers.set("Authorization", `Bearer ${accessToken}`);
 
   const init: RequestInit = {
     method: options.method ?? "GET",
@@ -227,9 +244,13 @@ async function execute<T>(path: string, options: RequestOptions = {}): Promise<T
 
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}${path}${buildQuery(options.query)}`, init);
+    response = await fetch(
+      `${BASE_URL}${path}${buildQuery(options.query)}`,
+      init,
+    );
   } catch (cause) {
-    if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+    if (cause instanceof DOMException && cause.name === "AbortError")
+      throw cause;
     throw new ApiError(
       0,
       "NETWORK_ERROR",
@@ -409,7 +430,9 @@ export interface CreateLocationInput {
   archived?: boolean;
 }
 
-export type UpdateLocationInput = Partial<Omit<CreateLocationInput, "customerId">>;
+export type UpdateLocationInput = Partial<
+  Omit<CreateLocationInput, "customerId">
+>;
 
 export interface CreateServiceInput {
   name: string;
@@ -616,7 +639,8 @@ export interface ServiceListQuery extends ListParams {
   unit?: ServiceUnit;
 }
 
-export type JobScope = "all" | "open" | "today" | "week" | "unscheduled" | "upcoming";
+export type JobScope =
+  "all" | "open" | "today" | "week" | "unscheduled" | "upcoming";
 
 export interface JobListQuery extends ListParams {
   status?: JobStatus;
@@ -741,10 +765,18 @@ function storeSession(session: AuthSession): AuthSession {
 const auth = {
   register: async (input: RegisterInput): Promise<AuthSession> =>
     storeSession(
-      await execute<AuthSession>("/auth/register", { method: "POST", body: input }),
+      await execute<AuthSession>("/auth/register", {
+        method: "POST",
+        body: input,
+      }),
     ),
   login: async (input: LoginInput): Promise<AuthSession> =>
-    storeSession(await execute<AuthSession>("/auth/login", { method: "POST", body: input })),
+    storeSession(
+      await execute<AuthSession>("/auth/login", {
+        method: "POST",
+        body: input,
+      }),
+    ),
   refresh: refreshSession,
   logout: async (): Promise<void> => {
     try {
@@ -755,10 +787,13 @@ const auth = {
   },
   me: (): Promise<MeResponse> => execute<MeResponse>("/auth/me"),
   updateProfile: async (input: UpdateProfileInput): Promise<PublicUser> => {
-    const result = await execute<PublicUser | { user: PublicUser }>("/auth/me", {
-      method: "PATCH",
-      body: input,
-    });
+    const result = await execute<PublicUser | { user: PublicUser }>(
+      "/auth/me",
+      {
+        method: "PATCH",
+        body: input,
+      },
+    );
     return "user" in result ? result.user : result;
   },
   changePassword: (input: ChangePasswordInput): Promise<void> =>
@@ -769,7 +804,11 @@ const auth = {
     storeSession(
       await execute<AuthSession>("/auth/accept-invite", {
         method: "POST",
-        body: { token: input.token, name: input.name, password: input.password },
+        body: {
+          token: input.token,
+          name: input.name,
+          password: input.password,
+        },
       }),
     ),
 };
@@ -791,23 +830,33 @@ const workspace = {
   }): Promise<WorkspaceSummary> =>
     execute<WorkspaceSummary>("/workspace", { method: "PATCH", body: input }),
   members: (): Promise<Member[]> => execute<Member[]>("/workspace/members"),
-  updateMember: (id: string, input: { role: "ADMIN" | "MEMBER" }): Promise<Member> =>
+  updateMember: (
+    id: string,
+    input: { role: "ADMIN" | "MEMBER" },
+  ): Promise<Member> =>
     execute<Member>(`/workspace/members/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: input,
     }),
   removeMember: (id: string): Promise<void> =>
-    execute<void>(`/workspace/members/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    execute<void>(`/workspace/members/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
   invites: (): Promise<Invite[]> => execute<Invite[]>("/workspace/invites"),
   createInvite: (
     input: CreateInviteInput,
   ): Promise<{ invite: Invite; token: string; inviteUrl: string }> =>
-    execute<{ invite: Invite; token: string; inviteUrl: string }>("/workspace/invites", {
-      method: "POST",
-      body: input,
-    }),
+    execute<{ invite: Invite; token: string; inviteUrl: string }>(
+      "/workspace/invites",
+      {
+        method: "POST",
+        body: input,
+      },
+    ),
   revokeInvite: (id: string): Promise<void> =>
-    execute<void>(`/workspace/invites/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    execute<void>(`/workspace/invites/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
   audit: (query?: AuditQuery): Promise<Page<AuditEntry>> =>
     execute<Page<AuditEntry>>("/workspace/audit", { query }),
 };
@@ -821,13 +870,19 @@ const companies = {
     execute<Page<Company>>("/companies", { query }),
   create: (input: CreateCompanyInput): Promise<Company> =>
     execute<Company>("/companies", { method: "POST", body: input }),
-  get: (id: string): Promise<Company> => execute<Company>(`/companies/${encodeURIComponent(id)}`),
+  get: (id: string): Promise<Company> =>
+    execute<Company>(`/companies/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateCompanyInput): Promise<Company> =>
-    execute<Company>(`/companies/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Company>(`/companies/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   archive: (id: string): Promise<void> =>
     execute<void>(`/companies/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restore: (id: string): Promise<Company> =>
-    execute<Company>(`/companies/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+    execute<Company>(`/companies/${encodeURIComponent(id)}/restore`, {
+      method: "POST",
+    }),
   timeline: (id: string, limit = 80): Promise<CustomerTimeline> =>
     execute<CustomerTimeline>(`/companies/${encodeURIComponent(id)}/timeline`, {
       query: { limit },
@@ -839,13 +894,19 @@ const contacts = {
     execute<Page<Contact>>("/contacts", { query }),
   create: (input: CreateContactInput): Promise<Contact> =>
     execute<Contact>("/contacts", { method: "POST", body: input }),
-  get: (id: string): Promise<Contact> => execute<Contact>(`/contacts/${encodeURIComponent(id)}`),
+  get: (id: string): Promise<Contact> =>
+    execute<Contact>(`/contacts/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateContactInput): Promise<Contact> =>
-    execute<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Contact>(`/contacts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   archive: (id: string): Promise<void> =>
     execute<void>(`/contacts/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restore: (id: string): Promise<Contact> =>
-    execute<Contact>(`/contacts/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+    execute<Contact>(`/contacts/${encodeURIComponent(id)}/restore`, {
+      method: "POST",
+    }),
 };
 
 /* -------------------------------------------------------------------------- */
@@ -853,12 +914,17 @@ const contacts = {
 /* -------------------------------------------------------------------------- */
 
 const deals = {
-  list: (query?: DealListQuery): Promise<Page<Deal>> => execute<Page<Deal>>("/deals", { query }),
+  list: (query?: DealListQuery): Promise<Page<Deal>> =>
+    execute<Page<Deal>>("/deals", { query }),
   create: (input: CreateDealInput): Promise<Deal> =>
     execute<Deal>("/deals", { method: "POST", body: input }),
-  get: (id: string): Promise<Deal> => execute<Deal>(`/deals/${encodeURIComponent(id)}`),
+  get: (id: string): Promise<Deal> =>
+    execute<Deal>(`/deals/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateDealInput): Promise<Deal> =>
-    execute<Deal>(`/deals/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Deal>(`/deals/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   delete: (id: string): Promise<void> =>
     execute<void>(`/deals/${encodeURIComponent(id)}`, { method: "DELETE" }),
   moveStage: (id: string, stageId: string): Promise<Deal> =>
@@ -875,21 +941,32 @@ const pipelines = {
   create: (input: CreatePipelineInput): Promise<Pipeline> =>
     execute<Pipeline>("/pipelines", { method: "POST", body: input }),
   update: (id: string, input: UpdatePipelineInput): Promise<Pipeline> =>
-    execute<Pipeline>(`/pipelines/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Pipeline>(`/pipelines/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   createStage: (pipelineId: string, input: CreateStageInput): Promise<Stage> =>
     execute<Stage>(`/pipelines/${encodeURIComponent(pipelineId)}/stages`, {
       method: "POST",
       body: input,
     }),
   updateStage: (stageId: string, input: UpdateStageInput): Promise<Stage> =>
-    execute<Stage>(`/stages/${encodeURIComponent(stageId)}`, { method: "PATCH", body: input }),
-  deleteStage: (stageId: string): Promise<void> =>
-    execute<void>(`/stages/${encodeURIComponent(stageId)}`, { method: "DELETE" }),
-  reorderStages: (pipelineId: string, stageIds: string[]): Promise<Pipeline> =>
-    execute<Pipeline>(`/pipelines/${encodeURIComponent(pipelineId)}/stages/reorder`, {
-      method: "POST",
-      body: { stageIds },
+    execute<Stage>(`/stages/${encodeURIComponent(stageId)}`, {
+      method: "PATCH",
+      body: input,
     }),
+  deleteStage: (stageId: string): Promise<void> =>
+    execute<void>(`/stages/${encodeURIComponent(stageId)}`, {
+      method: "DELETE",
+    }),
+  reorderStages: (pipelineId: string, stageIds: string[]): Promise<Pipeline> =>
+    execute<Pipeline>(
+      `/pipelines/${encodeURIComponent(pipelineId)}/stages/reorder`,
+      {
+        method: "POST",
+        body: { stageIds },
+      },
+    ),
 };
 
 /* -------------------------------------------------------------------------- */
@@ -904,11 +981,16 @@ const locations = {
   get: (id: string): Promise<Location> =>
     execute<Location>(`/locations/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateLocationInput): Promise<Location> =>
-    execute<Location>(`/locations/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Location>(`/locations/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   archive: (id: string): Promise<void> =>
     execute<void>(`/locations/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restore: (id: string): Promise<Location> =>
-    execute<Location>(`/locations/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+    execute<Location>(`/locations/${encodeURIComponent(id)}/restore`, {
+      method: "POST",
+    }),
 };
 
 const services = {
@@ -919,21 +1001,35 @@ const services = {
   get: (id: string): Promise<ServiceItem> =>
     execute<ServiceItem>(`/services/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateServiceInput): Promise<ServiceItem> =>
-    execute<ServiceItem>(`/services/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<ServiceItem>(`/services/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   archive: (id: string): Promise<void> =>
     execute<void>(`/services/${encodeURIComponent(id)}`, { method: "DELETE" }),
   restore: (id: string): Promise<ServiceItem> =>
-    execute<ServiceItem>(`/services/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+    execute<ServiceItem>(`/services/${encodeURIComponent(id)}/restore`, {
+      method: "POST",
+    }),
 };
 
 const jobs = {
-  list: (query?: JobListQuery): Promise<Page<Job>> => execute<Page<Job>>("/jobs", { query }),
+  list: (query?: JobListQuery): Promise<Page<Job>> =>
+    execute<Page<Job>>("/jobs", { query }),
   create: (input: CreateJobInput): Promise<Job> =>
     execute<Job>("/jobs", { method: "POST", body: input }),
-  get: (id: string): Promise<Job> => execute<Job>(`/jobs/${encodeURIComponent(id)}`),
+  get: (id: string): Promise<Job> =>
+    execute<Job>(`/jobs/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateJobInput): Promise<Job> =>
-    execute<Job>(`/jobs/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
-  setStatus: (id: string, status: JobStatus, cancelReason?: string): Promise<Job> =>
+    execute<Job>(`/jobs/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
+  setStatus: (
+    id: string,
+    status: JobStatus,
+    cancelReason?: string,
+  ): Promise<Job> =>
     execute<Job>(`/jobs/${encodeURIComponent(id)}/status`, {
       method: "PATCH",
       body: { status, cancelReason },
@@ -955,7 +1051,10 @@ const estimates = {
   get: (id: string): Promise<Estimate> =>
     execute<Estimate>(`/estimates/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateEstimateInput): Promise<Estimate> =>
-    execute<Estimate>(`/estimates/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Estimate>(`/estimates/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   setStatus: (id: string, status: EstimateStatus): Promise<Estimate> =>
     execute<Estimate>(`/estimates/${encodeURIComponent(id)}/status`, {
       method: "PATCH",
@@ -981,8 +1080,15 @@ const invoices = {
   get: (id: string): Promise<Invoice> =>
     execute<Invoice>(`/invoices/${encodeURIComponent(id)}`),
   update: (id: string, input: UpdateInvoiceInput): Promise<Invoice> =>
-    execute<Invoice>(`/invoices/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
-  recordPayment: (id: string, amountPaid: number, method?: PaymentMethod): Promise<Invoice> =>
+    execute<Invoice>(`/invoices/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
+  recordPayment: (
+    id: string,
+    amountPaid: number,
+    method?: PaymentMethod,
+  ): Promise<Invoice> =>
     execute<Invoice>(`/invoices/${encodeURIComponent(id)}/payment`, {
       method: "PATCH",
       body: { amountPaid, method },
@@ -1006,22 +1112,34 @@ const ops = {
 const communications = {
   list: (query?: CommunicationListQuery): Promise<Page<Communication>> =>
     execute<Page<Communication>>("/communications", { query }),
-  threads: (query?: { q?: string; limit?: number }): Promise<CommunicationThread[]> =>
+  threads: (query?: {
+    q?: string;
+    limit?: number;
+  }): Promise<CommunicationThread[]> =>
     execute<CommunicationThread[]>("/communications/threads", { query }),
-  stats: (): Promise<CommunicationStats> => execute<CommunicationStats>("/communications/stats"),
+  stats: (): Promise<CommunicationStats> =>
+    execute<CommunicationStats>("/communications/stats"),
   get: (id: string): Promise<Communication> =>
     execute<Communication>(`/communications/${encodeURIComponent(id)}`),
   create: (input: CreateCommunicationInput): Promise<Communication> =>
     execute<Communication>("/communications", { method: "POST", body: input }),
-  update: (id: string, input: UpdateCommunicationInput): Promise<Communication> =>
+  update: (
+    id: string,
+    input: UpdateCommunicationInput,
+  ): Promise<Communication> =>
     execute<Communication>(`/communications/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: input,
     }),
   draft: (input: DraftCommunicationInput): Promise<CommunicationDraft> =>
-    execute<CommunicationDraft>("/communications/draft", { method: "POST", body: input }),
+    execute<CommunicationDraft>("/communications/draft", {
+      method: "POST",
+      body: input,
+    }),
   delete: (id: string): Promise<void> =>
-    execute<void>(`/communications/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    execute<void>(`/communications/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
 };
 
 const dispatch = {
@@ -1029,9 +1147,14 @@ const dispatch = {
     execute<DispatchBoard>("/dispatch/board", { query }),
   map: (query?: DispatchQuery): Promise<DispatchMap> =>
     execute<DispatchMap>("/dispatch/map", { query }),
-  route: (query?: DispatchQuery & { assigneeId: string }): Promise<DispatchRoute> =>
+  route: (
+    query?: DispatchQuery & { assigneeId: string },
+  ): Promise<DispatchRoute> =>
     execute<DispatchRoute>("/dispatch/route", { query }),
-  assign: (jobIds: string[], assigneeId: string | null): Promise<{ updated: number }> =>
+  assign: (
+    jobIds: string[],
+    assigneeId: string | null,
+  ): Promise<{ updated: number }> =>
     execute<{ updated: number }>("/dispatch/assign", {
       method: "POST",
       body: { jobIds, assigneeId },
@@ -1053,7 +1176,9 @@ const finance = {
       body: input,
     }),
   deleteExpense: (id: string): Promise<void> =>
-    execute<void>(`/finance/expenses/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    execute<void>(`/finance/expenses/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
 };
 
 const automations = {
@@ -1069,18 +1194,26 @@ const automations = {
       body: input,
     }),
   delete: (id: string): Promise<void> =>
-    execute<void>(`/automations/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    execute<void>(`/automations/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
   runs: (query?: AutomationRunListQuery): Promise<Page<AutomationRun>> =>
     execute<Page<AutomationRun>>("/automations/runs", { query }),
   runDue: (): Promise<{ evaluated: number; run: number }> =>
-    execute<{ evaluated: number; run: number }>("/automations/run-due", { method: "POST" }),
+    execute<{ evaluated: number; run: number }>("/automations/run-due", {
+      method: "POST",
+    }),
 };
 
 const intelligence = {
-  summary: (): Promise<IntelligenceSummary> => execute<IntelligenceSummary>("/intelligence/summary"),
-  recommendations: (query?: RecommendationListQuery): Promise<Recommendation[]> =>
+  summary: (): Promise<IntelligenceSummary> =>
+    execute<IntelligenceSummary>("/intelligence/summary"),
+  recommendations: (
+    query?: RecommendationListQuery,
+  ): Promise<Recommendation[]> =>
     execute<Recommendation[]>("/intelligence/recommendations", { query }),
-  brief: (): Promise<AssistantBrief> => execute<AssistantBrief>("/intelligence/brief"),
+  brief: (): Promise<AssistantBrief> =>
+    execute<AssistantBrief>("/intelligence/brief"),
 };
 
 const team = {
@@ -1100,15 +1233,21 @@ const activities = {
   create: (input: CreateActivityInput): Promise<Activity> =>
     execute<Activity>("/activities", { method: "POST", body: input }),
   update: (id: string, input: UpdateActivityInput): Promise<Activity> =>
-    execute<Activity>(`/activities/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+    execute<Activity>(`/activities/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
   delete: (id: string): Promise<void> =>
-    execute<void>(`/activities/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    execute<void>(`/activities/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
 };
 
 const insights = {
   dashboard: (months?: number): Promise<DashboardSummary> =>
     execute<DashboardSummary>("/dashboard", { query: { months } }),
-  search: (q: string): Promise<SearchResponse> => execute<SearchResponse>("/search", { query: { q } }),
+  search: (q: string): Promise<SearchResponse> =>
+    execute<SearchResponse>("/search", { query: { q } }),
 };
 
 /* -------------------------------------------------------------------------- */

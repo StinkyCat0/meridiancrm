@@ -67,7 +67,11 @@ export async function registerAccount(
     password: overrides.password ?? "TestPassword123",
     workspaceName: overrides.workspaceName ?? "Test Workspace",
   };
-  const response = await app.inject({ method: "POST", url: "/api/v1/auth/register", payload });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/v1/auth/register",
+    payload,
+  });
   if (response.statusCode !== 201) {
     throw new Error(`register failed: ${response.statusCode} ${response.body}`);
   }

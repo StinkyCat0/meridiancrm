@@ -25,8 +25,19 @@ import type { Prisma } from "@prisma/client";
 import { authenticate, getAuth, requireRole } from "../lib/auth.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/db.js";
-import { badRequest, iso, likeTerm, notFound, pageMeta, parseOrThrow } from "../lib/http.js";
-import { customerSelect, toCustomerSummary, userSelect } from "../lib/service-ops.js";
+import {
+  badRequest,
+  iso,
+  likeTerm,
+  notFound,
+  pageMeta,
+  parseOrThrow,
+} from "../lib/http.js";
+import {
+  customerSelect,
+  toCustomerSummary,
+  userSelect,
+} from "../lib/service-ops.js";
 
 const idParamsSchema = z.object({ id: z.string().trim().min(1).max(64) });
 
@@ -51,7 +62,12 @@ export type CommunicationRow = Prisma.CommunicationGetPayload<{
 
 function toPublicUser(user: CommunicationRow["user"]): PublicUser | null {
   if (!user) return null;
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 export function toCommunication(row: CommunicationRow): Communication {
@@ -141,7 +157,9 @@ function startOfDayInTimeZone(now: Date, timeZone: string): Date {
     const candidateOffset = timeZoneOffsetMs(candidate, timeZone);
     return new Date(utcMidnight - candidateOffset);
   } catch {
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    return new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
   }
 }
 
@@ -198,14 +216,17 @@ async function matchingCustomerIds(
   return [...ids];
 }
 
-export async function communicationsRoutes(app: FastifyInstance): Promise<void> {
+export async function communicationsRoutes(
+  app: FastifyInstance,
+): Promise<void> {
   app.get(
     "/communications",
     {
       preHandler: authenticate,
       schema: {
         tags: ["communications"],
-        summary: "List inbox communications with channel, direction and unread filters",
+        summary:
+          "List inbox communications with channel, direction and unread filters",
         security: [{ bearerAuth: [] }],
       },
     },
@@ -297,41 +318,45 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
         customerId: { in: customerIds },
       };
 
-      const [unreadGroups, channelGroups, customers, lastMessages] = await Promise.all([
-        prisma.communication.groupBy({
-          by: ["customerId"],
-          where: { ...pageWhere, direction: "INBOUND", readAt: null },
-          _count: { _all: true },
-        }),
-        prisma.communication.groupBy({
-          by: ["customerId", "channel"],
-          where: pageWhere,
-          _count: { _all: true },
-        }),
-        prisma.company.findMany({
-          where: { workspaceId: auth.workspaceId, id: { in: customerIds } },
-          select: customerSelect,
-        }),
-        Promise.all(
-          customerIds.map((customerId) =>
-            prisma.communication.findFirst({
-              where: { workspaceId: auth.workspaceId, customerId },
-              include: communicationInclude,
-              orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-            }),
+      const [unreadGroups, channelGroups, customers, lastMessages] =
+        await Promise.all([
+          prisma.communication.groupBy({
+            by: ["customerId"],
+            where: { ...pageWhere, direction: "INBOUND", readAt: null },
+            _count: { _all: true },
+          }),
+          prisma.communication.groupBy({
+            by: ["customerId", "channel"],
+            where: pageWhere,
+            _count: { _all: true },
+          }),
+          prisma.company.findMany({
+            where: { workspaceId: auth.workspaceId, id: { in: customerIds } },
+            select: customerSelect,
+          }),
+          Promise.all(
+            customerIds.map((customerId) =>
+              prisma.communication.findFirst({
+                where: { workspaceId: auth.workspaceId, customerId },
+                include: communicationInclude,
+                orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+              }),
+            ),
           ),
-        ),
-      ]);
+        ]);
 
       const customerById = new Map(
         customers.map((customer) => [customer.id, customer] as const),
       );
       const unreadById = new Map<string, number>();
       for (const group of unreadGroups) {
-        if (group.customerId) unreadById.set(group.customerId, group._count._all);
+        if (group.customerId)
+          unreadById.set(group.customerId, group._count._all);
       }
       const channelOrder = new Map<CommunicationChannel, number>(
-        COMMUNICATION_CHANNELS.map((channel, index) => [channel, index] as const),
+        COMMUNICATION_CHANNELS.map(
+          (channel, index) => [channel, index] as const,
+        ),
       );
       const channelsById = new Map<string, CommunicationChannel[]>();
       for (const group of channelGroups) {
@@ -360,9 +385,15 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
       });
 
       return threads.sort((a, b) => {
-        const diff = Date.parse(b.lastMessage.occurredAt) - Date.parse(a.lastMessage.occurredAt);
+        const diff =
+          Date.parse(b.lastMessage.occurredAt) -
+          Date.parse(a.lastMessage.occurredAt);
         if (diff !== 0) return diff;
-        return a.lastMessage.id < b.lastMessage.id ? 1 : a.lastMessage.id > b.lastMessage.id ? -1 : 0;
+        return a.lastMessage.id < b.lastMessage.id
+          ? 1
+          : a.lastMessage.id > b.lastMessage.id
+            ? -1
+            : 0;
       });
     },
   );
@@ -404,8 +435,12 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
         prisma.communication.count({ where: { ...scope, channel: "CALL" } }),
         prisma.communication.count({ where: { ...scope, channel: "SMS" } }),
         prisma.communication.count({ where: { ...scope, channel: "EMAIL" } }),
-        prisma.communication.count({ where: { ...scope, direction: "INBOUND" } }),
-        prisma.communication.count({ where: { ...scope, direction: "OUTBOUND" } }),
+        prisma.communication.count({
+          where: { ...scope, direction: "INBOUND" },
+        }),
+        prisma.communication.count({
+          where: { ...scope, direction: "OUTBOUND" },
+        }),
         prisma.communication.count({
           where: { ...scope, direction: "INBOUND", readAt: null },
         }),
@@ -416,7 +451,11 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
           where: { ...scope, channel: "SMS", occurredAt: { gte: dayStart } },
         }),
         prisma.activity.count({
-          where: { workspaceId: auth.workspaceId, type: "TASK", completedAt: null },
+          where: {
+            workspaceId: auth.workspaceId,
+            type: "TASK",
+            completedAt: null,
+          },
         }),
       ]);
 
@@ -510,7 +549,8 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
         take: 25,
       });
       const balance = openInvoices.reduce(
-        (sum, invoice) => sum + Math.max(0, invoice.amount - invoice.amountPaid),
+        (sum, invoice) =>
+          sum + Math.max(0, invoice.amount - invoice.amountPaid),
         0,
       );
 
@@ -530,7 +570,8 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
         contactName,
         businessName: workspace.name,
         businessTypeLabel:
-          BUSINESS_TYPE_META[workspace.businessType as BusinessType]?.label ?? "Home services",
+          BUSINESS_TYPE_META[workspace.businessType as BusinessType]?.label ??
+          "Home services",
         channel: input.channel,
         intent: input.intent,
         tone: input.tone,
@@ -538,8 +579,10 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
           ? formatAppointment(job.scheduledStart, workspace.timezone)
           : null,
         jobNumber: job?.number ?? null,
-        serviceName: lineItem?.service?.name ?? lineItem?.name ?? job?.title ?? null,
-        amountLabel: balance > 0 ? formatMoney(balance, workspace.currency) : null,
+        serviceName:
+          lineItem?.service?.name ?? lineItem?.name ?? job?.title ?? null,
+        amountLabel:
+          balance > 0 ? formatMoney(balance, workspace.currency) : null,
         serviceArea: workspace.serviceArea,
       });
     },
@@ -616,7 +659,11 @@ export async function communicationsRoutes(app: FastifyInstance): Promise<void> 
       const channel = input.channel as CommunicationChannel;
       const status: CommunicationStatus =
         input.status ??
-        (direction === "INBOUND" ? "RECEIVED" : channel === "CALL" ? "LOGGED" : "SENT");
+        (direction === "INBOUND"
+          ? "RECEIVED"
+          : channel === "CALL"
+            ? "LOGGED"
+            : "SENT");
 
       const created = await prisma.communication.create({
         data: {

@@ -9,8 +9,21 @@ import {
   type AutomationRunStatus,
   type AutomationTrigger,
 } from "@meridian/contracts";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, History, Pencil, Play, Plus, Trash2, Zap } from "lucide-react";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  History,
+  Pencil,
+  Play,
+  Plus,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge, type BadgeTone } from "../../components/ui/Badge";
@@ -29,7 +42,10 @@ import { cn, formatDate, formatMoney, relativeTime } from "../../lib/utils";
 import { apiErrorMessage } from "../companies/lib";
 import { ACTION_LABELS, RuleModal } from "./RuleModal";
 
-const RUN_STATUS_META: Record<AutomationRunStatus, { label: string; tone: BadgeTone }> = {
+const RUN_STATUS_META: Record<
+  AutomationRunStatus,
+  { label: string; tone: BadgeTone }
+> = {
   SUCCESS: { label: "Success", tone: "success" },
   SKIPPED: { label: "Skipped", tone: "warning" },
   FAILED: { label: "Failed", tone: "danger" },
@@ -48,16 +64,27 @@ function actionSummary(actions: AutomationRule["actions"]): string {
   return [...labels].join(" · ");
 }
 
-function conditionSummary(conditions: AutomationConditions, currency: string): string {
+function conditionSummary(
+  conditions: AutomationConditions,
+  currency: string,
+): string {
   const parts: string[] = [];
   if (conditions.minTotal !== undefined) {
     parts.push(`Min ${formatMoney(conditions.minTotal, currency)}`);
   }
   if (conditions.customerTypes?.length) {
-    parts.push(conditions.customerTypes.map((type) => CUSTOMER_TYPE_META[type].label).join(", "));
+    parts.push(
+      conditions.customerTypes
+        .map((type) => CUSTOMER_TYPE_META[type].label)
+        .join(", "),
+    );
   }
   if (conditions.priorities?.length) {
-    parts.push(conditions.priorities.map((priority) => JOB_PRIORITY_META[priority].label).join(", "));
+    parts.push(
+      conditions.priorities
+        .map((priority) => JOB_PRIORITY_META[priority].label)
+        .join(", "),
+    );
   }
   return parts.join(" · ");
 }
@@ -116,9 +143,15 @@ export default function AutomationsPage() {
 
   const [view, setView] = useState<"rules" | "runs">("rules");
   const [enabledFilter, setEnabledFilter] = useState<EnabledFilter>("all");
-  const [triggerFilter, setTriggerFilter] = useState<AutomationTrigger | "ALL">("ALL");
-  const [runStatus, setRunStatus] = useState<AutomationRunStatus | "ALL">("ALL");
-  const [runTrigger, setRunTrigger] = useState<AutomationTrigger | "ALL">("ALL");
+  const [triggerFilter, setTriggerFilter] = useState<AutomationTrigger | "ALL">(
+    "ALL",
+  );
+  const [runStatus, setRunStatus] = useState<AutomationRunStatus | "ALL">(
+    "ALL",
+  );
+  const [runTrigger, setRunTrigger] = useState<AutomationTrigger | "ALL">(
+    "ALL",
+  );
   const [runRuleId, setRunRuleId] = useState("all");
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<AutomationRule | null>(null);
@@ -172,10 +205,17 @@ export default function AutomationsPage() {
   }
 
   const toggleEnabled = useMutation({
-    mutationFn: ({ rule, enabled }: { rule: AutomationRule; enabled: boolean }) =>
-      api.automations.update(rule.id, { enabled }),
+    mutationFn: ({
+      rule,
+      enabled,
+    }: {
+      rule: AutomationRule;
+      enabled: boolean;
+    }) => api.automations.update(rule.id, { enabled }),
     onSuccess: (updated) => {
-      toast.success(updated.enabled ? "Automation enabled" : "Automation paused");
+      toast.success(
+        updated.enabled ? "Automation enabled" : "Automation paused",
+      );
       invalidateAutomations();
     },
     onError: (error) => toast.error(apiErrorMessage(error)),
@@ -212,7 +252,8 @@ export default function AutomationsPage() {
   });
 
   const hasRuleFilters = triggerFilter !== "ALL" || enabledFilter !== "all";
-  const hasRunFilters = runStatus !== "ALL" || runTrigger !== "ALL" || runRuleId !== "all";
+  const hasRunFilters =
+    runStatus !== "ALL" || runTrigger !== "ALL" || runRuleId !== "all";
 
   return (
     <div className="space-y-5">
@@ -258,8 +299,16 @@ export default function AutomationsPage() {
           <Tabs
             ariaLabel="Automation view"
             items={[
-              { value: "rules", label: "Rules", count: rulesQuery.data ? rulesTotal : undefined },
-              { value: "runs", label: "Runs", count: runsQuery.data ? runsTotal : undefined },
+              {
+                value: "rules",
+                label: "Rules",
+                count: rulesQuery.data ? rulesTotal : undefined,
+              },
+              {
+                value: "runs",
+                label: "Runs",
+                count: runsQuery.data ? runsTotal : undefined,
+              },
             ]}
             value={view}
             onChange={(value) => setView(value as "rules" | "runs")}
@@ -285,7 +334,9 @@ export default function AutomationsPage() {
             <Select
               value={triggerFilter}
               onChange={(event) =>
-                setTriggerFilter(event.target.value as AutomationTrigger | "ALL")
+                setTriggerFilter(
+                  event.target.value as AutomationTrigger | "ALL",
+                )
               }
               aria-label="Filter rules by trigger"
               className="sm:max-w-56"
@@ -299,7 +350,9 @@ export default function AutomationsPage() {
             </Select>
             <Select
               value={enabledFilter}
-              onChange={(event) => setEnabledFilter(event.target.value as EnabledFilter)}
+              onChange={(event) =>
+                setEnabledFilter(event.target.value as EnabledFilter)
+              }
               aria-label="Filter rules by state"
               className="sm:max-w-40"
             >
@@ -341,16 +394,20 @@ export default function AutomationsPage() {
             </Select>
             <Select
               value={runStatus}
-              onChange={(event) => setRunStatus(event.target.value as AutomationRunStatus | "ALL")}
+              onChange={(event) =>
+                setRunStatus(event.target.value as AutomationRunStatus | "ALL")
+              }
               aria-label="Filter runs by status"
               className="sm:max-w-36"
             >
               <option value="ALL">All statuses</option>
-              {(Object.keys(RUN_STATUS_META) as AutomationRunStatus[]).map((value) => (
-                <option key={value} value={value}>
-                  {RUN_STATUS_META[value].label}
-                </option>
-              ))}
+              {(Object.keys(RUN_STATUS_META) as AutomationRunStatus[]).map(
+                (value) => (
+                  <option key={value} value={value}>
+                    {RUN_STATUS_META[value].label}
+                  </option>
+                ),
+              )}
             </Select>
             <Select
               value={runRuleId}
@@ -394,7 +451,11 @@ export default function AutomationsPage() {
         ) : rules.length === 0 ? (
           <EmptyState
             icon={<Zap />}
-            title={hasRuleFilters ? "No automations match those filters." : "No automations yet."}
+            title={
+              hasRuleFilters
+                ? "No automations match those filters."
+                : "No automations yet."
+            }
             description={
               hasRuleFilters
                 ? "Try another trigger or clear the state filter."
@@ -435,7 +496,10 @@ export default function AutomationsPage() {
                       <th scope="col" className="label-micro px-4 py-3">
                         State
                       </th>
-                      <th scope="col" className="label-micro px-4 py-3 text-right">
+                      <th
+                        scope="col"
+                        className="label-micro px-4 py-3 text-right"
+                      >
                         Runs
                       </th>
                       <th scope="col" className="label-micro px-4 py-3">
@@ -448,13 +512,22 @@ export default function AutomationsPage() {
                   </thead>
                   <tbody>
                     {rules.map((rule) => {
-                      const conditions = conditionSummary(rule.conditions, currency);
+                      const conditions = conditionSummary(
+                        rule.conditions,
+                        currency,
+                      );
                       const pending =
-                        toggleEnabled.isPending && toggleEnabled.variables?.rule.id === rule.id;
+                        toggleEnabled.isPending &&
+                        toggleEnabled.variables?.rule.id === rule.id;
                       return (
-                        <tr key={rule.id} className="border-b border-border/70 last:border-0">
+                        <tr
+                          key={rule.id}
+                          className="border-b border-border/70 last:border-0"
+                        >
                           <td className="px-4 py-3 align-top">
-                            <p className="max-w-[280px] truncate font-medium text-fg">{rule.name}</p>
+                            <p className="max-w-[280px] truncate font-medium text-fg">
+                              {rule.name}
+                            </p>
                             {rule.description ? (
                               <p className="mt-0.5 max-w-[300px] truncate text-xs text-muted">
                                 {rule.description}
@@ -476,7 +549,9 @@ export default function AutomationsPage() {
                                 rule={rule}
                                 disabled={!canManage}
                                 pending={pending}
-                                onChange={(enabled) => toggleEnabled.mutate({ rule, enabled })}
+                                onChange={(enabled) =>
+                                  toggleEnabled.mutate({ rule, enabled })
+                                }
                               />
                               <span className="text-xs text-muted">
                                 {rule.enabled ? "Enabled" : "Paused"}
@@ -488,7 +563,12 @@ export default function AutomationsPage() {
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 align-top text-xs text-muted">
                             {rule.lastRunAt ? (
-                              <span title={formatDate(rule.lastRunAt, "MMM d, yyyy · h:mm a")}>
+                              <span
+                                title={formatDate(
+                                  rule.lastRunAt,
+                                  "MMM d, yyyy · h:mm a",
+                                )}
+                              >
                                 {relativeTime(rule.lastRunAt)}
                               </span>
                             ) : (
@@ -529,12 +609,15 @@ export default function AutomationsPage() {
               {rules.map((rule) => {
                 const conditions = conditionSummary(rule.conditions, currency);
                 const pending =
-                  toggleEnabled.isPending && toggleEnabled.variables?.rule.id === rule.id;
+                  toggleEnabled.isPending &&
+                  toggleEnabled.variables?.rule.id === rule.id;
                 return (
                   <Card key={rule.id} className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-fg">{rule.name}</p>
+                        <p className="truncate font-medium text-fg">
+                          {rule.name}
+                        </p>
                         {rule.description ? (
                           <p className="mt-0.5 line-clamp-2 text-xs text-muted">
                             {rule.description}
@@ -557,7 +640,9 @@ export default function AutomationsPage() {
                           rule={rule}
                           disabled={!canManage}
                           pending={pending}
-                          onChange={(enabled) => toggleEnabled.mutate({ rule, enabled })}
+                          onChange={(enabled) =>
+                            toggleEnabled.mutate({ rule, enabled })
+                          }
                         />
                         <span className="text-xs text-muted">
                           {rule.enabled ? "Enabled" : "Paused"}
@@ -595,7 +680,9 @@ export default function AutomationsPage() {
                       <div className="text-right">
                         <dt className="label-micro">Last run</dt>
                         <dd className="mt-0.5 text-muted">
-                          {rule.lastRunAt ? relativeTime(rule.lastRunAt) : "Never"}
+                          {rule.lastRunAt
+                            ? relativeTime(rule.lastRunAt)
+                            : "Never"}
                         </dd>
                       </div>
                     </dl>
@@ -616,7 +703,9 @@ export default function AutomationsPage() {
       ) : runs.length === 0 ? (
         <EmptyState
           icon={<History />}
-          title={hasRunFilters ? "No runs match those filters." : "No runs yet."}
+          title={
+            hasRunFilters ? "No runs match those filters." : "No runs yet."
+          }
           description={
             hasRunFilters
               ? "Try another status, trigger or rule."
@@ -668,14 +757,20 @@ export default function AutomationsPage() {
                     <th scope="col" className="label-micro px-4 py-3">
                       Detail
                     </th>
-                    <th scope="col" className="label-micro px-4 py-3 text-right">
+                    <th
+                      scope="col"
+                      className="label-micro px-4 py-3 text-right"
+                    >
                       Time
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {runs.map((run) => (
-                    <tr key={run.id} className="border-b border-border/70 last:border-0">
+                    <tr
+                      key={run.id}
+                      className="border-b border-border/70 last:border-0"
+                    >
                       <td className="px-4 py-3">
                         <Badge tone={RUN_STATUS_META[run.status].tone}>
                           {RUN_STATUS_META[run.status].label}
@@ -685,10 +780,14 @@ export default function AutomationsPage() {
                         {AUTOMATION_TRIGGER_META[run.trigger].label}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="max-w-[200px] truncate text-fg">{run.ruleName}</p>
+                        <p className="max-w-[200px] truncate text-fg">
+                          {run.ruleName}
+                        </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-xs text-fg">{entityLabel(run.entityType)}</p>
+                        <p className="text-xs text-fg">
+                          {entityLabel(run.entityType)}
+                        </p>
                         <p className="num text-[11px] text-muted">
                           {run.entityId ? run.entityId.slice(0, 10) : "—"}
                         </p>
@@ -702,7 +801,12 @@ export default function AutomationsPage() {
                         </p>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-right text-xs text-muted">
-                        <span title={formatDate(run.createdAt, "MMM d, yyyy · h:mm a")}>
+                        <span
+                          title={formatDate(
+                            run.createdAt,
+                            "MMM d, yyyy · h:mm a",
+                          )}
+                        >
                           {formatDate(run.createdAt, "MMM d · h:mm a")}
                         </span>
                       </td>
@@ -718,7 +822,9 @@ export default function AutomationsPage() {
               <Card key={run.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-fg">{run.ruleName}</p>
+                    <p className="truncate font-medium text-fg">
+                      {run.ruleName}
+                    </p>
                     <p className="mt-0.5 text-xs text-muted">
                       {AUTOMATION_TRIGGER_META[run.trigger].label}
                     </p>
@@ -727,13 +833,18 @@ export default function AutomationsPage() {
                     {RUN_STATUS_META[run.status].label}
                   </Badge>
                 </div>
-                <p className="mt-2 line-clamp-2 text-xs text-muted">{run.detail ?? "No detail"}</p>
+                <p className="mt-2 line-clamp-2 text-xs text-muted">
+                  {run.detail ?? "No detail"}
+                </p>
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs">
                   <span className="text-muted">
                     {entityLabel(run.entityType)}
                     {run.entityId ? ` · ${run.entityId.slice(0, 8)}` : ""}
                   </span>
-                  <span className="num shrink-0 text-muted" title={formatDate(run.createdAt)}>
+                  <span
+                    className="num shrink-0 text-muted"
+                    title={formatDate(run.createdAt)}
+                  >
                     {formatDate(run.createdAt, "MMM d · h:mm a")}
                   </span>
                 </div>
@@ -790,8 +901,9 @@ export default function AutomationsPage() {
           }
         >
           <p className="text-sm leading-relaxed text-muted">
-            <span className="text-fg">{deleting.name}</span> stops running immediately and is
-            removed from the workspace. This action cannot be undone.
+            <span className="text-fg">{deleting.name}</span> stops running
+            immediately and is removed from the workspace. This action cannot be
+            undone.
           </p>
         </Modal>
       ) : null}
@@ -815,7 +927,9 @@ function ErrorCard({
           <AlertTriangle className="size-5" aria-hidden="true" />
         </span>
         <p className="mt-3 text-sm font-medium text-fg">{title}</p>
-        <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">{message}</p>
+        <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
+          {message}
+        </p>
         <Button variant="secondary" className="mt-4" onClick={onRetry}>
           Try again
         </Button>
@@ -844,7 +958,10 @@ function RuleListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="mt-2 h-3 w-2/3" />
             <Skeleton className="mt-3 h-5 w-9 rounded-full" />
@@ -872,7 +989,10 @@ function RunListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="mt-2 h-3 w-1/2" />
           </div>
@@ -881,4 +1001,3 @@ function RunListSkeleton() {
     </>
   );
 }
-

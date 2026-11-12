@@ -53,7 +53,10 @@ export const optionalText = (max = 2000) =>
 const isHttpUrl = (value: string): boolean => {
   try {
     const url = new URL(value);
-    return (url.protocol === "http:" || url.protocol === "https:") && url.username === "";
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      url.username === ""
+    );
   } catch {
     return false;
   }

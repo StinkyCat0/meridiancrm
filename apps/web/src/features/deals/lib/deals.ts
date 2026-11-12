@@ -17,21 +17,24 @@ export const momentumMeta: Record<Momentum["band"], MomentumMeta> = {
     tone: "danger",
     bar: "bg-danger",
     text: "text-danger",
-    description: "Recent activity, healthy stage time, and a close date that still holds.",
+    description:
+      "Recent activity, healthy stage time, and a close date that still holds.",
   },
   warm: {
     label: "Warm",
     tone: "warning",
     bar: "bg-warning",
     text: "text-warning",
-    description: "Some signals are fading. A touchpoint or stage update will lift momentum.",
+    description:
+      "Some signals are fading. A touchpoint or stage update will lift momentum.",
   },
   cold: {
     label: "Cold",
     tone: "accent",
     bar: "bg-accent",
     text: "text-accent",
-    description: "Little recent activity or a stalled stage. Re-engage before the close date slips.",
+    description:
+      "Little recent activity or a stalled stage. Re-engage before the close date slips.",
   },
 };
 
@@ -55,7 +58,9 @@ export function isOverdue(date: string | null, kind: StageKind): boolean {
 }
 
 export function dealSubtitle(deal: Deal): string {
-  const contact = deal.contact ? `${deal.contact.firstName} ${deal.contact.lastName}` : null;
+  const contact = deal.contact
+    ? `${deal.contact.firstName} ${deal.contact.lastName}`
+    : null;
   if (deal.company && contact) return `${deal.company.name} · ${contact}`;
   return deal.company?.name ?? contact ?? "No company";
 }

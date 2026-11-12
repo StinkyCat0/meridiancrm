@@ -77,7 +77,9 @@ export function AppShell() {
               <Avatar name={workspaceName} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="label-micro">Workspace</p>
-                <p className="truncate text-xs font-medium text-fg">{workspaceName}</p>
+                <p className="truncate text-xs font-medium text-fg">
+                  {workspaceName}
+                </p>
               </div>
               {role ? (
                 <span className="rounded-full border border-border bg-white/5 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-muted">
@@ -88,7 +90,10 @@ export function AppShell() {
           </div>
         </div>
 
-        <nav aria-label="Primary" className="mt-6 flex-1 space-y-5 overflow-y-auto px-3">
+        <nav
+          aria-label="Primary"
+          className="mt-6 flex-1 space-y-5 overflow-y-auto px-3"
+        >
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
               <p className="label-micro px-3 pb-1.5">{group.label}</p>

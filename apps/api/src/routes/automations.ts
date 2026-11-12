@@ -23,10 +23,14 @@ import {
 
 const idParamsSchema = z.object({ id: idSchema });
 
-const includeRuleName = { rule: { select: { name: true } } } satisfies Prisma.AutomationRunInclude;
+const includeRuleName = {
+  rule: { select: { name: true } },
+} satisfies Prisma.AutomationRunInclude;
 
 async function loadRuleRow(workspaceId: string, id: string) {
-  const row = await prisma.automationRule.findFirst({ where: { id, workspaceId } });
+  const row = await prisma.automationRule.findFirst({
+    where: { id, workspaceId },
+  });
   if (!row) throw notFound("Automation rule");
   return row;
 }
@@ -125,7 +129,8 @@ export async function automationRoutes(app: FastifyInstance): Promise<void> {
       preHandler: authenticate,
       schema: {
         tags: ["automations"],
-        summary: "Evaluate overdue invoices and upcoming appointments against rules",
+        summary:
+          "Evaluate overdue invoices and upcoming appointments against rules",
         security: [{ bearerAuth: [] }],
       },
     },
@@ -223,10 +228,13 @@ export async function automationRoutes(app: FastifyInstance): Promise<void> {
 
       const data: Prisma.AutomationRuleUpdateInput = {};
       if (input.name !== undefined) data.name = input.name;
-      if (input.description !== undefined) data.description = input.description ?? null;
+      if (input.description !== undefined)
+        data.description = input.description ?? null;
       if (input.trigger !== undefined) data.trigger = input.trigger;
-      if (input.conditions !== undefined) data.conditions = JSON.stringify(input.conditions);
-      if (input.actions !== undefined) data.actions = JSON.stringify(input.actions);
+      if (input.conditions !== undefined)
+        data.conditions = JSON.stringify(input.conditions);
+      if (input.actions !== undefined)
+        data.actions = JSON.stringify(input.actions);
       if (input.enabled !== undefined) data.enabled = input.enabled;
 
       const updated = await prisma.automationRule.update({

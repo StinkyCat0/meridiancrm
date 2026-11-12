@@ -9,9 +9,18 @@ import {
   type BusinessType,
   type CustomerType,
 } from "./enums.js";
-import { emailSchema, idSchema, optionalDate, optionalText, optionalUrl } from "./common.js";
+import {
+  emailSchema,
+  idSchema,
+  optionalDate,
+  optionalText,
+  optionalUrl,
+} from "./common.js";
 
-const tagsSchema = z.array(z.string().trim().min(1).max(30)).max(12).default([]);
+const tagsSchema = z
+  .array(z.string().trim().min(1).max(30))
+  .max(12)
+  .default([]);
 
 export interface PublicUser {
   id: string;
@@ -201,7 +210,10 @@ const baseFields = {
 export const companyInputSchema = z.object({
   name: z.string().trim().min(1).max(160),
   customerType: z.enum(CUSTOMER_TYPES).default("COMMERCIAL"),
-  email: z.preprocess((v) => (v === "" ? null : v), emailSchema.nullable().optional()),
+  email: z.preprocess(
+    (v) => (v === "" ? null : v),
+    emailSchema.nullable().optional(),
+  ),
   domain: optionalText(200),
   industry: z.preprocess(
     (v) => (v === "" ? null : v),
@@ -214,19 +226,31 @@ export const companyInputSchema = z.object({
   notes: optionalText(5000),
   ...baseFields,
   archived: z.boolean().optional(),
-  ownerId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  ownerId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
 
 export const contactInputSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
-  email: z.preprocess((v) => (v === "" ? null : v), emailSchema.nullable().optional()),
+  email: z.preprocess(
+    (v) => (v === "" ? null : v),
+    emailSchema.nullable().optional(),
+  ),
   phone: optionalText(40),
   title: optionalText(120),
-  companyId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  companyId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
   ...baseFields,
   archived: z.boolean().optional(),
-  ownerId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  ownerId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
 
 export const dealInputSchema = z.object({
@@ -234,12 +258,21 @@ export const dealInputSchema = z.object({
   value: z.coerce.number().int().min(0).max(1_000_000_000),
   currency: z.enum(CURRENCIES).default("USD"),
   stageId: idSchema,
-  contactId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
-  companyId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  contactId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
+  companyId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
   expectedCloseDate: optionalDate,
   description: optionalText(5000),
   ...baseFields,
-  ownerId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  ownerId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
 
 export const dealPatchSchema = dealInputSchema.partial();
@@ -254,9 +287,18 @@ export const activityInputSchema = z.object({
   body: optionalText(5000),
   dueAt: optionalDate,
   completedAt: optionalDate,
-  contactId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
-  companyId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
-  dealId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  contactId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
+  companyId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
+  dealId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
 
 export const activityPatchSchema = activityInputSchema.partial();

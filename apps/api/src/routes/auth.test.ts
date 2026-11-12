@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/db.js";
-import { authHeaders, createTestApp, registerAccount, resetDatabase } from "../test/helpers.js";
+import {
+  authHeaders,
+  createTestApp,
+  registerAccount,
+  resetDatabase,
+} from "../test/helpers.js";
 
 let app: FastifyInstance;
 
@@ -18,8 +23,12 @@ beforeEach(async () => {
   await resetDatabase();
 });
 
-const refreshCookie = (response: { cookies: { name: string; value: string }[] }) => {
-  const cookie = response.cookies.find((candidate) => candidate.name === "meridian_refresh");
+const refreshCookie = (response: {
+  cookies: { name: string; value: string }[];
+}) => {
+  const cookie = response.cookies.find(
+    (candidate) => candidate.name === "meridian_refresh",
+  );
   if (!cookie) throw new Error("refresh cookie missing");
   return `meridian_refresh=${cookie.value}`;
 };
@@ -44,7 +53,9 @@ describe("registration and identity", () => {
     expect(body.workspace.name).toBe("Stone Atelier");
     expect(body.role).toBe("OWNER");
     expect(response.headers["set-cookie"]).toBeDefined();
-    expect(response.cookies.some((cookie) => cookie.name === "meridian_refresh")).toBe(true);
+    expect(
+      response.cookies.some((cookie) => cookie.name === "meridian_refresh"),
+    ).toBe(true);
 
     const me = await app.inject({
       method: "GET",
@@ -91,7 +102,9 @@ describe("registration and identity", () => {
 
 describe("sessions", () => {
   it("logs in, rotates refresh tokens, and rejects a reused refresh token", async () => {
-    const account = await registerAccount(app, { email: "session@example.com" });
+    const account = await registerAccount(app, {
+      email: "session@example.com",
+    });
 
     const login = await app.inject({
       method: "POST",
@@ -248,7 +261,11 @@ describe("tenancy and roles", () => {
     const reaccept = await app.inject({
       method: "POST",
       url: "/api/v1/auth/accept-invite",
-      payload: { token, name: "Duplicate Member", password: "MemberPassword123" },
+      payload: {
+        token,
+        name: "Duplicate Member",
+        password: "MemberPassword123",
+      },
     });
     expect([409, 410]).toContain(reaccept.statusCode);
   });

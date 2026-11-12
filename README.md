@@ -75,19 +75,19 @@ unset (defaults to `1` in production).
 
 ## Scripts
 
-| Command              | Purpose                                                    |
-| -------------------- | ---------------------------------------------------------- |
-| `npm run dev`        | Run API and web together (concurrently).                   |
-| `npm run dev:api`    | API only with watch mode.                                  |
-| `npm run dev:web`    | Vite dev server only.                                      |
-| `npm run build`      | Build API (`tsup`) and web (`vite build`).                 |
-| `npm start`          | Start the built API.                                       |
-| `npm test`           | Contracts + API integration tests (Vitest).                 |
-| `npm run verify`     | Tests plus both builds; the CI gate.                       |
-| `npm run typecheck`  | TypeScript check for API and web.                          |
-| `npm run db:setup`   | Generate client, migrate, seed the demo workspace.         |
-| `npm run seed`       | Re-run the seed script.                                    |
-| `npm run format`     | Prettier across the repo.                                  |
+| Command             | Purpose                                            |
+| ------------------- | -------------------------------------------------- |
+| `npm run dev`       | Run API and web together (concurrently).           |
+| `npm run dev:api`   | API only with watch mode.                          |
+| `npm run dev:web`   | Vite dev server only.                              |
+| `npm run build`     | Build API (`tsup`) and web (`vite build`).         |
+| `npm start`         | Start the built API.                               |
+| `npm test`          | Contracts + API integration tests (Vitest).        |
+| `npm run verify`    | Tests plus both builds; the CI gate.               |
+| `npm run typecheck` | TypeScript check for API and web.                  |
+| `npm run db:setup`  | Generate client, migrate, seed the demo workspace. |
+| `npm run seed`      | Re-run the seed script.                            |
+| `npm run format`    | Prettier across the repo.                          |
 
 ## Architecture
 

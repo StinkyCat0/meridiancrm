@@ -18,7 +18,12 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { Tooltip } from "../../../components/ui/Tooltip";
 import { cn, formatDate, formatMoney, relativeTime } from "../../../lib/utils";
 import { useDealDetail, useDealHistory } from "../hooks";
-import { errorMessage, isOverdue, momentumMeta, stageKindTone } from "../lib/deals";
+import {
+  errorMessage,
+  isOverdue,
+  momentumMeta,
+  stageKindTone,
+} from "../lib/deals";
 import { DealActivityFeed } from "./DealActivityFeed";
 import { MomentumSegments } from "./MomentumMeter";
 
@@ -51,7 +56,9 @@ export function DealDetail({
       pipelines.find((row) => row.id === deal?.pipelineId) ??
       pipelines.find((row) => row.isDefault) ??
       pipelines[0];
-    return pipeline ? [...pipeline.stages].sort((a, b) => a.order - b.order) : [];
+    return pipeline
+      ? [...pipeline.stages].sort((a, b) => a.order - b.order)
+      : [];
   }, [pipelines, deal?.pipelineId]);
   const stageNames = new Map(stages.map((stage) => [stage.id, stage.name]));
 
@@ -119,29 +126,46 @@ export function DealDetail({
             </h3>
             <dl className="mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2">
               <div>
-                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">Value</dt>
+                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                  Value
+                </dt>
                 <dd className="num mt-0.5 text-lg font-light tracking-tight text-fg">
                   {formatMoney(deal.value, deal.currency)}
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">Stage</dt>
+                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                  Stage
+                </dt>
                 <dd className="mt-1 flex flex-wrap items-center gap-2">
-                  <Badge tone={stageKindTone(deal.stage.kind)}>{deal.stage.name}</Badge>
-                  <span className="text-xs text-muted">{deal.probability}% probability</span>
+                  <Badge tone={stageKindTone(deal.stage.kind)}>
+                    {deal.stage.name}
+                  </Badge>
+                  <span className="text-xs text-muted">
+                    {deal.probability}% probability
+                  </span>
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">Owner</dt>
+                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                  Owner
+                </dt>
                 <dd className="mt-1 flex items-center gap-2">
                   {deal.owner ? (
                     <>
-                      <Avatar name={deal.owner.name} src={deal.owner.avatarUrl} size="xs" />
+                      <Avatar
+                        name={deal.owner.name}
+                        src={deal.owner.avatarUrl}
+                        size="xs"
+                      />
                       <span className="text-xs text-fg">{deal.owner.name}</span>
                     </>
                   ) : (
                     <>
-                      <UserRound className="size-3.5 text-muted" aria-hidden="true" />
+                      <UserRound
+                        className="size-3.5 text-muted"
+                        aria-hidden="true"
+                      />
                       <span className="text-xs text-muted">Unassigned</span>
                     </>
                   )}
@@ -160,21 +184,30 @@ export function DealDetail({
                   )}
                 >
                   <CalendarDays className="size-3.5" aria-hidden="true" />
-                  {deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : "Not set"}
+                  {deal.expectedCloseDate
+                    ? formatDate(deal.expectedCloseDate)
+                    : "Not set"}
                   {isOverdue(deal.expectedCloseDate, deal.stage.kind) ? (
-                    <span className="text-[10px] uppercase tracking-[0.12em]">Overdue</span>
+                    <span className="text-[10px] uppercase tracking-[0.12em]">
+                      Overdue
+                    </span>
                   ) : null}
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">Company</dt>
+                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                  Company
+                </dt>
                 <dd className="mt-1 text-xs">
                   {deal.company ? (
                     <Link
                       to={`/app/companies/${deal.company.id}`}
                       className="inline-flex items-center gap-1.5 text-fg underline-offset-2 hover:text-accent hover:underline"
                     >
-                      <Building2 className="size-3.5 text-muted" aria-hidden="true" />
+                      <Building2
+                        className="size-3.5 text-muted"
+                        aria-hidden="true"
+                      />
                       {deal.company.name}
                     </Link>
                   ) : (
@@ -183,14 +216,19 @@ export function DealDetail({
                 </dd>
               </div>
               <div>
-                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">Contact</dt>
+                <dt className="text-[10px] uppercase tracking-[0.14em] text-muted">
+                  Contact
+                </dt>
                 <dd className="mt-1 text-xs">
                   {deal.contact ? (
                     <Link
                       to={`/app/contacts/${deal.contact.id}`}
                       className="inline-flex items-center gap-1.5 text-fg underline-offset-2 hover:text-accent hover:underline"
                     >
-                      <UserRound className="size-3.5 text-muted" aria-hidden="true" />
+                      <UserRound
+                        className="size-3.5 text-muted"
+                        aria-hidden="true"
+                      />
                       {deal.contact.firstName} {deal.contact.lastName}
                     </Link>
                   ) : (
@@ -207,7 +245,10 @@ export function DealDetail({
             ) : null}
 
             {deal.tags.length > 0 ? (
-              <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Deal tags">
+              <ul
+                className="mt-3 flex flex-wrap gap-1.5"
+                aria-label="Deal tags"
+              >
                 {deal.tags.map((tag) => (
                   <li key={tag}>
                     <Badge tone="neutral">{tag}</Badge>
@@ -243,7 +284,8 @@ export function DealDetail({
 
             {deal.momentum.breakdown.length === 0 ? (
               <p className="mt-3 rounded-card border border-border bg-surface-2/40 p-3 text-xs leading-relaxed text-muted">
-                Closed deals have a fixed momentum score, so there is no live breakdown.
+                Closed deals have a fixed momentum score, so there is no live
+                breakdown.
               </p>
             ) : (
               <ul className="mt-3 space-y-3">
@@ -268,10 +310,14 @@ export function DealDetail({
                           "block h-full rounded-full",
                           momentumMeta[deal.momentum.band].bar,
                         )}
-                        style={{ width: `${item.max > 0 ? (item.points / item.max) * 100 : 0}%` }}
+                        style={{
+                          width: `${item.max > 0 ? (item.points / item.max) * 100 : 0}%`,
+                        }}
                       />
                     </div>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted">{item.detail}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                      {item.detail}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -287,7 +333,9 @@ export function DealDetail({
               <h3 id="deal-stage-heading" className="label-micro">
                 Stage progress
               </h3>
-              <span className="text-[10px] text-muted">Tap a stage to move this deal</span>
+              <span className="text-[10px] text-muted">
+                Tap a stage to move this deal
+              </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {stages.map((stage) => {
@@ -298,7 +346,11 @@ export function DealDetail({
                     type="button"
                     disabled={current}
                     aria-pressed={current}
-                    aria-label={current ? `${stage.name}, current stage` : `Move deal to ${stage.name}`}
+                    aria-label={
+                      current
+                        ? `${stage.name}, current stage`
+                        : `Move deal to ${stage.name}`
+                    }
                     onClick={() => onMoveStage(deal, stage)}
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
@@ -350,7 +402,9 @@ export function DealDetail({
             ) : (
               <ol className="mt-2 space-y-3 border-l border-border pl-3">
                 {(history.data ?? []).map((entry) => {
-                  const fromName = entry.fromStageId ? stageNames.get(entry.fromStageId) : null;
+                  const fromName = entry.fromStageId
+                    ? stageNames.get(entry.fromStageId)
+                    : null;
                   return (
                     <li key={entry.id} className="relative">
                       <span
@@ -359,16 +413,21 @@ export function DealDetail({
                       />
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-xs text-fg">
-                          Moved to <span className="font-medium">{entry.stageName}</span>
-                          {fromName ? <span className="text-muted"> from {fromName}</span> : null}
+                          Moved to{" "}
+                          <span className="font-medium">{entry.stageName}</span>
+                          {fromName ? (
+                            <span className="text-muted"> from {fromName}</span>
+                          ) : null}
                         </p>
                         <span className="shrink-0 text-[10px] text-muted">
                           {relativeTime(entry.changedAt)}
                         </span>
                       </div>
                       <p className="mt-0.5 text-[10px] text-muted">
-                        {entry.changedBy ? `by ${entry.changedBy.name}` : "Automatically"} ·{" "}
-                        {formatDate(entry.changedAt, "MMM d, yyyy · h:mm a")}
+                        {entry.changedBy
+                          ? `by ${entry.changedBy.name}`
+                          : "Automatically"}{" "}
+                        · {formatDate(entry.changedAt, "MMM d, yyyy · h:mm a")}
                       </p>
                     </li>
                   );
@@ -380,7 +439,8 @@ export function DealDetail({
           <DealActivityFeed deal={deal} />
 
           <p className="border-t border-border pt-3 text-[10px] text-muted">
-            Created {formatDate(deal.createdAt)} · Last updated {relativeTime(deal.updatedAt)}
+            Created {formatDate(deal.createdAt)} · Last updated{" "}
+            {relativeTime(deal.updatedAt)}
           </p>
         </div>
       )}

@@ -1,7 +1,7 @@
 # Meridian Brand System
 
-Source of truth: meridianstudios.org — *"Boutique web experiences crafted for brands that value
-precision, aesthetics, and performance."* The CRM must feel native to that sentence.
+Source of truth: meridianstudios.org — _"Boutique web experiences crafted for brands that value
+precision, aesthetics, and performance."_ The CRM must feel native to that sentence.
 
 ## Principles
 
@@ -11,19 +11,19 @@ precision, aesthetics, and performance."* The CRM must feel native to that sente
 
 ## Tokens
 
-| Token | Value | Use |
-|-------|-------|-----|
-| `--bg` | `#0a0a0a` | app canvas |
-| `--surface` | `#111111` | cards, panels |
-| `--surface-2` | `#161616` | inputs, raised rows |
-| `--border` | `rgba(255,255,255,.08)` | hairlines |
-| `--fg` | `#f5f5f4` | primary text (stone-100) |
-| `--muted` | `#a8a29e` | secondary text (stone-400) |
-| `--accent` | `#22d3ee` | cyan; primary actions, focus |
-| `--accent-2` | `#8b5cf6` | violet; gradient partner |
-| `--success` | `#34d399` | won, healthy |
-| `--warning` | `#fbbf24` | at risk |
-| `--danger` | `#fb7185` | lost, destructive |
+| Token         | Value                   | Use                          |
+| ------------- | ----------------------- | ---------------------------- |
+| `--bg`        | `#0a0a0a`               | app canvas                   |
+| `--surface`   | `#111111`               | cards, panels                |
+| `--surface-2` | `#161616`               | inputs, raised rows          |
+| `--border`    | `rgba(255,255,255,.08)` | hairlines                    |
+| `--fg`        | `#f5f5f4`               | primary text (stone-100)     |
+| `--muted`     | `#a8a29e`               | secondary text (stone-400)   |
+| `--accent`    | `#22d3ee`               | cyan; primary actions, focus |
+| `--accent-2`  | `#8b5cf6`               | violet; gradient partner     |
+| `--success`   | `#34d399`               | won, healthy                 |
+| `--warning`   | `#fbbf24`               | at risk                      |
+| `--danger`    | `#fb7185`               | lost, destructive            |
 
 Type: **Inter** (400/500/700/900). Display headings: light, wide tracking, occasionally uppercase.
 Micro-labels: 10–11px, 900 weight, uppercase, `0.18em` tracking, stone-500. Numbers: `tabular-nums`.

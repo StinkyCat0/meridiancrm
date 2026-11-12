@@ -88,7 +88,13 @@ const MOMENTUM_BAR: Record<"hot" | "warm" | "cold", string> = {
   cold: "bg-danger",
 };
 
-function PeriodSelector({ value, onChange }: { value: Period; onChange: (period: Period) => void }) {
+function PeriodSelector({
+  value,
+  onChange,
+}: {
+  value: Period;
+  onChange: (period: Period) => void;
+}) {
   return (
     <div
       role="group"
@@ -123,7 +129,9 @@ function DashboardKpis({ summary }: { summary: DashboardSummary }) {
   let wonTrend: StatTrend | undefined;
   if (current && previous) {
     if (previous.won > 0) {
-      wonTrend = { value: Math.round(((current.won - previous.won) / previous.won) * 100) };
+      wonTrend = {
+        value: Math.round(((current.won - previous.won) / previous.won) * 100),
+      };
     } else if (current.won > 0) {
       wonTrend = { value: 100 };
     }
@@ -203,9 +211,14 @@ function MomentumStrip({ summary }: { summary: DashboardSummary }) {
           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs">
             {(["hot", "warm", "cold"] as const).map((band) => (
               <span key={band} className="inline-flex items-center gap-1.5">
-                <span className={cn("size-1.5 rounded-full", MOMENTUM_BAR[band])} aria-hidden="true" />
+                <span
+                  className={cn("size-1.5 rounded-full", MOMENTUM_BAR[band])}
+                  aria-hidden="true"
+                />
                 <span className="capitalize text-muted">{band}</span>
-                <span className="num font-medium text-fg">{summary.momentum[band]}</span>
+                <span className="num font-medium text-fg">
+                  {summary.momentum[band]}
+                </span>
               </span>
             ))}
           </div>
@@ -228,7 +241,9 @@ function RecentDealsCard({ deals }: { deals: Deal[] }) {
       <CardHeader className="pb-3">
         <div>
           <CardTitle>Recent deals</CardTitle>
-          <CardDescription className="mt-1">Latest movement across the workspace.</CardDescription>
+          <CardDescription className="mt-1">
+            Latest movement across the workspace.
+          </CardDescription>
         </div>
         <Link
           to="/app/deals"
@@ -257,7 +272,9 @@ function RecentDealsCard({ deals }: { deals: Deal[] }) {
                         <span className="truncate text-sm font-medium text-fg group-hover:text-accent">
                           {deal.title}
                         </span>
-                        <Badge tone={STAGE_TONE[deal.stage.kind]}>{deal.stage.name}</Badge>
+                        <Badge tone={STAGE_TONE[deal.stage.kind]}>
+                          {deal.stage.name}
+                        </Badge>
                       </div>
                       <p className="mt-1 truncate text-xs text-muted">
                         {deal.company?.name ?? contactName ?? "Unlinked"}
@@ -298,10 +315,13 @@ function TasksDueCard({ tasks }: { tasks: Activity[] }) {
     onSuccess: () => {
       toast.success("Task completed");
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.activities.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.activities.all,
+      });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
-    onError: (error) => toast.error(messageFor(error, "Could not complete the task.")),
+    onError: (error) =>
+      toast.error(messageFor(error, "Could not complete the task.")),
   });
 
   return (
@@ -309,7 +329,9 @@ function TasksDueCard({ tasks }: { tasks: Activity[] }) {
       <CardHeader className="pb-3">
         <div>
           <CardTitle>Tasks due</CardTitle>
-          <CardDescription className="mt-1">Next seven days and overdue.</CardDescription>
+          <CardDescription className="mt-1">
+            Next seven days and overdue.
+          </CardDescription>
         </div>
         <Link
           to="/app/activities?new=1"
@@ -320,14 +342,22 @@ function TasksDueCard({ tasks }: { tasks: Activity[] }) {
       </CardHeader>
       <CardContent className="p-0">
         {tasks.length === 0 ? (
-          <p className="px-5 pb-5 text-sm text-muted">No tasks due this week.</p>
+          <p className="px-5 pb-5 text-sm text-muted">
+            No tasks due this week.
+          </p>
         ) : (
           <ul className="divide-y divide-border border-t border-border">
             {tasks.map((task) => {
-              const overdue = task.dueAt ? new Date(task.dueAt).getTime() < Date.now() : false;
-              const pending = complete.isPending && complete.variables === task.id;
+              const overdue = task.dueAt
+                ? new Date(task.dueAt).getTime() < Date.now()
+                : false;
+              const pending =
+                complete.isPending && complete.variables === task.id;
               return (
-                <li key={task.id} className="flex items-start gap-3 px-5 py-3.5">
+                <li
+                  key={task.id}
+                  className="flex items-start gap-3 px-5 py-3.5"
+                >
                   <button
                     type="button"
                     role="checkbox"
@@ -338,7 +368,10 @@ function TasksDueCard({ tasks }: { tasks: Activity[] }) {
                     className="group mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] border border-border bg-surface-2 text-transparent transition-colors hover:border-accent/60 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
                   >
                     {pending ? (
-                      <Loader2 className="size-3 animate-spin text-muted" aria-hidden="true" />
+                      <Loader2
+                        className="size-3 animate-spin text-muted"
+                        aria-hidden="true"
+                      />
                     ) : (
                       <Check
                         className="size-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
@@ -354,13 +387,18 @@ function TasksDueCard({ tasks }: { tasks: Activity[] }) {
                       {task.title}
                     </Link>
                     <p className="mt-0.5 truncate text-xs text-muted">
-                      {task.dealTitle ?? task.company?.name ?? "No linked record"}
+                      {task.dealTitle ??
+                        task.company?.name ??
+                        "No linked record"}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span
                       title={formatDate(task.dueAt, "MMM d, yyyy · h:mm a")}
-                      className={cn("text-[11px]", overdue ? "text-danger" : "text-muted")}
+                      className={cn(
+                        "text-[11px]",
+                        overdue ? "text-danger" : "text-muted",
+                      )}
                     >
                       {relativeTime(task.dueAt)}
                     </span>
@@ -398,7 +436,12 @@ function SectionError({
           <p className="mt-1 text-sm leading-relaxed text-muted">
             {messageFor(error, "This section could not load. Try again.")}
           </p>
-          <Button size="sm" variant="secondary" className="mt-3" onClick={onRetry}>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="mt-3"
+            onClick={onRetry}
+          >
             <RefreshCw className="size-3.5" aria-hidden="true" />
             Try again
           </Button>
@@ -451,7 +494,11 @@ function ServiceKpis({
 
 function ServiceSkeleton() {
   return (
-    <div className="space-y-4" role="status" aria-label="Loading service operations">
+    <div
+      className="space-y-4"
+      role="status"
+      aria-label="Loading service operations"
+    >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[0, 1, 2, 3].map((item) => (
           <Skeleton key={item} className="h-28" />
@@ -470,10 +517,17 @@ function TodayRouteCard({ board }: { board: DispatchBoard }) {
     ...board.technicians.flatMap((technician) =>
       technician.jobs.map((job) => ({ job, assignee: technician.user.name })),
     ),
-    ...board.unassigned.map((job) => ({ job, assignee: null as string | null })),
+    ...board.unassigned.map((job) => ({
+      job,
+      assignee: null as string | null,
+    })),
   ].sort((a, b) => {
-    const aTime = a.job.scheduledStart ? new Date(a.job.scheduledStart).getTime() : Infinity;
-    const bTime = b.job.scheduledStart ? new Date(b.job.scheduledStart).getTime() : Infinity;
+    const aTime = a.job.scheduledStart
+      ? new Date(a.job.scheduledStart).getTime()
+      : Infinity;
+    const bTime = b.job.scheduledStart
+      ? new Date(b.job.scheduledStart).getTime()
+      : Infinity;
     return aTime - bTime;
   });
   const shown = route.slice(0, 8);
@@ -512,17 +566,24 @@ function TodayRouteCard({ board }: { board: DispatchBoard }) {
                   className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                 >
                   <span className="num w-14 shrink-0 text-xs text-muted">
-                    {job.scheduledStart ? formatDate(job.scheduledStart, "h:mm a") : "—"}
+                    {job.scheduledStart
+                      ? formatDate(job.scheduledStart, "h:mm a")
+                      : "—"}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-fg">{job.title}</span>
+                    <span className="block truncate text-sm text-fg">
+                      {job.title}
+                    </span>
                     <span className="mt-0.5 block truncate text-xs text-muted">
                       {job.customer.name} · {job.location.label}
                       {assignee ? ` · ${assignee}` : " · Unassigned"}
                     </span>
                   </span>
                   <JobStatusBadge status={job.status} />
-                  <ArrowRight className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                  <ArrowRight
+                    className="size-3.5 shrink-0 text-muted"
+                    aria-hidden="true"
+                  />
                 </Link>
               </li>
             ))}
@@ -573,7 +634,9 @@ function PrioritiesCard({
             {summary.recommendations.length === 0
               ? "No recommendations right now."
               : `${summary.recommendations.length} ${
-                  summary.recommendations.length === 1 ? "recommendation" : "recommendations"
+                  summary.recommendations.length === 1
+                    ? "recommendation"
+                    : "recommendations"
                 } across the book.`}
           </CardDescription>
         </div>
@@ -621,7 +684,8 @@ function PrioritiesCard({
         {summary.recommendations.length > recommendations.length ? (
           <div className="border-t border-border px-5 py-3">
             <p className="num text-xs text-muted">
-              Showing {recommendations.length} of {summary.recommendations.length}
+              Showing {recommendations.length} of{" "}
+              {summary.recommendations.length}
             </p>
           </div>
         ) : null}
@@ -670,7 +734,9 @@ function FollowUpsCard({ stats }: { stats: CommunicationStats }) {
           {stats.followUpsOpen === 0
             ? "No follow-ups due. Inbox is clear."
             : `${stats.followUpsOpen} ${
-                stats.followUpsOpen === 1 ? "follow-up needs" : "follow-ups need"
+                stats.followUpsOpen === 1
+                  ? "follow-up needs"
+                  : "follow-ups need"
               } a reply.`}
         </p>
       </CardContent>
@@ -695,11 +761,17 @@ function FinanceRevenueCard({ summary }: { summary: FinanceSummary }) {
         </div>
         <div className="flex shrink-0 items-center gap-3 text-[10px] font-medium text-muted">
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-accent"
+              aria-hidden="true"
+            />
             Revenue
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent-2" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-accent-2"
+              aria-hidden="true"
+            />
             Expenses
           </span>
         </div>
@@ -712,7 +784,10 @@ function FinanceRevenueCard({ summary }: { summary: FinanceSummary }) {
         ) : (
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
+              <BarChart
+                data={data}
+                margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+              >
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -726,7 +801,9 @@ function FinanceRevenueCard({ summary }: { summary: FinanceSummary }) {
                   tickLine={false}
                   axisLine={false}
                   width={48}
-                  tickFormatter={(value: number) => compactMoney(value, summary.currency)}
+                  tickFormatter={(value: number) =>
+                    compactMoney(value, summary.currency)
+                  }
                 />
                 <Tooltip
                   cursor={{ fill: "rgba(255,255,255,0.04)" }}
@@ -738,10 +815,20 @@ function FinanceRevenueCard({ summary }: { summary: FinanceSummary }) {
                   }}
                   labelStyle={{ color: "var(--color-muted)" }}
                   itemStyle={{ color: "var(--color-fg)" }}
-                  formatter={(value) => formatMoney(Number(value), summary.currency)}
+                  formatter={(value) =>
+                    formatMoney(Number(value), summary.currency)
+                  }
                 />
-                <Bar dataKey="revenue" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" fill="var(--color-accent-2)" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="revenue"
+                  fill="var(--color-accent)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  dataKey="expenses"
+                  fill="var(--color-accent-2)"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -753,7 +840,11 @@ function FinanceRevenueCard({ summary }: { summary: FinanceSummary }) {
 
 function PipelineSkeleton() {
   return (
-    <div className="space-y-6" role="status" aria-label="Loading pipeline insights">
+    <div
+      className="space-y-6"
+      role="status"
+      aria-label="Loading pipeline insights"
+    >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
@@ -822,7 +913,8 @@ export default function DashboardPage() {
   const summary = dashboardQuery.data;
 
   const firstMonth = summary?.revenueTrend[0]?.month;
-  const lastMonth = summary?.revenueTrend[summary.revenueTrend.length - 1]?.month;
+  const lastMonth =
+    summary?.revenueTrend[summary.revenueTrend.length - 1]?.month;
   const rangeLabel =
     firstMonth && lastMonth
       ? `${monthYearLabel(firstMonth)} – ${monthYearLabel(lastMonth)}`
@@ -853,11 +945,17 @@ export default function DashboardPage() {
         description="Today's route, cash and follow-ups first — pipeline second."
         actions={
           <>
-            <Button variant="secondary" onClick={() => navigate("/app/estimates?new=1")}>
+            <Button
+              variant="secondary"
+              onClick={() => navigate("/app/estimates?new=1")}
+            >
               <Plus className="size-4" aria-hidden="true" />
               New estimate
             </Button>
-            <Button variant="primary" onClick={() => navigate("/app/schedule?new=1")}>
+            <Button
+              variant="primary"
+              onClick={() => navigate("/app/schedule?new=1")}
+            >
               <Wrench className="size-4" aria-hidden="true" />
               New job
             </Button>
@@ -897,10 +995,14 @@ export default function DashboardPage() {
                 <ArrowRight className="size-3.5" aria-hidden="true" />
               </Link>
             </div>
-            {opsQuery.isError || financeQuery.isError || dispatchQuery.isError ? (
+            {opsQuery.isError ||
+            financeQuery.isError ||
+            dispatchQuery.isError ? (
               <SectionError
                 title="Service metrics unavailable"
-                error={opsQuery.error ?? financeQuery.error ?? dispatchQuery.error}
+                error={
+                  opsQuery.error ?? financeQuery.error ?? dispatchQuery.error
+                }
                 onRetry={retryServiceMetrics}
               />
             ) : ops && finance && board ? (
@@ -1000,11 +1102,17 @@ export default function DashboardPage() {
             description="Create the first deal to start tracking pipeline value, momentum and revenue."
             action={
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button variant="primary" onClick={() => navigate("/app/deals?new=1")}>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate("/app/deals?new=1")}
+                >
                   <Plus className="size-4" aria-hidden="true" />
                   New deal
                 </Button>
-                <Button variant="secondary" onClick={() => navigate("/app/settings")}>
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate("/app/settings")}
+                >
                   Configure workspace
                 </Button>
               </div>

@@ -4,12 +4,12 @@
 
 A four-layer monorepo. Each layer has one job, and dependencies point inward.
 
-| Layer        | Location                | Responsibility                                                     |
-| ------------ | ----------------------- | ------------------------------------------------------------------ |
-| Contracts    | `packages/contracts`    | Zod schemas, shared types, enums, momentum scoring.                |
-| API client   | `packages/api-client`   | Typed fetch calls; the only place the web (or a future native app) talks to the network. |
-| API          | `apps/api`              | Fastify routes, auth, tenancy, Prisma data access, OpenAPI.        |
-| Web          | `apps/web`              | React SPA: routing, TanStack Query cache, Tailwind UI.             |
+| Layer      | Location              | Responsibility                                                                           |
+| ---------- | --------------------- | ---------------------------------------------------------------------------------------- |
+| Contracts  | `packages/contracts`  | Zod schemas, shared types, enums, momentum scoring.                                      |
+| API client | `packages/api-client` | Typed fetch calls; the only place the web (or a future native app) talks to the network. |
+| API        | `apps/api`            | Fastify routes, auth, tenancy, Prisma data access, OpenAPI.                              |
+| Web        | `apps/web`            | React SPA: routing, TanStack Query cache, Tailwind UI.                                   |
 
 ```mermaid
 flowchart TB
@@ -168,12 +168,12 @@ endpoints (login is capped at 10/minute). Responses include the standard `x-rate
 `computeMomentum` in `packages/contracts` is deterministic and shared, so the server and any client
 always display the same number. Components (0-100):
 
-| Component       | Max | Rule                                                                 |
-| --------------- | --- | -------------------------------------------------------------------- |
-| Last touch      | 40  | 0d-2d: 40, 3d-7d: 32, 8d-14d: 22, 15d-30d: 12, older: 4, never: 0.    |
-| Engagement      | 20  | 6+ activities in 30d: 20, 3+: 14, 1+: 7, none: 0.                     |
-| Stage velocity  | 25  | Within stage target: 25, within 2x: 15, beyond: 5.                    |
-| Close plan      | 15  | No date: 7, <=7d: 15, <=30d: 10, later: 6, overdue: 0.                |
+| Component      | Max | Rule                                                               |
+| -------------- | --- | ------------------------------------------------------------------ |
+| Last touch     | 40  | 0d-2d: 40, 3d-7d: 32, 8d-14d: 22, 15d-30d: 12, older: 4, never: 0. |
+| Engagement     | 20  | 6+ activities in 30d: 20, 3+: 14, 1+: 7, none: 0.                  |
+| Stage velocity | 25  | Within stage target: 25, within 2x: 15, beyond: 5.                 |
+| Close plan     | 15  | No date: 7, <=7d: 15, <=30d: 10, later: 6, overdue: 0.             |
 
 Bands: `hot` >= 70, `warm` >= 40, otherwise `cold`. Won deals short-circuit to 100; lost to 0.
 The API returns the component breakdown with every deal, so the UI can explain the score instead of

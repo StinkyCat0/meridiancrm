@@ -14,7 +14,12 @@ export interface TooltipProps {
   className?: string;
 }
 
-export function Tooltip({ label, children, side = "top", className }: TooltipProps) {
+export function Tooltip({
+  label,
+  children,
+  side = "top",
+  className,
+}: TooltipProps) {
   const id = useId();
 
   const trigger = isValidElement(children)

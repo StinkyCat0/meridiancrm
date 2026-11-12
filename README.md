@@ -191,7 +191,7 @@ Every pull request runs:
 - Dependabot alerts/updates, CodeQL `security-extended`, and a production-dependency audit at critical severity.
 - `npm audit --omit=dev --audit-level=critical` for runtime dependencies.
 
-The suite on this branch is verified by 90 API integration tests and 17 contract tests, with both
+The suite on this branch is verified by 134 API integration tests and 17 contract tests, with both
 typechecks and builds passing.
 
 ## Deployment

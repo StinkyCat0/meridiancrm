@@ -26,7 +26,14 @@ import {
   verifyPassword,
   type SessionTokens,
 } from "../lib/auth.js";
-import { AppError, badRequest, conflict, notFound, parseOrThrow, unauthorized } from "../lib/http.js";
+import {
+  AppError,
+  badRequest,
+  conflict,
+  notFound,
+  parseOrThrow,
+  unauthorized,
+} from "../lib/http.js";
 import { prisma } from "../lib/db.js";
 
 type UserRecord = {
@@ -41,20 +48,48 @@ type WorkspaceRecord = {
   name: string;
   slug: string;
   currency: string;
+  businessType: string;
+  timezone: string;
+  serviceArea: string | null;
+  depotLatitude: number | null;
+  depotLongitude: number | null;
   createdAt: Date;
 };
 
 const STAGE_SEEDS = [
-  { name: "Discovery", order: 0, probability: 10, kind: "OPEN", targetDays: 14 },
-  { name: "Qualified", order: 1, probability: 25, kind: "OPEN", targetDays: 21 },
+  {
+    name: "Discovery",
+    order: 0,
+    probability: 10,
+    kind: "OPEN",
+    targetDays: 14,
+  },
+  {
+    name: "Qualified",
+    order: 1,
+    probability: 25,
+    kind: "OPEN",
+    targetDays: 21,
+  },
   { name: "Proposal", order: 2, probability: 50, kind: "OPEN", targetDays: 14 },
-  { name: "Negotiation", order: 3, probability: 75, kind: "OPEN", targetDays: 10 },
+  {
+    name: "Negotiation",
+    order: 3,
+    probability: 75,
+    kind: "OPEN",
+    targetDays: 10,
+  },
   { name: "Won", order: 4, probability: 100, kind: "WON", targetDays: 30 },
   { name: "Lost", order: 5, probability: 0, kind: "LOST", targetDays: 30 },
 ] as const;
 
 function toPublicUser(user: UserRecord): PublicUser {
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 function toWorkspaceSummary(workspace: WorkspaceRecord): WorkspaceSummary {
@@ -63,6 +98,11 @@ function toWorkspaceSummary(workspace: WorkspaceRecord): WorkspaceSummary {
     name: workspace.name,
     slug: workspace.slug,
     currency: workspace.currency,
+    businessType: workspace.businessType as WorkspaceSummary["businessType"],
+    timezone: workspace.timezone,
+    serviceArea: workspace.serviceArea,
+    depotLatitude: workspace.depotLatitude,
+    depotLongitude: workspace.depotLongitude,
     createdAt: workspace.createdAt.toISOString(),
   };
 }
@@ -109,7 +149,10 @@ function slugBase(name: string): string {
 async function uniqueSlug(name: string): Promise<string> {
   let slug = slugBase(name);
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const existing = await prisma.workspace.findUnique({ where: { slug }, select: { id: true } });
+    const existing = await prisma.workspace.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
     if (!existing) return slug;
     slug = `${slugBase(name).slice(0, 55)}-${randomBytes(2).toString("hex")}`;
   }
@@ -130,7 +173,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       const body = parseOrThrow(registerSchema, request.body);
       const email = body.email.trim().toLowerCase();
 
-      const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
       if (existing) throw conflict("An account with that email already exists");
 
       const passwordHash = await hashPassword(body.password);
@@ -144,7 +190,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           data: { name: body.workspaceName, slug, currency: "USD" },
         });
         await tx.membership.create({
-          data: { userId: createdUser.id, workspaceId: createdWorkspace.id, role: "OWNER" },
+          data: {
+            userId: createdUser.id,
+            workspaceId: createdWorkspace.id,
+            role: "OWNER",
+          },
         });
         await tx.pipeline.create({
           data: {
@@ -166,9 +216,16 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         metadata: { name: workspace.name, slug: workspace.slug },
       });
 
-      const tokens = await createSession(user, workspace.id, "OWNER", userAgentOf(request));
+      const tokens = await createSession(
+        user,
+        workspace.id,
+        "OWNER",
+        userAgentOf(request),
+      );
       setRefreshCookie(reply, tokens.refreshToken);
-      return reply.status(201).send(sessionBody(tokens, user, workspace, "OWNER"));
+      return reply
+        .status(201)
+        .send(sessionBody(tokens, user, workspace, "OWNER"));
     },
   );
 
@@ -200,10 +257,16 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       if (!user || !passwordOk) throw unauthorized("Invalid email or password");
 
       const membership = user.memberships[0];
-      if (!membership) throw unauthorized("This account is not attached to a workspace");
+      if (!membership)
+        throw unauthorized("This account is not attached to a workspace");
 
       const role = membership.role as Role;
-      const tokens = await createSession(user, membership.workspaceId, role, userAgentOf(request));
+      const tokens = await createSession(
+        user,
+        membership.workspaceId,
+        role,
+        userAgentOf(request),
+      );
       setRefreshCookie(reply, tokens.refreshToken);
 
       return reply
@@ -254,7 +317,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           include: { workspace: true },
           orderBy: { createdAt: "asc" },
         });
-        if (!membership) throw unauthorized("This account is not attached to a workspace");
+        if (!membership)
+          throw unauthorized("This account is not attached to a workspace");
 
         const tokens = await createSession(
           stored.user,
@@ -263,9 +327,10 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           stored.userAgent ?? userAgentOf(request),
         );
         setRefreshCookie(reply, tokens.refreshToken);
-        return reply
-          .status(200)
-          .send({ accessToken: tokens.accessToken, expiresIn: tokens.expiresIn });
+        return reply.status(200).send({
+          accessToken: tokens.accessToken,
+          expiresIn: tokens.expiresIn,
+        });
       } catch (error) {
         await prisma.refreshToken.updateMany({
           where: { userId: stored.userId, revokedAt: null },
@@ -345,7 +410,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         where: { id: auth.userId },
         data: {
           ...(body.name !== undefined ? { name: body.name } : {}),
-          ...(body.avatarUrl !== undefined ? { avatarUrl: body.avatarUrl } : {}),
+          ...(body.avatarUrl !== undefined
+            ? { avatarUrl: body.avatarUrl }
+            : {}),
         },
       });
 
@@ -356,7 +423,9 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         entityType: "user",
         entityId: auth.userId,
         metadata: {
-          fields: Object.keys(body).filter((key) => body[key as keyof typeof body] !== undefined),
+          fields: Object.keys(body).filter(
+            (key) => body[key as keyof typeof body] !== undefined,
+          ),
         },
       });
 
@@ -382,11 +451,17 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       const user = await prisma.user.findUnique({ where: { id: auth.userId } });
       if (!user) throw unauthorized();
 
-      const valid = await verifyPassword(body.currentPassword, user.passwordHash);
+      const valid = await verifyPassword(
+        body.currentPassword,
+        user.passwordHash,
+      );
       if (!valid) throw unauthorized("Current password is incorrect");
 
       const passwordHash = await hashPassword(body.newPassword);
-      await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      });
       await prisma.refreshToken.updateMany({
         where: { userId: user.id, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -432,7 +507,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       });
 
       if (!invite) throw notFound("Invite");
-      if (invite.acceptedAt) throw conflict("This invite has already been accepted");
+      if (invite.acceptedAt)
+        throw conflict("This invite has already been accepted");
       if (invite.expiresAt.getTime() <= Date.now()) {
         throw new AppError(
           410,
@@ -467,7 +543,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         include: { workspace: true },
       });
       if (!invite) throw notFound("Invite");
-      if (invite.acceptedAt) throw conflict("This invite has already been accepted");
+      if (invite.acceptedAt)
+        throw conflict("This invite has already been accepted");
       if (invite.expiresAt.getTime() <= Date.now()) {
         throw new AppError(
           410,
@@ -481,13 +558,17 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         select: { id: true },
       });
       if (existingUser) {
-        throw conflict("An account with this email already exists. One workspace per account in this version.");
+        throw conflict(
+          "An account with this email already exists. One workspace per account in this version.",
+        );
       }
 
       const name = body.name;
       const password = body.password;
       if (!name || !password) {
-        throw badRequest("Name and password are required to accept this invite");
+        throw badRequest(
+          "Name and password are required to accept this invite",
+        );
       }
       if (password.length < 10) {
         throw badRequest("Password must be at least 10 characters");
@@ -510,7 +591,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           data: { email: invite.email, name, passwordHash },
         });
         await tx.membership.create({
-          data: { userId: created.id, workspaceId: invite.workspaceId, role: invite.role },
+          data: {
+            userId: created.id,
+            workspaceId: invite.workspaceId,
+            role: invite.role,
+          },
         });
         await tx.auditLog.create({
           data: {
@@ -519,13 +604,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
             action: "member.joined",
             entityType: "membership",
             entityId: null,
-            metadata: JSON.stringify({ email: invite.email, role: invite.role }),
+            metadata: JSON.stringify({
+              email: invite.email,
+              role: invite.role,
+            }),
           },
         });
         return created;
       });
 
-      const tokens = await createSession(user, invite.workspaceId, role, userAgentOf(request));
+      const tokens = await createSession(
+        user,
+        invite.workspaceId,
+        role,
+        userAgentOf(request),
+      );
       setRefreshCookie(reply, tokens.refreshToken);
 
       return reply

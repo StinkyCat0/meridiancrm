@@ -21,6 +21,13 @@ const EstimatesPage = lazy(() => import("./features/estimates"));
 const InvoicesPage = lazy(() => import("./features/invoices"));
 const ServicesPage = lazy(() => import("./features/services"));
 const SettingsPage = lazy(() => import("./features/settings"));
+const DispatchPage = lazy(() => import("./features/dispatch"));
+const CalendarPage = lazy(() => import("./features/calendar"));
+const InboxPage = lazy(() => import("./features/inbox"));
+const RevenuePage = lazy(() => import("./features/revenue"));
+const AutomationsPage = lazy(() => import("./features/automations"));
+const IntelligencePage = lazy(() => import("./features/intelligence"));
+const TeamPage = lazy(() => import("./features/team"));
 
 function RouteFallback() {
   return (
@@ -148,6 +155,62 @@ export default function App() {
                 element={
                   <LazyRoute>
                     <ActivitiesPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="dispatch"
+                element={
+                  <LazyRoute>
+                    <DispatchPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="calendar"
+                element={
+                  <LazyRoute>
+                    <CalendarPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="inbox"
+                element={
+                  <LazyRoute>
+                    <InboxPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="revenue"
+                element={
+                  <LazyRoute>
+                    <RevenuePage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="automations"
+                element={
+                  <LazyRoute>
+                    <AutomationsPage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="intelligence"
+                element={
+                  <LazyRoute>
+                    <IntelligencePage />
+                  </LazyRoute>
+                }
+              />
+              <Route
+                path="team"
+                element={
+                  <LazyRoute>
+                    <TeamPage />
                   </LazyRoute>
                 }
               />

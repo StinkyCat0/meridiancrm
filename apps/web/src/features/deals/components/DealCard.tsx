@@ -4,7 +4,12 @@ import { CalendarDays, GripVertical, UserRound } from "lucide-react";
 import { Avatar } from "../../../components/ui/Avatar";
 import { Badge } from "../../../components/ui/Badge";
 import { cn, formatDate, formatMoney } from "../../../lib/utils";
-import { dealSubtitle, isOverdue, stageKindLabel, stageKindTone } from "../lib/deals";
+import {
+  dealSubtitle,
+  isOverdue,
+  stageKindLabel,
+  stageKindTone,
+} from "../lib/deals";
 import { MomentumMeter, MomentumSegments } from "./MomentumMeter";
 
 interface DealCardProps {
@@ -41,10 +46,16 @@ export function DealCard({ deal, onOpen }: DealCardProps) {
       <div className="pointer-events-none relative z-10 space-y-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium leading-snug text-fg">{deal.title}</p>
-            <p className="mt-0.5 truncate text-xs text-muted">{dealSubtitle(deal)}</p>
+            <p className="truncate text-sm font-medium leading-snug text-fg">
+              {deal.title}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted">
+              {dealSubtitle(deal)}
+            </p>
           </div>
-          {kindLabel ? <Badge tone={stageKindTone(deal.stage.kind)}>{kindLabel}</Badge> : null}
+          {kindLabel ? (
+            <Badge tone={stageKindTone(deal.stage.kind)}>{kindLabel}</Badge>
+          ) : null}
         </div>
 
         <p className="num text-base font-light tracking-tight text-fg">
@@ -67,14 +78,20 @@ export function DealCard({ deal, onOpen }: DealCardProps) {
             )}
           >
             <CalendarDays className="size-3" aria-hidden="true" />
-            {deal.expectedCloseDate ? formatDate(deal.expectedCloseDate, "MMM d") : "No close date"}
+            {deal.expectedCloseDate
+              ? formatDate(deal.expectedCloseDate, "MMM d")
+              : "No close date"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-2">
           <div className="flex min-w-0 items-center gap-1.5">
             {deal.owner ? (
-              <Avatar name={deal.owner.name} src={deal.owner.avatarUrl} size="xs" />
+              <Avatar
+                name={deal.owner.name}
+                src={deal.owner.avatarUrl}
+                size="xs"
+              />
             ) : (
               <span
                 role="img"

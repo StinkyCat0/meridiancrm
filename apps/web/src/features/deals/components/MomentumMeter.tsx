@@ -9,12 +9,25 @@ interface MomentumSegmentsProps {
   className?: string;
 }
 
-export function MomentumSegments({ momentum, className }: MomentumSegmentsProps) {
+export function MomentumSegments({
+  momentum,
+  className,
+}: MomentumSegmentsProps) {
   const meta = momentumMeta[momentum.band];
-  const filled = momentum.score >= 67 ? 3 : momentum.score >= 34 ? 2 : momentum.score > 0 ? 1 : 0;
+  const filled =
+    momentum.score >= 67
+      ? 3
+      : momentum.score >= 34
+        ? 2
+        : momentum.score > 0
+          ? 1
+          : 0;
 
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)} aria-hidden="true">
+    <span
+      className={cn("inline-flex items-center gap-0.5", className)}
+      aria-hidden="true"
+    >
       {[0, 1, 2].map((index) => (
         <span
           key={index}
@@ -57,7 +70,9 @@ export function MomentumMeter({
       >
         <MomentumSegments momentum={momentum} />
         {showScore ? (
-          <span className="num text-[10px] font-medium text-muted">{momentum.score}</span>
+          <span className="num text-[10px] font-medium text-muted">
+            {momentum.score}
+          </span>
         ) : null}
         {showBand ? <Badge tone={meta.tone}>{meta.label}</Badge> : null}
       </span>

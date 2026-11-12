@@ -5,6 +5,17 @@ export * from "./service.js";
 export * from "./auth.js";
 export * from "./insights.js";
 export * from "./momentum.js";
+export * from "./communications.js";
+export * from "./finance.js";
+export * from "./dispatch.js";
+export * from "./automation.js";
+export * from "./intelligence.js";
+export * from "./team.js";
+export * from "./timeline.js";
+export * from "./invoice-rules.js";
+export * from "./route.js";
+export * from "./drafts.js";
+export * from "./scoring.js";
 
 export interface HealthResponse {
   status: "ok" | "degraded";

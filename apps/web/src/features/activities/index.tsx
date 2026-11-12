@@ -32,10 +32,7 @@ import {
   type ActivityType,
   type Page,
 } from "@meridian/api-client";
-import {
-  ACTIVITY_TYPES,
-  ACTIVITY_TYPE_META,
-} from "@meridian/contracts";
+import { ACTIVITY_TYPES, ACTIVITY_TYPE_META } from "@meridian/contracts";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -49,7 +46,12 @@ import { Select } from "../../components/ui/Select";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { Tooltip } from "../../components/ui/Tooltip";
 import { queryKeys } from "../../lib/query";
-import { cn, formatDate, relativeTime, useDebouncedValue } from "../../lib/utils";
+import {
+  cn,
+  formatDate,
+  relativeTime,
+  useDebouncedValue,
+} from "../../lib/utils";
 import { ActivityModal } from "./ActivityModal";
 
 const TYPE_ICONS: Record<ActivityType, LucideIcon> = {
@@ -71,8 +73,12 @@ const GROUPS: readonly { key: GroupKey; label: string }[] = [
 ];
 
 function byDueAt(a: Activity, b: Activity): number {
-  const aTime = a.dueAt ? new Date(a.dueAt).getTime() : Number.POSITIVE_INFINITY;
-  const bTime = b.dueAt ? new Date(b.dueAt).getTime() : Number.POSITIVE_INFINITY;
+  const aTime = a.dueAt
+    ? new Date(a.dueAt).getTime()
+    : Number.POSITIVE_INFINITY;
+  const bTime = b.dueAt
+    ? new Date(b.dueAt).getTime()
+    : Number.POSITIVE_INFINITY;
   return aTime - bTime;
 }
 
@@ -89,15 +95,26 @@ interface ActivityRowProps {
   onDelete: (activity: Activity) => void;
 }
 
-function ActivityRow({ activity, highlighted, pending, onToggle, onEdit, onDelete }: ActivityRowProps) {
+function ActivityRow({
+  activity,
+  highlighted,
+  pending,
+  onToggle,
+  onEdit,
+  onDelete,
+}: ActivityRowProps) {
   const Icon = TYPE_ICONS[activity.type];
   const completed = activity.completedAt !== null;
   const overdue =
-    !completed && activity.dueAt !== null && new Date(activity.dueAt).getTime() < Date.now();
+    !completed &&
+    activity.dueAt !== null &&
+    new Date(activity.dueAt).getTime() < Date.now();
   const contactName = activity.contact
     ? `${activity.contact.firstName} ${activity.contact.lastName}`.trim()
     : null;
-  const hasLinks = Boolean(activity.company ?? activity.dealTitle ?? contactName);
+  const hasLinks = Boolean(
+    activity.company ?? activity.dealTitle ?? contactName,
+  );
 
   return (
     <li
@@ -111,7 +128,9 @@ function ActivityRow({ activity, highlighted, pending, onToggle, onEdit, onDelet
         type="button"
         role="checkbox"
         aria-checked={completed}
-        aria-label={completed ? `Reopen ${activity.title}` : `Complete ${activity.title}`}
+        aria-label={
+          completed ? `Reopen ${activity.title}` : `Complete ${activity.title}`
+        }
         disabled={pending}
         onClick={() => onToggle(activity)}
         className={cn(
@@ -123,12 +142,17 @@ function ActivityRow({ activity, highlighted, pending, onToggle, onEdit, onDelet
         )}
       >
         {pending ? (
-          <Loader2 className="size-3 animate-spin text-muted" aria-hidden="true" />
+          <Loader2
+            className="size-3 animate-spin text-muted"
+            aria-hidden="true"
+          />
         ) : (
           <Check
             className={cn(
               "size-3",
-              completed ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+              completed
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
             )}
             aria-hidden="true"
           />
@@ -182,7 +206,9 @@ function ActivityRow({ activity, highlighted, pending, onToggle, onEdit, onDelet
               {activity.dealTitle}
             </Link>
           ) : null}
-          {activity.dealTitle && contactName ? <span aria-hidden="true">·</span> : null}
+          {activity.dealTitle && contactName ? (
+            <span aria-hidden="true">·</span>
+          ) : null}
           {activity.contact ? (
             <Link
               to={`/app/contacts?contact=${activity.contact.id}`}
@@ -217,11 +243,19 @@ function ActivityRow({ activity, highlighted, pending, onToggle, onEdit, onDelet
 
       <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-1">
         <Tooltip label={activity.owner?.name ?? "Unassigned"}>
-          <Avatar name={activity.owner?.name ?? "Unassigned"} src={activity.owner?.avatarUrl} size="sm" />
+          <Avatar
+            name={activity.owner?.name ?? "Unassigned"}
+            src={activity.owner?.avatarUrl}
+            size="sm"
+          />
         </Tooltip>
         <div className="flex items-center">
           <Tooltip label="Edit activity">
-            <IconButton label="Edit activity" size="sm" onClick={() => onEdit(activity)}>
+            <IconButton
+              label="Edit activity"
+              size="sm"
+              onClick={() => onEdit(activity)}
+            >
               <Pencil aria-hidden="true" />
             </IconButton>
           </Tooltip>
@@ -285,7 +319,8 @@ export default function ActivitiesPage() {
   const filters = useMemo<ActivityListQuery>(
     () => ({
       type: typeFilter === "ALL" ? undefined : typeFilter,
-      completed: scope === "open" ? false : scope === "completed" ? true : undefined,
+      completed:
+        scope === "open" ? false : scope === "completed" ? true : undefined,
       q: debouncedSearch.trim() || undefined,
       pageSize: 50,
       sort: "dueAt",
@@ -296,10 +331,13 @@ export default function ActivitiesPage() {
 
   const activitiesQuery = useInfiniteQuery({
     queryKey: queryKeys.activities.list(filters),
-    queryFn: ({ pageParam }) => api.activities.list({ ...filters, page: pageParam }),
+    queryFn: ({ pageParam }) =>
+      api.activities.list({ ...filters, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
-      lastPage.meta.page < lastPage.meta.totalPages ? lastPage.meta.page + 1 : undefined,
+      lastPage.meta.page < lastPage.meta.totalPages
+        ? lastPage.meta.page + 1
+        : undefined,
   });
 
   const activities = useMemo(
@@ -338,9 +376,10 @@ export default function ActivitiesPage() {
 
     for (const key of GROUPS) buckets[key.key].sort(byDueAt);
 
-    return GROUPS.map((group) => ({ ...group, items: buckets[group.key] })).filter(
-      (group) => group.items.length > 0,
-    );
+    return GROUPS.map((group) => ({
+      ...group,
+      items: buckets[group.key],
+    })).filter((group) => group.items.length > 0);
   }, [activities]);
 
   useEffect(() => {
@@ -350,13 +389,20 @@ export default function ActivitiesPage() {
   }, [highlightedId, activities.length]);
 
   const toggle = useMutation({
-    mutationFn: ({ id, completedAt }: { id: string; completedAt: string | null }) =>
-      api.activities.update(id, { completedAt }),
+    mutationFn: ({
+      id,
+      completedAt,
+    }: {
+      id: string;
+      completedAt: string | null;
+    }) => api.activities.update(id, { completedAt }),
     onMutate: async ({ id, completedAt }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.activities.all });
-      const previous = queryClient.getQueriesData<InfiniteData<Page<Activity>>>({
-        queryKey: queryKeys.activities.all,
-      });
+      const previous = queryClient.getQueriesData<InfiniteData<Page<Activity>>>(
+        {
+          queryKey: queryKeys.activities.all,
+        },
+      );
       queryClient.setQueriesData<InfiniteData<Page<Activity>>>(
         { queryKey: queryKeys.activities.all },
         (data) =>
@@ -366,7 +412,9 @@ export default function ActivitiesPage() {
                 pages: data.pages.map((page) => ({
                   ...page,
                   data: page.data.map((activity) =>
-                    activity.id === id ? { ...activity, completedAt } : activity,
+                    activity.id === id
+                      ? { ...activity, completedAt }
+                      : activity,
                   ),
                 })),
               }
@@ -381,10 +429,14 @@ export default function ActivitiesPage() {
       toast.error(messageFor(error, "Could not update the activity."));
     },
     onSuccess: (_data, variables) => {
-      toast.success(variables.completedAt ? "Activity completed" : "Activity reopened");
+      toast.success(
+        variables.completedAt ? "Activity completed" : "Activity reopened",
+      );
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.activities.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.activities.all,
+      });
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
@@ -395,14 +447,18 @@ export default function ActivitiesPage() {
     onSuccess: () => {
       toast.success("Activity deleted");
       setDeleting(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.activities.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.activities.all,
+      });
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
       void queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
     },
-    onError: (error) => toast.error(messageFor(error, "Could not delete the activity.")),
+    onError: (error) =>
+      toast.error(messageFor(error, "Could not delete the activity.")),
   });
 
-  const hasFilters = typeFilter !== "ALL" || scope !== "all" || search.trim().length > 0;
+  const hasFilters =
+    typeFilter !== "ALL" || scope !== "all" || search.trim().length > 0;
 
   function clearFilters() {
     setTypeFilter("ALL");
@@ -459,7 +515,9 @@ export default function ActivitiesPage() {
             <Select
               aria-label="Filter by type"
               value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value as "ALL" | ActivityType)}
+              onChange={(event) =>
+                setTypeFilter(event.target.value as "ALL" | ActivityType)
+              }
               className="md:w-40"
             >
               <option value="ALL">All types</option>
@@ -483,7 +541,12 @@ export default function ActivitiesPage() {
             </Select>
           </div>
           {hasFilters ? (
-            <Button variant="ghost" size="sm" className="md:ml-1" onClick={clearFilters}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:ml-1"
+              onClick={clearFilters}
+            >
               Clear
             </Button>
           ) : null}
@@ -501,9 +564,14 @@ export default function ActivitiesPage() {
             >
               <RefreshCw className="size-5" />
             </span>
-            <p className="text-sm font-medium text-fg">Could not load activities</p>
+            <p className="text-sm font-medium text-fg">
+              Could not load activities
+            </p>
             <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted">
-              {messageFor(activitiesQuery.error, "Check your connection and try again.")}
+              {messageFor(
+                activitiesQuery.error,
+                "Check your connection and try again.",
+              )}
             </p>
             <Button
               variant="secondary"
@@ -544,7 +612,11 @@ export default function ActivitiesPage() {
       {activities.length > 0 ? (
         <div className="space-y-5">
           {groups.map((group) => (
-            <section key={group.key} className="space-y-2" aria-labelledby={`group-${group.key}`}>
+            <section
+              key={group.key}
+              className="space-y-2"
+              aria-labelledby={`group-${group.key}`}
+            >
               <div className="flex items-center gap-2">
                 <h2 id={`group-${group.key}`} className="label-micro">
                   {group.label}
@@ -560,11 +632,15 @@ export default function ActivitiesPage() {
                       key={activity.id}
                       activity={activity}
                       highlighted={activity.id === highlightedId}
-                      pending={toggle.isPending && toggle.variables?.id === activity.id}
+                      pending={
+                        toggle.isPending && toggle.variables?.id === activity.id
+                      }
                       onToggle={(item) =>
                         toggle.mutate({
                           id: item.id,
-                          completedAt: item.completedAt ? null : new Date().toISOString(),
+                          completedAt: item.completedAt
+                            ? null
+                            : new Date().toISOString(),
                         })
                       }
                       onEdit={(item) => {
@@ -608,12 +684,20 @@ export default function ActivitiesPage() {
           if (!remove.isPending) setDeleting(null);
         }}
         title="Delete activity?"
-        description={deleting ? `“${deleting.title}” will be removed permanently.` : undefined}
+        description={
+          deleting
+            ? `“${deleting.title}” will be removed permanently.`
+            : undefined
+        }
         size="sm"
         closeOnBackdrop={!remove.isPending}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setDeleting(null)} disabled={remove.isPending}>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+              disabled={remove.isPending}
+            >
               Cancel
             </Button>
             <Button

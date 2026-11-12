@@ -22,11 +22,7 @@ import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
 import { formatMoney, toCents } from "../../lib/utils";
 import { apiErrorMessage } from "../companies/lib";
-import {
-  fromDateInput,
-  toDateInput,
-  useCustomers,
-} from "../operations/shared";
+import { fromDateInput, toDateInput, useCustomers } from "../operations/shared";
 
 interface InvoiceFormModalProps {
   invoice?: Invoice | null;
@@ -49,7 +45,12 @@ export function InvoiceFormModal({
   const customers = customersQuery.data?.data ?? [];
 
   const jobsQuery = useQuery({
-    queryKey: queryKeys.jobs.list({ scope: "all", pageSize: 100, sort: "scheduledStart", order: "desc" }),
+    queryKey: queryKeys.jobs.list({
+      scope: "all",
+      pageSize: 100,
+      sort: "scheduledStart",
+      order: "desc",
+    }),
     queryFn: () =>
       api.jobs.list({
         scope: "all",
@@ -66,14 +67,18 @@ export function InvoiceFormModal({
     enabled: Boolean(defaultJobId) && !invoice,
   });
 
-  const [mode, setMode] = useState<"job" | "customer">(defaultJobId ? "job" : "job");
+  const [mode, setMode] = useState<"job" | "customer">(
+    defaultJobId ? "job" : "job",
+  );
   const [jobId, setJobId] = useState(defaultJobId);
   const [customerId, setCustomerId] = useState(invoice?.customer.id ?? "");
   const [title, setTitle] = useState(invoice?.title ?? "");
   const [amount, setAmount] = useState(
     invoice ? (invoice.amount / 100).toFixed(2) : "",
   );
-  const [status, setStatus] = useState<InvoiceStatus>(invoice?.status ?? "SENT");
+  const [status, setStatus] = useState<InvoiceStatus>(
+    invoice?.status ?? "SENT",
+  );
   const [issuedAt, setIssuedAt] = useState(toDateInput(invoice?.issuedAt));
   const [dueAt, setDueAt] = useState(toDateInput(invoice?.dueAt));
   const [notes, setNotes] = useState(invoice?.notes ?? "");
@@ -99,7 +104,9 @@ export function InvoiceFormModal({
 
   const save = useMutation({
     mutationFn: (input: CreateInvoiceInput) =>
-      invoice ? api.invoices.update(invoice.id, input) : api.invoices.create(input),
+      invoice
+        ? api.invoices.update(invoice.id, input)
+        : api.invoices.create(input),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
       void queryClient.invalidateQueries({ queryKey: ["ops"] });
@@ -116,7 +123,8 @@ export function InvoiceFormModal({
     const nextErrors: typeof errors = {};
     if (!title.trim()) nextErrors.title = "Give the invoice a short title.";
     if (!invoice) {
-      if (mode === "job" && !jobId) nextErrors.target = "Choose the job this invoice bills.";
+      if (mode === "job" && !jobId)
+        nextErrors.target = "Choose the job this invoice bills.";
       if (mode === "customer" && !customerId) {
         nextErrors.target = "Choose the customer this invoice bills.";
       }
@@ -129,11 +137,7 @@ export function InvoiceFormModal({
 
     save.mutate({
       title: title.trim(),
-      ...(invoice
-        ? {}
-        : mode === "job"
-          ? { jobId }
-          : { customerId }),
+      ...(invoice ? {} : mode === "job" ? { jobId } : { customerId }),
       status,
       amount: toCents(amount),
       issuedAt: fromDateInput(issuedAt),
@@ -157,13 +161,23 @@ export function InvoiceFormModal({
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {invoice ? "Save invoice" : "Create invoice"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-5">
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-5"
+      >
         {!invoice ? (
           <div
             role="group"
@@ -227,7 +241,8 @@ export function InvoiceFormModal({
               ) : null}
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
-                  {job.number} · {job.title} · {formatMoney(job.total, currency)}
+                  {job.number} · {job.title} ·{" "}
+                  {formatMoney(job.total, currency)}
                 </option>
               ))}
             </Select>
@@ -251,7 +266,9 @@ export function InvoiceFormModal({
               }}
             >
               <option value="">
-                {customersQuery.isPending ? "Loading customers…" : "Select a customer"}
+                {customersQuery.isPending
+                  ? "Loading customers…"
+                  : "Select a customer"}
               </option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
@@ -262,14 +279,20 @@ export function InvoiceFormModal({
           </Field>
         ) : null}
 
-        <Field label="Invoice title" htmlFor={id("title")} required error={errors.title}>
+        <Field
+          label="Invoice title"
+          htmlFor={id("title")}
+          required
+          error={errors.title}
+        >
           <Input
             id={id("title")}
             data-autofocus={invoice ? true : undefined}
             value={title}
             onChange={(event) => {
               setTitle(event.target.value);
-              if (errors.title) setErrors((current) => ({ ...current, title: undefined }));
+              if (errors.title)
+                setErrors((current) => ({ ...current, title: undefined }));
             }}
             invalid={Boolean(errors.title)}
             maxLength={160}
@@ -291,7 +314,9 @@ export function InvoiceFormModal({
             <Select
               id={id("status")}
               value={status}
-              onChange={(event) => setStatus(event.target.value as InvoiceStatus)}
+              onChange={(event) =>
+                setStatus(event.target.value as InvoiceStatus)
+              }
             >
               {INVOICE_STATUSES.map((value) => (
                 <option key={value} value={value}>
@@ -310,7 +335,11 @@ export function InvoiceFormModal({
           </Field>
         </div>
 
-        <Field label="Issued" htmlFor={id("issued")} hint="Defaults to now when sent.">
+        <Field
+          label="Issued"
+          htmlFor={id("issued")}
+          hint="Defaults to now when sent."
+        >
           <Input
             id={id("issued")}
             type="date"

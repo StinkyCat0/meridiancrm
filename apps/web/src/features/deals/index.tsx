@@ -12,9 +12,19 @@ import { useDebouncedValue } from "../../lib/utils";
 import { DealBoard, DealBoardSkeleton } from "./components/DealBoard";
 import { DealDetail } from "./components/DealDetail";
 import { DealFormModal } from "./components/DealFormModal";
-import { DealTable, DealTableSkeleton, type DealSortKey } from "./components/DealTable";
+import {
+  DealTable,
+  DealTableSkeleton,
+  type DealSortKey,
+} from "./components/DealTable";
 import { DealToolbar } from "./components/DealToolbar";
-import { useDealsList, useDeleteDeal, useMoveDealStage, usePipelines, useWorkspaceMembers } from "./hooks";
+import {
+  useDealsList,
+  useDeleteDeal,
+  useMoveDealStage,
+  usePipelines,
+  useWorkspaceMembers,
+} from "./hooks";
 import { errorMessage, stageKindLabel } from "./lib/deals";
 
 type DealView = "board" | "table";
@@ -33,7 +43,10 @@ export default function DealsPage() {
   const debouncedSearch = useDebouncedValue(search, 250);
   const [status, setStatus] = useState<DealStatusFilter>(() => {
     const param = searchParams.get("status");
-    return param === "open" || param === "won" || param === "lost" || param === "all"
+    return param === "open" ||
+      param === "won" ||
+      param === "lost" ||
+      param === "all"
       ? param
       : "all";
   });
@@ -47,13 +60,18 @@ export default function DealsPage() {
   const [formOpen, setFormOpen] = useState(newParam);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Deal | null>(null);
-  const [pendingMove, setPendingMove] = useState<{ deal: Deal; stage: Stage } | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    deal: Deal;
+    stage: Stage;
+  } | null>(null);
 
   useEffect(() => {
-    const fallback = pipelines.find((pipeline) => pipeline.isDefault) ?? pipelines[0];
+    const fallback =
+      pipelines.find((pipeline) => pipeline.isDefault) ?? pipelines[0];
     if (!fallback) return;
     setPipelineId((current) => {
-      if (current && pipelines.some((pipeline) => pipeline.id === current)) return current;
+      if (current && pipelines.some((pipeline) => pipeline.id === current))
+        return current;
       return fallback.id;
     });
   }, [pipelines]);
@@ -98,7 +116,9 @@ export default function DealsPage() {
   const deals = dealsQuery.data?.data ?? [];
   const isLoading = pipelinesQuery.isPending || dealsQuery.isPending;
   const loadError = pipelinesQuery.error ?? dealsQuery.error;
-  const hasFilters = Boolean(search.trim() || status !== "all" || ownerId || stageId);
+  const hasFilters = Boolean(
+    search.trim() || status !== "all" || ownerId || stageId,
+  );
   const canDelete = role ? atLeast(role, "ADMIN") : false;
   const currency = workspace?.currency ?? "USD";
 
@@ -111,11 +131,14 @@ export default function DealsPage() {
   }
 
   function closeDeal() {
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.delete("deal");
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("deal");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function startCreate() {
@@ -131,33 +154,42 @@ export default function DealsPage() {
   function handleFormSaved(deal: Deal) {
     setFormOpen(false);
     setEditingDeal(null);
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.delete("new");
-      next.set("deal", deal.id);
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("new");
+        next.set("deal", deal.id);
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function closeForm() {
     setFormOpen(false);
     setEditingDeal(null);
     if (!newParam) return;
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.delete("new");
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete("new");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function handleStatusChange(value: DealStatusFilter) {
     setStatus(value);
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      if (value === "all") next.delete("status");
-      else next.set("status", value);
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (value === "all") next.delete("status");
+        else next.set("status", value);
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function clearFilters() {
@@ -234,7 +266,11 @@ export default function DealsPage() {
             : "Track every deal from first conversation to closed outcome."
         }
         actions={
-          <Button variant="primary" onClick={startCreate} disabled={!stages.length}>
+          <Button
+            variant="primary"
+            onClick={startCreate}
+            disabled={!stages.length}
+          >
             <Plus className="size-4" aria-hidden="true" />
             New deal
           </Button>
@@ -290,7 +326,11 @@ export default function DealsPage() {
           }
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <Button variant="primary" onClick={startCreate} disabled={!stages.length}>
+              <Button
+                variant="primary"
+                onClick={startCreate}
+                disabled={!stages.length}
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 New deal
               </Button>
@@ -371,7 +411,8 @@ export default function DealsPage() {
       >
         <p className="text-sm font-medium text-fg">{deleteTarget?.title}</p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          The deal, its activity links and stage history will be removed. This cannot be undone.
+          The deal, its activity links and stage history will be removed. This
+          cannot be undone.
         </p>
         {deleteDeal.error ? (
           <p role="alert" className="mt-3 text-xs leading-relaxed text-danger">
@@ -383,7 +424,7 @@ export default function DealsPage() {
       <Modal
         open={Boolean(pendingMove)}
         onClose={() => setPendingMove(null)}
-        title={`Move out of ${pendingMove ? stageKindLabel(pendingMove.deal.stage.kind) ?? pendingMove.deal.stage.name : "closed"}?`}
+        title={`Move out of ${pendingMove ? (stageKindLabel(pendingMove.deal.stage.kind) ?? pendingMove.deal.stage.name) : "closed"}?`}
         description="This deal is already in a closed stage."
         size="sm"
         footer={
@@ -400,10 +441,14 @@ export default function DealsPage() {
         <p className="text-sm leading-relaxed text-muted">
           {pendingMove ? (
             <>
-              <span className="font-medium text-fg">{pendingMove.deal.title}</span> is in{" "}
-              {pendingMove.deal.stage.name}. Moving it to{" "}
-              <span className="font-medium text-fg">{pendingMove.stage.name}</span> will change its
-              outcome and update its momentum.
+              <span className="font-medium text-fg">
+                {pendingMove.deal.title}
+              </span>{" "}
+              is in {pendingMove.deal.stage.name}. Moving it to{" "}
+              <span className="font-medium text-fg">
+                {pendingMove.stage.name}
+              </span>{" "}
+              will change its outcome and update its momentum.
             </>
           ) : null}
         </p>

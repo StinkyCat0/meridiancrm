@@ -1,7 +1,7 @@
 import { api, type Invoice, type InvoiceStatus } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Plus, Receipt, Search } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -10,13 +10,20 @@ import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { Tabs } from "../../components/ui/Tabs";
-import { cn, formatDate, formatMoney, useDebouncedValue } from "../../lib/utils";
+import {
+  cn,
+  formatDate,
+  formatMoney,
+  useDebouncedValue,
+} from "../../lib/utils";
 import { useAuth } from "../../lib/auth";
 import { queryKeys } from "../../lib/query";
 import { apiErrorMessage } from "../companies/lib";
 import { InvoiceStatusBadge } from "../operations/shared";
 import { InvoiceDetailModal } from "./InvoiceDetailModal";
 import { InvoiceFormModal } from "./InvoiceFormModal";
+
+const PAGE_SIZE = 25;
 
 const STATUS_TABS: { value: InvoiceStatus | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -38,32 +45,51 @@ export default function InvoicesPage() {
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Invoice | null>(null);
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 250);
 
+  // Paid invoices can never be overdue: the status wins over the toggle.
+  const overdueFilter: "true" | undefined =
+    overdueOnly && status !== "PAID" ? "true" : undefined;
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, status, overdueOnly]);
+
+  const listQuery = {
+    status: status === "ALL" ? undefined : status,
+    overdue: overdueFilter,
+    q: debouncedSearch.trim() || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    sort: "dueAt",
+    order: "asc" as const,
+  };
+
   const invoicesQuery = useQuery({
-    queryKey: queryKeys.invoices.list({
-      status: status === "ALL" ? undefined : status,
-      overdue: overdueOnly ? "true" : undefined,
-      q: debouncedSearch.trim() || undefined,
-      pageSize: 100,
-      sort: "dueAt",
-      order: "asc",
-    }),
-    queryFn: () =>
-      api.invoices.list({
-        status: status === "ALL" ? undefined : status,
-        overdue: overdueOnly ? "true" : undefined,
-        q: debouncedSearch.trim() || undefined,
-        pageSize: 100,
-        sort: "dueAt",
-        order: "asc",
-      }),
+    queryKey: queryKeys.invoices.list(listQuery),
+    queryFn: () => api.invoices.list(listQuery),
     placeholderData: keepPreviousData,
   });
 
+  useEffect(() => {
+    const totalPages = invoicesQuery.data?.meta.totalPages;
+    if (totalPages && page > totalPages) setPage(totalPages);
+  }, [invoicesQuery.data, page]);
+
   const invoices = invoicesQuery.data?.data ?? [];
   const total = invoicesQuery.data?.meta.total ?? 0;
+  const totalPages = invoicesQuery.data?.meta.totalPages ?? 1;
+  const pageSize = invoicesQuery.data?.meta.pageSize ?? PAGE_SIZE;
+  const currentPage = invoicesQuery.data?.meta.page ?? page;
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
   const hasFilters = Boolean(search.trim()) || status !== "ALL" || overdueOnly;
+
+  function changeStatus(next: InvoiceStatus | "ALL") {
+    setStatus(next);
+    if (next === "PAID") setOverdueOnly(false);
+  }
 
   function setParam(name: string, value: string | null) {
     const next = new URLSearchParams(params);
@@ -119,9 +145,15 @@ export default function InvoicesPage() {
             <button
               type="button"
               aria-pressed={overdueOnly}
+              disabled={status === "PAID"}
+              title={
+                status === "PAID"
+                  ? "Paid invoices are never overdue."
+                  : "Only show invoices past their due date."
+              }
               onClick={() => setOverdueOnly((current) => !current)}
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-input border px-3 text-xs font-medium transition-colors",
+                "inline-flex h-9 items-center gap-1.5 rounded-input border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                 overdueOnly
                   ? "border-danger/40 bg-danger/10 text-danger"
                   : "border-border bg-surface text-muted hover:text-fg",
@@ -141,9 +173,12 @@ export default function InvoicesPage() {
         </div>
         <Tabs
           ariaLabel="Invoice status"
-          items={STATUS_TABS.map((item) => ({ value: item.value, label: item.label }))}
+          items={STATUS_TABS.map((item) => ({
+            value: item.value,
+            label: item.label,
+          }))}
           value={status}
-          onChange={(value) => setStatus(value as InvoiceStatus | "ALL")}
+          onChange={(value) => changeStatus(value as InvoiceStatus | "ALL")}
           className="border-0"
         />
       </Card>
@@ -156,7 +191,9 @@ export default function InvoicesPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load invoices.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load invoices.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(invoicesQuery.error)}
             </p>
@@ -172,7 +209,9 @@ export default function InvoicesPage() {
       ) : invoices.length === 0 ? (
         <EmptyState
           icon={<Receipt />}
-          title={hasFilters ? "No invoices match those filters." : "No invoices yet."}
+          title={
+            hasFilters ? "No invoices match those filters." : "No invoices yet."
+          }
           description={
             hasFilters
               ? "Try another status or clear the overdue filter."
@@ -217,10 +256,16 @@ export default function InvoicesPage() {
                     <th scope="col" className="label-micro px-4 py-3">
                       Due
                     </th>
-                    <th scope="col" className="label-micro px-4 py-3 text-right">
+                    <th
+                      scope="col"
+                      className="label-micro px-4 py-3 text-right"
+                    >
                       Amount
                     </th>
-                    <th scope="col" className="label-micro px-4 py-3 text-right">
+                    <th
+                      scope="col"
+                      className="label-micro px-4 py-3 text-right"
+                    >
                       Balance
                     </th>
                   </tr>
@@ -233,27 +278,38 @@ export default function InvoicesPage() {
                       aria-label={`Open ${invoice.number}`}
                       onClick={() => setParam("invoice", invoice.id)}
                       onKeyDown={(event) =>
-                        handleRowKeyDown(event, invoice.id, (id) => setParam("invoice", id))
+                        handleRowKeyDown(event, invoice.id, (id) =>
+                          setParam("invoice", id),
+                        )
                       }
                       className="cursor-pointer border-b border-border/70 transition-colors last:border-0 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <td className="px-4 py-3">
-                        <p className="num text-xs text-accent">{invoice.number}</p>
+                        <p className="num text-xs text-accent">
+                          {invoice.number}
+                        </p>
                         <p className="max-w-[260px] truncate font-medium text-fg">
                           {invoice.title}
                         </p>
                         {invoice.jobNumber ? (
-                          <p className="num text-[11px] text-muted">Job {invoice.jobNumber}</p>
+                          <p className="num text-[11px] text-muted">
+                            Job {invoice.jobNumber}
+                          </p>
                         ) : null}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="max-w-[180px] truncate text-fg">{invoice.customer.name}</p>
+                        <p className="max-w-[180px] truncate text-fg">
+                          {invoice.customer.name}
+                        </p>
                         <p className="max-w-[180px] truncate text-xs text-muted">
                           {invoice.location?.city ?? "No location"}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
+                        <InvoiceStatusBadge
+                          status={invoice.status}
+                          overdue={invoice.overdue}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-muted">
                         {invoice.dueAt ? formatDate(invoice.dueAt) : "—"}
@@ -282,14 +338,23 @@ export default function InvoicesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="num text-xs text-accent">{invoice.number}</p>
-                    <p className="truncate font-medium text-fg">{invoice.title}</p>
-                    <p className="truncate text-xs text-muted">{invoice.customer.name}</p>
+                    <p className="truncate font-medium text-fg">
+                      {invoice.title}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {invoice.customer.name}
+                    </p>
                   </div>
-                  <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
+                  <InvoiceStatusBadge
+                    status={invoice.status}
+                    overdue={invoice.overdue}
+                  />
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs">
                   <span className="text-muted">
-                    {invoice.dueAt ? `Due ${formatDate(invoice.dueAt)}` : "No due date"}
+                    {invoice.dueAt
+                      ? `Due ${formatDate(invoice.dueAt)}`
+                      : "No due date"}
                   </span>
                   <span className="num text-fg">
                     {formatMoney(invoice.balance, currency)} due
@@ -297,6 +362,37 @@ export default function InvoicesPage() {
                 </div>
               </button>
             ))}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p aria-live="polite" className="num text-xs text-muted">
+              Showing {rangeStart}–{rangeEnd} of {total}
+            </p>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={currentPage <= 1}
+                aria-label="Previous page"
+              >
+                Previous
+              </Button>
+              <span className="num text-xs text-muted">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+                disabled={currentPage >= totalPages}
+                aria-label="Next page"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </>
       )}
@@ -365,7 +461,10 @@ function ListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="mt-2 h-3 w-2/3" />
           </div>

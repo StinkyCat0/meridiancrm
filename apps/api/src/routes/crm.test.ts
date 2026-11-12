@@ -43,7 +43,12 @@ const createContact = async (firstName: string, companyId?: string) => {
     method: "POST",
     url: "/api/v1/contacts",
     headers: authHeaders(account),
-    payload: { firstName, lastName: "Tester", email: `${firstName}@example.com`, companyId },
+    payload: {
+      firstName,
+      lastName: "Tester",
+      email: `${firstName}@example.com`,
+      companyId,
+    },
   });
   expect(response.statusCode).toBe(201);
   return response.json();
@@ -82,7 +87,12 @@ describe("companies, contacts, and deals", () => {
       headers: authHeaders(account),
     });
     expect(page.statusCode).toBe(200);
-    expect(page.json().meta).toMatchObject({ page: 2, pageSize: 2, total: 3, totalPages: 2 });
+    expect(page.json().meta).toMatchObject({
+      page: 2,
+      pageSize: 2,
+      total: 3,
+      totalPages: 2,
+    });
     expect(page.json().data).toHaveLength(1);
   });
 
@@ -152,7 +162,10 @@ describe("pipeline behavior", () => {
     });
     const wonStage = pipelines
       .json()
-      .flatMap((pipeline: { stages: { id: string; kind: string }[] }) => pipeline.stages)
+      .flatMap(
+        (pipeline: { stages: { id: string; kind: string }[] }) =>
+          pipeline.stages,
+      )
       .find((stage: { kind: string }) => stage.kind === "WON");
     expect(wonStage).toBeDefined();
 
@@ -186,7 +199,9 @@ describe("pipeline behavior", () => {
   });
 
   it("rejects a stage from another workspace", async () => {
-    const other = await registerAccount(app, { email: "other-workspace@example.com" });
+    const other = await registerAccount(app, {
+      email: "other-workspace@example.com",
+    });
     const foreignStage = await getDefaultStageId(other.workspaceId);
     const stageId = await getDefaultStageId(account.workspaceId);
 
@@ -213,11 +228,16 @@ describe("pipeline behavior", () => {
       url: "/api/v1/pipelines",
       headers: authHeaders(account),
     });
-    const stages = pipelines.json()[0].stages as { id: string; name: string; kind: string }[];
+    const stages = pipelines.json()[0].stages as {
+      id: string;
+      name: string;
+      kind: string;
+    }[];
     const proposal = stages.find((stage) => stage.name === "Proposal");
     const won = stages.find((stage) => stage.kind === "WON");
     const discovery = stages.find((stage) => stage.name === "Discovery");
-    if (!proposal || !won || !discovery) throw new Error("default pipeline stages missing");
+    if (!proposal || !won || !discovery)
+      throw new Error("default pipeline stages missing");
 
     const created = await app.inject({
       method: "POST",
@@ -311,7 +331,10 @@ describe("activities, dashboard, and search", () => {
       headers: authHeaders(account),
     });
     expect(search.statusCode).toBe(200);
-    expect(search.json().hits[0]).toMatchObject({ type: "company", label: "Fable House" });
+    expect(search.json().hits[0]).toMatchObject({
+      type: "company",
+      label: "Fable House",
+    });
 
     const short = await app.inject({
       method: "GET",

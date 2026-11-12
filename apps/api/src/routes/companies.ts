@@ -4,6 +4,7 @@ import {
   CUSTOMER_TYPES,
   INDUSTRIES,
   companyInputSchema,
+  companyPatchSchema,
   idSchema,
   paginationSchema,
   type Company,
@@ -14,7 +15,16 @@ import type { Prisma } from "@prisma/client";
 import { authenticate, getAuth, requireRole } from "../lib/auth.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/db.js";
-import { badRequest, likeTerm, notFound, pageMeta, parseOrThrow, parseTags, serializeTags } from "../lib/http.js";
+import {
+  badRequest,
+  likeTerm,
+  notFound,
+  pageMeta,
+  parseOrThrow,
+  parseTags,
+  serializeTags,
+} from "../lib/http.js";
+import { emitEvent } from "../lib/events.js";
 
 const userSelect = {
   id: true,
@@ -30,7 +40,13 @@ const companyInclude = {
       contacts: { where: { archived: false } },
       deals: true,
       locations: { where: { archived: false } },
-      jobs: { where: { status: { in: ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"] } } },
+      jobs: {
+        where: {
+          status: {
+            in: ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"],
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.CompanyInclude;
@@ -51,7 +67,12 @@ const deleteQuerySchema = z.object({
 
 function toPublicUser(user: PublicUser | null | undefined): PublicUser | null {
   if (!user) return null;
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 function toCompany(row: CompanyRow, openPipelineValue: number): Company {
@@ -80,7 +101,9 @@ function toCompany(row: CompanyRow, openPipelineValue: number): Company {
   };
 }
 
-function archiveFilter(archive: "active" | "archived" | "all"): { archived?: boolean } {
+function archiveFilter(archive: "active" | "archived" | "all"): {
+  archived?: boolean;
+} {
   if (archive === "all") return {};
   return { archived: archive === "archived" };
 }
@@ -88,16 +111,16 @@ function archiveFilter(archive: "active" | "archived" | "all"): { archived?: boo
 function companyOrder(
   sort: string | undefined,
   order: "asc" | "desc",
-): Prisma.CompanyOrderByWithRelationInput {
+): Prisma.CompanyOrderByWithRelationInput[] {
   switch (sort) {
     case "name":
-      return { name: order };
+      return [{ name: order }, { id: "asc" }];
     case "updatedAt":
-      return { updatedAt: order };
+      return [{ updatedAt: order }, { id: "asc" }];
     case "createdAt":
-      return { createdAt: order };
+      return [{ createdAt: order }, { id: "asc" }];
     default:
-      return { createdAt: order };
+      return [{ createdAt: order }, { id: "asc" }];
   }
 }
 
@@ -108,7 +131,11 @@ async function openPipelineByCompany(
   const totals = new Map<string, number>();
   if (!companyIds.length) return totals;
   const rows = await prisma.deal.findMany({
-    where: { workspaceId, companyId: { in: companyIds }, stage: { kind: "OPEN" } },
+    where: {
+      workspaceId,
+      companyId: { in: companyIds },
+      stage: { kind: "OPEN" },
+    },
     select: { companyId: true, value: true },
   });
   for (const row of rows) {
@@ -133,13 +160,22 @@ async function resolveOwnerId(
   return requested;
 }
 
-async function loadCompany(workspaceId: string, id: string): Promise<CompanyRow> {
-  const row = await prisma.company.findFirst({ where: { id, workspaceId }, include: companyInclude });
+async function loadCompany(
+  workspaceId: string,
+  id: string,
+): Promise<CompanyRow> {
+  const row = await prisma.company.findFirst({
+    where: { id, workspaceId },
+    include: companyInclude,
+  });
   if (!row) throw notFound("Company");
   return row;
 }
 
-async function serializeWithPipeline(workspaceId: string, row: CompanyRow): Promise<Company> {
+async function serializeWithPipeline(
+  workspaceId: string,
+  row: CompanyRow,
+): Promise<Company> {
   const totals = await openPipelineByCompany(workspaceId, [row.id]);
   return toCompany(row, totals.get(row.id) ?? 0);
 }
@@ -186,7 +222,10 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
         }),
       ]);
 
-      const pipeline = await openPipelineByCompany(auth.workspaceId, rows.map((row) => row.id));
+      const pipeline = await openPipelineByCompany(
+        auth.workspaceId,
+        rows.map((row) => row.id),
+      );
       return {
         data: rows.map((row) => toCompany(row, pipeline.get(row.id) ?? 0)),
         meta: pageMeta(total, query.page, query.pageSize),
@@ -207,7 +246,11 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const input = parseOrThrow(companyInputSchema, request.body);
-      const ownerId = await resolveOwnerId(auth.workspaceId, input.ownerId, auth.userId);
+      const ownerId = await resolveOwnerId(
+        auth.workspaceId,
+        input.ownerId,
+        auth.userId,
+      );
 
       const created = await prisma.company.create({
         data: {
@@ -236,6 +279,16 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
         entityType: "company",
         entityId: created.id,
         metadata: { name: created.name },
+      });
+
+      await emitEvent({
+        workspaceId: auth.workspaceId,
+        type: "CUSTOMER_CREATED",
+        entityType: "company",
+        entityId: created.id,
+        actorId: auth.userId,
+        customerId: created.id,
+        payload: { name: created.name },
       });
 
       return reply.status(201).send(toCompany(created, 0));
@@ -274,11 +327,12 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadCompany(auth.workspaceId, id);
-      const input = parseOrThrow(companyInputSchema.partial(), request.body);
+      const input = parseOrThrow(companyPatchSchema, request.body);
 
       const data: Prisma.CompanyUncheckedUpdateInput = {};
       if (input.name !== undefined) data.name = input.name;
-      if (input.customerType !== undefined) data.customerType = input.customerType;
+      if (input.customerType !== undefined)
+        data.customerType = input.customerType;
       if (input.domain !== undefined) data.domain = input.domain ?? null;
       if (input.industry !== undefined) data.industry = input.industry ?? null;
       if (input.size !== undefined) data.size = input.size ?? null;
@@ -287,10 +341,15 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
       if (input.website !== undefined) data.website = input.website ?? null;
       if (input.address !== undefined) data.address = input.address ?? null;
       if (input.notes !== undefined) data.notes = input.notes ?? null;
-      if (input.tags !== undefined) data.tags = serializeTags(input.tags) ?? "[]";
+      if (input.tags !== undefined)
+        data.tags = serializeTags(input.tags) ?? "[]";
       if (input.archived !== undefined) data.archived = input.archived;
       if (input.ownerId !== undefined) {
-        data.ownerId = await resolveOwnerId(auth.workspaceId, input.ownerId, auth.userId);
+        data.ownerId = await resolveOwnerId(
+          auth.workspaceId,
+          input.ownerId,
+          auth.userId,
+        );
       }
 
       const updated = await prisma.company.update({
@@ -371,7 +430,10 @@ export async function companyRoutes(app: FastifyInstance): Promise<void> {
           metadata: { name: existing.name },
         });
       } else {
-        await prisma.company.update({ where: { id: existing.id }, data: { archived: true } });
+        await prisma.company.update({
+          where: { id: existing.id },
+          data: { archived: true },
+        });
         await audit({
           workspaceId: auth.workspaceId,
           actorId: auth.userId,

@@ -1,5 +1,10 @@
 import type { CreateDealInput } from "@meridian/api-client";
-import { CURRENCIES, type Currency, type Deal, type Stage } from "@meridian/contracts";
+import {
+  CURRENCIES,
+  type Currency,
+  type Deal,
+  type Stage,
+} from "@meridian/contracts";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Field } from "../../../components/ui/Field";
@@ -24,7 +29,9 @@ interface DealFormState {
 }
 
 function sanitizeCurrency(value: string): Currency {
-  return (CURRENCIES as readonly string[]).includes(value) ? (value as Currency) : "USD";
+  return (CURRENCIES as readonly string[]).includes(value)
+    ? (value as Currency)
+    : "USD";
 }
 
 function initialForm(stages: Stage[], currency: string): DealFormState {
@@ -32,7 +39,8 @@ function initialForm(stages: Stage[], currency: string): DealFormState {
     title: "",
     value: "",
     currency: sanitizeCurrency(currency),
-    stageId: stages.find((stage) => stage.kind === "OPEN")?.id ?? stages[0]?.id ?? "",
+    stageId:
+      stages.find((stage) => stage.kind === "OPEN")?.id ?? stages[0]?.id ?? "",
     companyId: "",
     contactId: "",
     expectedCloseDate: "",
@@ -49,7 +57,9 @@ function formFromDeal(deal: Deal): DealFormState {
     stageId: deal.stageId,
     companyId: deal.company?.id ?? "",
     contactId: deal.contact?.id ?? "",
-    expectedCloseDate: deal.expectedCloseDate ? deal.expectedCloseDate.slice(0, 10) : "",
+    expectedCloseDate: deal.expectedCloseDate
+      ? deal.expectedCloseDate.slice(0, 10)
+      : "",
     description: deal.description ?? "",
     tags: deal.tags.join(", "),
   };
@@ -83,7 +93,9 @@ export function DealFormModal({
   const descriptionId = `${formId}-description`;
   const tagsId = `${formId}-tags`;
 
-  const [form, setForm] = useState<DealFormState>(() => initialForm(stages, defaultCurrency));
+  const [form, setForm] = useState<DealFormState>(() =>
+    initialForm(stages, defaultCurrency),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const lookups = useDealLookups(open);
   const createDeal = useCreateDeal();
@@ -102,7 +114,10 @@ export function DealFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, deal, stages, defaultCurrency]);
 
-  function setField<K extends keyof DealFormState>(key: K, value: DealFormState[K]) {
+  function setField<K extends keyof DealFormState>(
+    key: K,
+    value: DealFormState[K],
+  ) {
     setForm((previous) => ({ ...previous, [key]: value }));
     setErrors((previous) => {
       if (!previous[key]) return previous;
@@ -128,7 +143,11 @@ export function DealFormModal({
 
     if (!form.title.trim()) nextErrors.title = "Give the deal a title.";
     if (!form.stageId) nextErrors.stageId = "Choose a stage.";
-    if (form.value.trim() === "" || !Number.isFinite(numericValue) || numericValue < 0) {
+    if (
+      form.value.trim() === "" ||
+      !Number.isFinite(numericValue) ||
+      numericValue < 0
+    ) {
       nextErrors.value = "Enter a valid amount in dollars.";
     }
     if (tags.length > 12) nextErrors.tags = "Use 12 tags or fewer.";
@@ -182,7 +201,11 @@ export function DealFormModal({
       open={open}
       onClose={handleClose}
       title={deal ? "Edit deal" : "New deal"}
-      description={deal ? "Update the value, stage and details." : "Add a deal to the pipeline."}
+      description={
+        deal
+          ? "Update the value, stage and details."
+          : "Add a deal to the pipeline."
+      }
       size="lg"
       footer={
         <>
@@ -211,7 +234,12 @@ export function DealFormModal({
           </p>
         ) : null}
 
-        <Field label="Deal title" htmlFor={titleId} required error={errors.title}>
+        <Field
+          label="Deal title"
+          htmlFor={titleId}
+          required
+          error={errors.title}
+        >
           <Input
             id={titleId}
             data-autofocus
@@ -247,7 +275,9 @@ export function DealFormModal({
             <Select
               id={currencyId}
               value={form.currency}
-              onChange={(event) => setField("currency", sanitizeCurrency(event.target.value))}
+              onChange={(event) =>
+                setField("currency", sanitizeCurrency(event.target.value))
+              }
             >
               {CURRENCIES.map((currency) => (
                 <option key={currency} value={currency}>
@@ -259,7 +289,12 @@ export function DealFormModal({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Stage" htmlFor={stageIdField} required error={errors.stageId}>
+          <Field
+            label="Stage"
+            htmlFor={stageIdField}
+            required
+            error={errors.stageId}
+          >
             <Select
               id={stageIdField}
               value={form.stageId}
@@ -279,7 +314,9 @@ export function DealFormModal({
               id={closeDateId}
               type="date"
               value={form.expectedCloseDate}
-              onChange={(event) => setField("expectedCloseDate", event.target.value)}
+              onChange={(event) =>
+                setField("expectedCloseDate", event.target.value)
+              }
             />
           </Field>
         </div>
@@ -292,7 +329,9 @@ export function DealFormModal({
               onChange={(event) => setField("companyId", event.target.value)}
             >
               <option value="">
-                {lookups.companies.isPending ? "Loading companies…" : "No company"}
+                {lookups.companies.isPending
+                  ? "Loading companies…"
+                  : "No company"}
               </option>
               {missingCompany ? (
                 <option value={missingCompany.id}>{missingCompany.name}</option>
@@ -311,7 +350,9 @@ export function DealFormModal({
               onChange={(event) => setField("contactId", event.target.value)}
             >
               <option value="">
-                {lookups.contacts.isPending ? "Loading contacts…" : "No contact"}
+                {lookups.contacts.isPending
+                  ? "Loading contacts…"
+                  : "No contact"}
               </option>
               {missingContact ? (
                 <option value={missingContact.id}>
@@ -355,7 +396,9 @@ export function DealFormModal({
         </Field>
 
         {!stages.length ? (
-          <p className="text-xs text-danger">No pipeline stages are available yet.</p>
+          <p className="text-xs text-danger">
+            No pipeline stages are available yet.
+          </p>
         ) : null}
       </form>
     </Modal>

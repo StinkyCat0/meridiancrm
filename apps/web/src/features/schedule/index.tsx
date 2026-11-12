@@ -1,7 +1,14 @@
 import { api, type Job } from "@meridian/api-client";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CalendarClock, MapPin, Plus, Search, Wrench } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  MapPin,
+  Plus,
+  Search,
+  Wrench,
+} from "lucide-react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Avatar } from "../../components/ui/Avatar";
 import { Badge } from "../../components/ui/Badge";
@@ -21,6 +28,8 @@ import { JobStatusBadge } from "../operations/shared";
 import { JobDetailModal } from "./JobDetailModal";
 import { JobFormModal } from "./JobFormModal";
 
+const PAGE_SIZE = 25;
+
 const SCOPES: { value: JobScope; label: string }[] = [
   { value: "today", label: "Today" },
   { value: "week", label: "Next 7 days" },
@@ -39,33 +48,46 @@ export default function SchedulePage() {
   const defaultCustomerId = params.get("customerId") ?? "";
   const [scope, setScope] = useState<JobScope>(() => {
     const value = params.get("scope");
-    return SCOPES.some((item) => item.value === value) ? (value as JobScope) : "week";
+    return SCOPES.some((item) => item.value === value)
+      ? (value as JobScope)
+      : "week";
   });
   const [search, setSearch] = useState("");
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 250);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, scope]);
+
+  const listQuery = {
+    scope,
+    q: debouncedSearch.trim() || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    sort: "scheduledStart",
+    order: "asc" as const,
+  };
+
   const jobsQuery = useQuery({
-    queryKey: queryKeys.jobs.list({
-      scope,
-      q: debouncedSearch.trim() || undefined,
-      pageSize: 100,
-      sort: "scheduledStart",
-      order: "asc",
-    }),
-    queryFn: () =>
-      api.jobs.list({
-        scope,
-        q: debouncedSearch.trim() || undefined,
-        pageSize: 100,
-        sort: "scheduledStart",
-        order: "asc",
-      }),
+    queryKey: queryKeys.jobs.list(listQuery),
+    queryFn: () => api.jobs.list(listQuery),
     placeholderData: keepPreviousData,
   });
 
+  useEffect(() => {
+    const totalPages = jobsQuery.data?.meta.totalPages;
+    if (totalPages && page > totalPages) setPage(totalPages);
+  }, [jobsQuery.data, page]);
+
   const jobs = jobsQuery.data?.data ?? [];
   const total = jobsQuery.data?.meta.total ?? 0;
+  const totalPages = jobsQuery.data?.meta.totalPages ?? 1;
+  const pageSize = jobsQuery.data?.meta.pageSize ?? PAGE_SIZE;
+  const currentPage = jobsQuery.data?.meta.page ?? page;
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
   const hasFilters = Boolean(search.trim()) || scope !== "week";
 
   function setParam(name: string, value: string | null) {
@@ -125,7 +147,10 @@ export default function SchedulePage() {
         </div>
         <Tabs
           ariaLabel="Job scope"
-          items={SCOPES.map((item) => ({ value: item.value, label: item.label }))}
+          items={SCOPES.map((item) => ({
+            value: item.value,
+            label: item.label,
+          }))}
           value={scope}
           onChange={(value) => setScope(value as JobScope)}
           className="border-0"
@@ -140,7 +165,9 @@ export default function SchedulePage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load the schedule.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load the schedule.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(jobsQuery.error)}
             </p>
@@ -156,7 +183,9 @@ export default function SchedulePage() {
       ) : jobs.length === 0 ? (
         <EmptyState
           icon={<Wrench />}
-          title={hasFilters ? "No jobs in this view." : "No jobs scheduled yet."}
+          title={
+            hasFilters ? "No jobs in this view." : "No jobs scheduled yet."
+          }
           description={
             hasFilters
               ? "Try another date range or clear the search."
@@ -203,7 +232,10 @@ export default function SchedulePage() {
                     <th scope="col" className="label-micro px-4 py-3">
                       Status
                     </th>
-                    <th scope="col" className="label-micro px-4 py-3 text-right">
+                    <th
+                      scope="col"
+                      className="label-micro px-4 py-3 text-right"
+                    >
                       Total
                     </th>
                   </tr>
@@ -215,15 +247,20 @@ export default function SchedulePage() {
                       tabIndex={0}
                       aria-label={`Open ${job.number}`}
                       onClick={() => openJob(job.id)}
-                      onKeyDown={(event) => handleRowKeyDown(event, job.id, openJob)}
+                      onKeyDown={(event) =>
+                        handleRowKeyDown(event, job.id, openJob)
+                      }
                       className="cursor-pointer border-b border-border/70 transition-colors last:border-0 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <td className="whitespace-nowrap px-4 py-3">
                         {job.scheduledStart ? (
                           <>
-                            <p className="text-fg">{formatDate(job.scheduledStart, "EEE, MMM d")}</p>
+                            <p className="text-fg">
+                              {formatDate(job.scheduledStart, "EEE, MMM d")}
+                            </p>
                             <p className="num text-xs text-muted">
-                              {formatDate(job.scheduledStart, "h:mm a")} · {job.durationMinutes}m
+                              {formatDate(job.scheduledStart, "h:mm a")} ·{" "}
+                              {job.durationMinutes}m
                             </p>
                           </>
                         ) : (
@@ -232,13 +269,17 @@ export default function SchedulePage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="num text-xs text-accent">{job.number}</p>
-                        <p className="max-w-[240px] truncate font-medium text-fg">{job.title}</p>
+                        <p className="max-w-[240px] truncate font-medium text-fg">
+                          {job.title}
+                        </p>
                         <p className="max-w-[240px] truncate text-xs text-muted">
                           {job.customer.name}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="max-w-[180px] truncate text-fg">{job.location.label}</p>
+                        <p className="max-w-[180px] truncate text-fg">
+                          {job.location.label}
+                        </p>
                         <p className="max-w-[180px] truncate text-xs text-muted">
                           {job.location.line1}, {job.location.city}
                         </p>
@@ -246,7 +287,11 @@ export default function SchedulePage() {
                       <td className="px-4 py-3">
                         {job.assignee ? (
                           <span className="flex items-center gap-2">
-                            <Avatar name={job.assignee.name} src={job.assignee.avatarUrl} size="xs" />
+                            <Avatar
+                              name={job.assignee.name}
+                              src={job.assignee.avatarUrl}
+                              size="xs"
+                            />
                             <span className="max-w-[120px] truncate text-muted">
                               {job.assignee.name}
                             </span>
@@ -258,8 +303,13 @@ export default function SchedulePage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <JobStatusBadge status={job.status} />
-                          {job.priority === "URGENT" || job.priority === "HIGH" ? (
-                            <Badge tone={job.priority === "URGENT" ? "danger" : "warning"}>
+                          {job.priority === "URGENT" ||
+                          job.priority === "HIGH" ? (
+                            <Badge
+                              tone={
+                                job.priority === "URGENT" ? "danger" : "warning"
+                              }
+                            >
                               {job.priority}
                             </Badge>
                           ) : null}
@@ -287,20 +337,27 @@ export default function SchedulePage() {
                   <div className="min-w-0">
                     <p className="num text-xs text-accent">{job.number}</p>
                     <p className="truncate font-medium text-fg">{job.title}</p>
-                    <p className="truncate text-xs text-muted">{job.customer.name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {job.customer.name}
+                    </p>
                   </div>
                   <JobStatusBadge status={job.status} />
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3 text-xs">
                   <span className="flex min-w-0 items-center gap-1.5 text-muted">
-                    <CalendarClock className="size-3.5 shrink-0" aria-hidden="true" />
+                    <CalendarClock
+                      className="size-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
                     <span className="truncate">
                       {job.scheduledStart
                         ? formatDate(job.scheduledStart, "MMM d · h:mm a")
                         : "Unscheduled"}
                     </span>
                   </span>
-                  <span className="num shrink-0 text-fg">{formatMoney(job.total, currency)}</span>
+                  <span className="num shrink-0 text-fg">
+                    {formatMoney(job.total, currency)}
+                  </span>
                 </div>
                 <p className="mt-2 flex items-center gap-1.5 truncate text-xs text-muted">
                   <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
@@ -308,6 +365,37 @@ export default function SchedulePage() {
                 </p>
               </button>
             ))}
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p aria-live="polite" className="num text-xs text-muted">
+              Showing {rangeStart}–{rangeEnd} of {total}
+            </p>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={currentPage <= 1}
+                aria-label="Previous page"
+              >
+                Previous
+              </Button>
+              <span className="num text-xs text-muted">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
+                disabled={currentPage >= totalPages}
+                aria-label="Next page"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </>
       )}
@@ -387,7 +475,10 @@ function JobListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="mt-2 h-3 w-2/3" />
             <Skeleton className="mt-3 h-3 w-1/3" />

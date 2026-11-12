@@ -66,7 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   }, []);
 
-  const refreshMe = useCallback(async (): Promise<MeResponse> => applyMe(await api.auth.me()), [applyMe]);
+  const refreshMe = useCallback(
+    async (): Promise<MeResponse> => applyMe(await api.auth.me()),
+    [applyMe],
+  );
 
   const establish = useCallback(
     async (session: Session): Promise<Session> => {
@@ -137,7 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const acceptInvite = useCallback(
-    async (input: AcceptInviteInput) => establish(await api.auth.acceptInvite(input)),
+    async (input: AcceptInviteInput) =>
+      establish(await api.auth.acceptInvite(input)),
     [establish],
   );
 
@@ -180,7 +184,11 @@ interface RequireRoleProps {
 }
 
 /** Renders children only when the signed-in member meets the minimum role. */
-export function RequireRole({ minimum, children, fallback = null }: RequireRoleProps) {
+export function RequireRole({
+  minimum,
+  children,
+  fallback = null,
+}: RequireRoleProps) {
   const { role, loading } = useAuth();
   if (loading) return null;
   if (!role || !atLeast(role, minimum)) return <>{fallback}</>;

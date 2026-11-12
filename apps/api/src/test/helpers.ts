@@ -6,16 +6,43 @@ export async function createTestApp(): Promise<FastifyInstance> {
   return buildApp({ logger: false });
 }
 
-/** Clears every table. Run in beforeEach so each test starts from a known state. */
+const DELETE_ORDER = [
+  "Payment",
+  "Expense",
+  "Communication",
+  "AutomationRun",
+  "AutomationRule",
+  "DocumentCounter",
+  "JobLineItem",
+  "EstimateLineItem",
+  "Invoice",
+  "Estimate",
+  "Job",
+  "ServiceItem",
+  "Activity",
+  "StageHistory",
+  "Deal",
+  "Stage",
+  "Pipeline",
+  "Invite",
+  "AuditLog",
+  "RefreshToken",
+  "Membership",
+  "Location",
+  "Contact",
+  "Company",
+  "Workspace",
+  "User",
+] as const;
+
+/**
+ * Clears every table in child-first order. Explicit ordering is safer than
+ * relying on a per-connection foreign_keys pragma under Prisma's pool.
+ */
 export async function resetDatabase(): Promise<void> {
-  const tables = await prisma.$queryRaw<{ name: string }[]>`
-    SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma%'
-  `;
-  await prisma.$executeRawUnsafe("PRAGMA foreign_keys = OFF");
-  for (const { name } of tables) {
-    await prisma.$executeRawUnsafe(`DELETE FROM "${name}"`);
+  for (const table of DELETE_ORDER) {
+    await prisma.$executeRawUnsafe(`DELETE FROM "${table}"`);
   }
-  await prisma.$executeRawUnsafe("PRAGMA foreign_keys = ON");
 }
 
 export interface TestAccount {
@@ -40,7 +67,11 @@ export async function registerAccount(
     password: overrides.password ?? "TestPassword123",
     workspaceName: overrides.workspaceName ?? "Test Workspace",
   };
-  const response = await app.inject({ method: "POST", url: "/api/v1/auth/register", payload });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/v1/auth/register",
+    payload,
+  });
   if (response.statusCode !== 201) {
     throw new Error(`register failed: ${response.statusCode} ${response.body}`);
   }

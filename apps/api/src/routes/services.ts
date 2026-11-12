@@ -27,7 +27,9 @@ const listQuerySchema = paginationSchema.extend({
 });
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(64) });
-const deleteQuerySchema = z.object({ permanent: z.enum(["true", "false"]).optional() });
+const deleteQuerySchema = z.object({
+  permanent: z.enum(["true", "false"]).optional(),
+});
 
 function toService(row: ServiceRow): ServiceItem {
   return {
@@ -38,6 +40,7 @@ function toService(row: ServiceRow): ServiceItem {
     unit: row.unit as ServiceUnit,
     durationMinutes: row.durationMinutes,
     price: row.price,
+    cost: row.cost,
     taxable: row.taxable,
     archived: row.archived,
     usageCount: row._count.jobLines + row._count.estimateLines,
@@ -46,7 +49,10 @@ function toService(row: ServiceRow): ServiceItem {
   };
 }
 
-async function loadService(workspaceId: string, id: string): Promise<ServiceRow> {
+async function loadService(
+  workspaceId: string,
+  id: string,
+): Promise<ServiceRow> {
   const row = await prisma.serviceItem.findFirst({
     where: { id, workspaceId },
     include,
@@ -71,7 +77,9 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
       const query = parseOrThrow(listQuerySchema, request.query);
       const where: Prisma.ServiceItemWhereInput = {
         workspaceId: auth.workspaceId,
-        ...(query.archive === "all" ? {} : { archived: query.archive === "archived" }),
+        ...(query.archive === "all"
+          ? {}
+          : { archived: query.archive === "archived" }),
         ...(query.category ? { category: query.category } : {}),
         ...(query.unit ? { unit: query.unit } : {}),
         ...(query.q
@@ -132,6 +140,7 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
           unit: input.unit,
           durationMinutes: input.durationMinutes,
           price: input.price,
+          cost: input.cost,
           taxable: input.taxable,
           archived: input.archived ?? false,
         },
@@ -153,7 +162,11 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
     "/services/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["services"], summary: "Fetch a service", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["services"],
+        summary: "Fetch a service",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -166,7 +179,11 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
     "/services/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["services"], summary: "Update a service", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["services"],
+        summary: "Update a service",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -177,10 +194,13 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
       const data: Prisma.ServiceItemUncheckedUpdateInput = {};
       if (input.name !== undefined) data.name = input.name;
       if (input.category !== undefined) data.category = input.category ?? null;
-      if (input.description !== undefined) data.description = input.description ?? null;
+      if (input.description !== undefined)
+        data.description = input.description ?? null;
       if (input.unit !== undefined) data.unit = input.unit;
-      if (input.durationMinutes !== undefined) data.durationMinutes = input.durationMinutes;
+      if (input.durationMinutes !== undefined)
+        data.durationMinutes = input.durationMinutes;
       if (input.price !== undefined) data.price = input.price;
+      if (input.cost !== undefined) data.cost = input.cost;
       if (input.taxable !== undefined) data.taxable = input.taxable;
       if (input.archived !== undefined) data.archived = input.archived;
 
@@ -204,7 +224,11 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
     "/services/:id/restore",
     {
       preHandler: authenticate,
-      schema: { tags: ["services"], summary: "Restore a service", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["services"],
+        summary: "Restore a service",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -253,7 +277,10 @@ export async function serviceRoutes(app: FastifyInstance): Promise<void> {
           metadata: { name: existing.name },
         });
       } else {
-        await prisma.serviceItem.update({ where: { id: existing.id }, data: { archived: true } });
+        await prisma.serviceItem.update({
+          where: { id: existing.id },
+          data: { archived: true },
+        });
         await audit({
           workspaceId: auth.workspaceId,
           actorId: auth.userId,

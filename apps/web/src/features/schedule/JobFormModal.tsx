@@ -1,13 +1,10 @@
-import {
-  api,
-  type CreateJobInput,
-  type Job,
-} from "@meridian/api-client";
+import { api, type CreateJobInput, type Job } from "@meridian/api-client";
 import {
   JOB_PRIORITIES,
   JOB_PRIORITY_META,
   JOB_STATUSES,
   JOB_STATUS_META,
+  JOB_STATUS_TRANSITIONS,
   RECURRENCE_LABEL,
   RECURRENCE_FREQUENCIES,
   type JobPriority,
@@ -63,11 +60,15 @@ export function JobFormModal({
   const members = membersQuery.data ?? [];
 
   const [title, setTitle] = useState(job?.title ?? "");
-  const [customerId, setCustomerId] = useState(job?.customer.id ?? defaultCustomerId);
+  const [customerId, setCustomerId] = useState(
+    job?.customer.id ?? defaultCustomerId,
+  );
   const [locationId, setLocationId] = useState(job?.location.id ?? "");
   const [assigneeId, setAssigneeId] = useState(job?.assignee?.id ?? "");
   const [status, setStatus] = useState<JobStatus>(job?.status ?? "SCHEDULED");
-  const [priority, setPriority] = useState<JobPriority>(job?.priority ?? "NORMAL");
+  const [priority, setPriority] = useState<JobPriority>(
+    job?.priority ?? "NORMAL",
+  );
   const [scheduledStart, setScheduledStart] = useState(
     toDateTimeLocal(job?.scheduledStart),
   );
@@ -85,7 +86,13 @@ export function JobFormModal({
   const [lines, setLines] = useState<LineItemDraft[]>(
     job ? draftFromItems(job.lineItems) : [emptyLine()],
   );
-  const [errors, setErrors] = useState<{ title?: string; location?: string }>({});
+  const [errors, setErrors] = useState<{
+    title?: string;
+    location?: string;
+    schedule?: string;
+  }>({});
+  const canUnschedule =
+    !job || JOB_STATUS_TRANSITIONS[job.status].includes("UNSCHEDULED");
 
   const save = useMutation({
     mutationFn: (input: CreateJobInput) =>
@@ -110,18 +117,25 @@ export function JobFormModal({
     if (!customerId || !locationId) {
       nextErrors.location = "Choose the customer and the service location.";
     }
+    const start = fromDateTimeLocal(scheduledStart);
+    if (!start && job && !canUnschedule) {
+      nextErrors.schedule = `${JOB_STATUS_META[job.status].label} jobs can't be unscheduled.`;
+    }
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
     }
     setErrors({});
 
-    const start = fromDateTimeLocal(scheduledStart);
     const duration = Math.max(5, Number(durationMinutes) || 60);
     const end = start
       ? new Date(new Date(start).getTime() + duration * 60_000).toISOString()
       : null;
-    const nextStatus: JobStatus = start ? status : "UNSCHEDULED";
+    const nextStatus: JobStatus = start
+      ? status
+      : canUnschedule
+        ? "UNSCHEDULED"
+        : status;
 
     save.mutate({
       title: title.trim(),
@@ -167,15 +181,26 @@ export function JobFormModal({
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-5">
-        <Field label="Job title" htmlFor={id("title")} required error={errors.title}>
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-5"
+      >
+        <Field
+          label="Job title"
+          htmlFor={id("title")}
+          required
+          error={errors.title}
+        >
           <Input
             id={id("title")}
             data-autofocus
             value={title}
             onChange={(event) => {
               setTitle(event.target.value);
-              if (errors.title) setErrors((current) => ({ ...current, title: undefined }));
+              if (errors.title)
+                setErrors((current) => ({ ...current, title: undefined }));
             }}
             invalid={Boolean(errors.title)}
             maxLength={160}
@@ -189,7 +214,8 @@ export function JobFormModal({
           onChange={(next) => {
             setCustomerId(next.customerId);
             setLocationId(next.locationId);
-            if (errors.location) setErrors((current) => ({ ...current, location: undefined }));
+            if (errors.location)
+              setErrors((current) => ({ ...current, location: undefined }));
           }}
         />
         {errors.location ? (
@@ -217,7 +243,9 @@ export function JobFormModal({
             <Select
               id={id("priority")}
               value={priority}
-              onChange={(event) => setPriority(event.target.value as JobPriority)}
+              onChange={(event) =>
+                setPriority(event.target.value as JobPriority)
+              }
             >
               {JOB_PRIORITIES.map((value) => (
                 <option key={value} value={value}>
@@ -233,6 +261,7 @@ export function JobFormModal({
             label="Start"
             htmlFor={id("start")}
             hint="Leave empty to keep the job unscheduled."
+            error={errors.schedule}
           >
             <Input
               id={id("start")}
@@ -240,7 +269,13 @@ export function JobFormModal({
               value={scheduledStart}
               onChange={(event) => {
                 setScheduledStart(event.target.value);
-                if (event.target.value && status === "UNSCHEDULED") setStatus("SCHEDULED");
+                if (event.target.value && status === "UNSCHEDULED")
+                  setStatus("SCHEDULED");
+                if (errors.schedule)
+                  setErrors((current) => ({
+                    ...current,
+                    schedule: undefined,
+                  }));
               }}
             />
           </Field>
@@ -261,15 +296,19 @@ export function JobFormModal({
           <Field label="Status" htmlFor={id("status")}>
             <Select
               id={id("status")}
-              value={scheduledStart ? status : "UNSCHEDULED"}
+              value={
+                scheduledStart ? status : canUnschedule ? "UNSCHEDULED" : status
+              }
               disabled={!scheduledStart}
               onChange={(event) => setStatus(event.target.value as JobStatus)}
             >
-              {JOB_STATUSES.filter((value) => value !== "UNSCHEDULED").map((value) => (
-                <option key={value} value={value}>
-                  {JOB_STATUS_META[value].label}
-                </option>
-              ))}
+              {JOB_STATUSES.filter((value) => value !== "UNSCHEDULED").map(
+                (value) => (
+                  <option key={value} value={value}>
+                    {JOB_STATUS_META[value].label}
+                  </option>
+                ),
+              )}
             </Select>
           </Field>
           <Field label="Tax rate (%)" htmlFor={id("tax")}>
@@ -315,13 +354,19 @@ export function JobFormModal({
               id={id("balance")}
               className="flex h-10 items-center rounded-input border border-border bg-surface-2/40 px-3 text-sm text-muted"
             >
-              <span className="num mr-1 text-fg">{money(subtotal, currency)}</span>
+              <span className="num mr-1 text-fg">
+                {money(subtotal, currency)}
+              </span>
               <span>subtotal before tax</span>
             </div>
           </Field>
         </div>
 
-        <LineItemsEditor lines={lines} onChange={setLines} currency={currency} />
+        <LineItemsEditor
+          lines={lines}
+          onChange={setLines}
+          currency={currency}
+        />
         <TotalsPreview lines={lines} taxRate={taxRate} currency={currency} />
 
         <Field label="Notes" htmlFor={id("notes")}>
@@ -337,8 +382,8 @@ export function JobFormModal({
 
         {job ? (
           <p className="text-xs text-muted">
-            Current total {formatMoney(job.total, currency)} · line items are re-priced on
-            save.
+            Current total {formatMoney(job.total, currency)} · line items are
+            re-priced on save.
           </p>
         ) : null}
       </form>

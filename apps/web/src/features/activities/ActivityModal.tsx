@@ -88,7 +88,11 @@ export function ActivityModal({ open, activity, onClose }: ActivityModalProps) {
     setType(activity?.type ?? "TASK");
     setTitle(activity?.title ?? "");
     setBody(activity?.body ?? "");
-    setDueAt(activity?.dueAt ? format(new Date(activity.dueAt), "yyyy-MM-dd'T'HH:mm") : "");
+    setDueAt(
+      activity?.dueAt
+        ? format(new Date(activity.dueAt), "yyyy-MM-dd'T'HH:mm")
+        : "",
+    );
     setCompanyId(activity?.company?.id ?? null);
     setContactId(activity?.contact?.id ?? null);
     setDealId(activity?.dealId ?? null);
@@ -141,12 +145,17 @@ export function ActivityModal({ open, activity, onClose }: ActivityModalProps) {
         await api.activities.create(payload);
       }
       toast.success(activity ? "Activity updated" : "Activity logged");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.activities.all });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.activities.all,
+      });
       await queryClient.invalidateQueries({ queryKey: ["insights"] });
       await queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
       onClose();
     } catch (cause) {
-      const message = messageFor(cause, "Could not save the activity. Try again.");
+      const message = messageFor(
+        cause,
+        "Could not save the activity. Try again.",
+      );
       setError(message);
       toast.error(message);
     } finally {
@@ -171,13 +180,22 @@ export function ActivityModal({ open, activity, onClose }: ActivityModalProps) {
           <Button variant="ghost" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
-          <Button type="submit" form="activity-form" variant="primary" loading={pending}>
+          <Button
+            type="submit"
+            form="activity-form"
+            variant="primary"
+            loading={pending}
+          >
             {activity ? "Save changes" : "Log activity"}
           </Button>
         </>
       }
     >
-      <form id="activity-form" className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+      <form
+        id="activity-form"
+        className="space-y-4"
+        onSubmit={(event) => void handleSubmit(event)}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Type" htmlFor="activity-type">
             <Select

@@ -85,8 +85,11 @@ export default function CompaniesPage() {
   const currentPage = companiesQuery.data?.meta.page ?? page;
   const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const rangeEnd = Math.min(currentPage * pageSize, total);
-  const selectedCompany = companies.find((company) => company.id === selectedId) ?? null;
-  const hasFilters = Boolean(search.trim() || industry || customerType || archive === "archived");
+  const selectedCompany =
+    companies.find((company) => company.id === selectedId) ?? null;
+  const hasFilters = Boolean(
+    search.trim() || industry || customerType || archive === "archived",
+  );
 
   function openCompany(id: string) {
     navigate(`/app/companies/${encodeURIComponent(id)}`);
@@ -164,10 +167,10 @@ export default function CompaniesPage() {
             <Select
               value={industry}
               onChange={(event) => setIndustry(toIndustry(event.target.value))}
-              aria-label="Filter by industry"
+              aria-label="Filter by vertical"
               className="sm:w-40"
             >
-              <option value="">All industries</option>
+              <option value="">All verticals</option>
               {INDUSTRIES.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -181,7 +184,9 @@ export default function CompaniesPage() {
                 { value: "archived", label: "Archived" },
               ]}
               value={archive}
-              onChange={(value) => setArchive(value === "archived" ? "archived" : "active")}
+              onChange={(value) =>
+                setArchive(value === "archived" ? "archived" : "active")
+              }
               className="border-0"
             />
             <p aria-live="polite" className="num shrink-0 text-xs text-muted">
@@ -203,7 +208,9 @@ export default function CompaniesPage() {
             <span className="flex size-11 items-center justify-center rounded-full border border-danger/30 bg-danger/10 text-danger">
               <AlertTriangle className="size-5" aria-hidden="true" />
             </span>
-            <p className="mt-3 text-sm font-medium text-fg">Could not load customers.</p>
+            <p className="mt-3 text-sm font-medium text-fg">
+              Could not load customers.
+            </p>
             <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
               {apiErrorMessage(companiesQuery.error)}
             </p>
@@ -219,7 +226,11 @@ export default function CompaniesPage() {
       ) : companies.length === 0 ? (
         <EmptyState
           icon={<Building2 />}
-          title={hasFilters ? "No customers match those filters." : "No customers yet."}
+          title={
+            hasFilters
+              ? "No customers match those filters."
+              : "No customers yet."
+          }
           description={
             hasFilters
               ? "Clear the filters or search for a different customer."
@@ -252,7 +263,7 @@ export default function CompaniesPage() {
                       Type
                     </th>
                     <th scope="col" className="label-micro px-4 py-3">
-                      Industry
+                      Vertical
                     </th>
                     <th scope="col" className="label-micro px-4 py-3">
                       Contacts
@@ -275,7 +286,9 @@ export default function CompaniesPage() {
                       tabIndex={0}
                       aria-label={`Open ${company.name}`}
                       onClick={() => openCompany(company.id)}
-                      onKeyDown={(event) => handleRowKeyDown(event, company.id, openCompany)}
+                      onKeyDown={(event) =>
+                        handleRowKeyDown(event, company.id, openCompany)
+                      }
                       className="cursor-pointer border-b border-border/70 transition-colors last:border-0 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <td className="px-4 py-3">
@@ -283,24 +296,36 @@ export default function CompaniesPage() {
                           <Avatar name={company.name} size="sm" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="truncate font-medium text-fg">{company.name}</p>
+                              <p className="truncate font-medium text-fg">
+                                {company.name}
+                              </p>
                               {company.archived ? (
                                 <Badge tone="warning">Archived</Badge>
                               ) : null}
                             </div>
                             <p className="truncate text-xs text-muted">
-                              {company.domain ?? "No domain"}
+                              {company.address ?? "No address on file"}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge tone={company.customerType === "COMMERCIAL" ? "accent" : "neutral"}>
+                        <Badge
+                          tone={
+                            company.customerType === "COMMERCIAL"
+                              ? "accent"
+                              : "neutral"
+                          }
+                        >
                           {CUSTOMER_TYPE_META[company.customerType].short}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-muted">{company.industry ?? "—"}</td>
-                      <td className="num px-4 py-3 text-fg">{company.contactCount}</td>
+                      <td className="px-4 py-3 text-muted">
+                        {company.industry ?? "—"}
+                      </td>
+                      <td className="num px-4 py-3 text-fg">
+                        {company.contactCount}
+                      </td>
                       <td className="num whitespace-nowrap px-4 py-3 text-fg">
                         {formatMoney(company.openPipelineValue, currency)}
                       </td>
@@ -337,14 +362,18 @@ export default function CompaniesPage() {
                   <Avatar name={company.name} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium text-fg">{company.name}</p>
-                      {company.archived ? <Badge tone="warning">Archived</Badge> : null}
+                      <p className="truncate font-medium text-fg">
+                        {company.name}
+                      </p>
+                      {company.archived ? (
+                        <Badge tone="warning">Archived</Badge>
+                      ) : null}
                     </div>
                     <p className="truncate text-xs text-muted">
-                      {company.domain ?? "No domain"}
+                      {company.address ?? "No address on file"}
                     </p>
                     <p className="mt-1 truncate text-xs text-muted">
-                      {company.industry ?? "No industry"}
+                      {company.industry ?? "No vertical"}
                     </p>
                   </div>
                 </div>
@@ -361,7 +390,9 @@ export default function CompaniesPage() {
                 <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
                   <div>
                     <dt className="label-micro">Contacts</dt>
-                    <dd className="num mt-0.5 text-fg">{company.contactCount}</dd>
+                    <dd className="num mt-0.5 text-fg">
+                      {company.contactCount}
+                    </dd>
                   </div>
                   <div>
                     <dt className="label-micro">Pipeline</dt>
@@ -400,7 +431,9 @@ export default function CompaniesPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
                 disabled={page >= totalPages}
                 aria-label="Next page"
               >
@@ -461,12 +494,20 @@ function CompanyTags({ tags }: { tags: string[] }) {
       {tags.slice(0, 2).map((tag) => (
         <Badge key={tag}>{tag}</Badge>
       ))}
-      {tags.length > 2 ? <Badge tone="neutral">+{tags.length - 2}</Badge> : null}
+      {tags.length > 2 ? (
+        <Badge tone="neutral">+{tags.length - 2}</Badge>
+      ) : null}
     </div>
   );
 }
 
-function OwnerCell({ name, avatarUrl }: { name?: string; avatarUrl?: string | null }) {
+function OwnerCell({
+  name,
+  avatarUrl,
+}: {
+  name?: string;
+  avatarUrl?: string | null;
+}) {
   if (!name) return <span className="text-muted">—</span>;
   return (
     <span className="flex items-center gap-2">
@@ -499,7 +540,10 @@ function ListSkeleton() {
       </div>
       <div className="space-y-3 md:hidden">
         {[0, 1, 2].map((row) => (
-          <div key={row} className="rounded-card border border-border bg-surface p-4">
+          <div
+            key={row}
+            className="rounded-card border border-border bg-surface p-4"
+          >
             <div className="flex items-center gap-3">
               <Skeleton className="size-10 rounded-full" />
               <div className="flex-1 space-y-2">

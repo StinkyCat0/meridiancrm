@@ -101,7 +101,10 @@ export function useDealActivities(dealId: string | null) {
 /** Company/contact options are only fetched while the deal form is open. */
 export function useDealLookups(enabled: boolean) {
   const companies = useQuery<Page<Company>>({
-    queryKey: queryKeys.companies.list({ pageSize: FORM_LOOKUP_LIMIT, archive: "active" }),
+    queryKey: queryKeys.companies.list({
+      pageSize: FORM_LOOKUP_LIMIT,
+      archive: "active",
+    }),
     queryFn: () =>
       api.companies.list({ pageSize: FORM_LOOKUP_LIMIT, archive: "active" }),
     enabled,
@@ -150,7 +153,7 @@ function withStage(deal: Deal, stage: Stage): Deal {
     pipelineId: stage.pipelineId,
     probability: stage.probability,
     stageChangedAt: now,
-    closedAt: stage.kind === "OPEN" ? null : deal.closedAt ?? now,
+    closedAt: stage.kind === "OPEN" ? null : (deal.closedAt ?? now),
     momentum: optimisticMomentum(deal, stage),
   };
 }
@@ -214,13 +217,22 @@ export function useMoveDealStage() {
       await client.cancelQueries({ queryKey: DEALS_LIST_PREFIX });
       await client.cancelQueries({ queryKey: queryKeys.deals.detail(deal.id) });
 
-      const lists = client.getQueriesData<Page<Deal>>({ queryKey: DEALS_LIST_PREFIX });
+      const lists = client.getQueriesData<Page<Deal>>({
+        queryKey: DEALS_LIST_PREFIX,
+      });
       const detail = client.getQueryData<Deal>(queryKeys.deals.detail(deal.id));
 
-      client.setQueriesData<Page<Deal>>({ queryKey: DEALS_LIST_PREFIX }, (page) =>
-        page
-          ? { ...page, data: page.data.map((row) => (row.id === deal.id ? withStage(row, stage) : row)) }
-          : page,
+      client.setQueriesData<Page<Deal>>(
+        { queryKey: DEALS_LIST_PREFIX },
+        (page) =>
+          page
+            ? {
+                ...page,
+                data: page.data.map((row) =>
+                  row.id === deal.id ? withStage(row, stage) : row,
+                ),
+              }
+            : page,
       );
       client.setQueryData<Deal>(queryKeys.deals.detail(deal.id), (current) =>
         current ? withStage(current, stage) : current,

@@ -13,7 +13,14 @@ export function LogoMark({ className }: { className?: string }) {
       className={cn("shrink-0", className)}
     >
       <defs>
-        <linearGradient id={gradientId} x1="9" y1="32" x2="31" y2="8" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id={gradientId}
+          x1="9"
+          y1="32"
+          x2="31"
+          y2="8"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop stopColor="var(--color-accent)" />
           <stop offset="1" stopColor="var(--color-accent-2)" />
         </linearGradient>
@@ -43,7 +50,9 @@ export function LogoLockup({ className }: { className?: string }) {
         <LogoMark className="size-5" />
       </span>
       <span className="flex flex-col">
-        <span className="text-sm font-medium leading-none tracking-tight text-fg">Meridian</span>
+        <span className="text-sm font-medium leading-none tracking-tight text-fg">
+          Meridian
+        </span>
         <span className="label-micro mt-1 leading-none">CRM</span>
       </span>
     </span>

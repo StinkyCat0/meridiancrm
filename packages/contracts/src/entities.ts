@@ -6,11 +6,22 @@ import {
   INDUSTRIES,
   ROLES,
   STAGE_KINDS,
+  type BusinessType,
   type CustomerType,
 } from "./enums.js";
-import { emailSchema, idSchema, optionalDate, optionalText, optionalUrl } from "./common.js";
+import {
+  emailSchema,
+  idSchema,
+  optionalDate,
+  optionalText,
+  optionalUrl,
+  patchSchema,
+} from "./common.js";
 
-const tagsSchema = z.array(z.string().trim().min(1).max(30)).max(12).default([]);
+const tagsSchema = z
+  .array(z.string().trim().min(1).max(30))
+  .max(12)
+  .default([]);
 
 export interface PublicUser {
   id: string;
@@ -24,6 +35,11 @@ export interface WorkspaceSummary {
   name: string;
   slug: string;
   currency: string;
+  businessType: BusinessType;
+  timezone: string;
+  serviceArea: string | null;
+  depotLatitude: number | null;
+  depotLongitude: number | null;
   createdAt: string;
 }
 
@@ -195,7 +211,10 @@ const baseFields = {
 export const companyInputSchema = z.object({
   name: z.string().trim().min(1).max(160),
   customerType: z.enum(CUSTOMER_TYPES).default("COMMERCIAL"),
-  email: z.preprocess((v) => (v === "" ? null : v), emailSchema.nullable().optional()),
+  email: z.preprocess(
+    (v) => (v === "" ? null : v),
+    emailSchema.nullable().optional(),
+  ),
   domain: optionalText(200),
   industry: z.preprocess(
     (v) => (v === "" ? null : v),
@@ -208,35 +227,60 @@ export const companyInputSchema = z.object({
   notes: optionalText(5000),
   ...baseFields,
   archived: z.boolean().optional(),
-  ownerId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  ownerId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
+
+export const companyPatchSchema = patchSchema(companyInputSchema);
 
 export const contactInputSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
-  email: z.preprocess((v) => (v === "" ? null : v), emailSchema.nullable().optional()),
+  email: z.preprocess(
+    (v) => (v === "" ? null : v),
+    emailSchema.nullable().optional(),
+  ),
   phone: optionalText(40),
   title: optionalText(120),
-  companyId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  companyId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
   ...baseFields,
   archived: z.boolean().optional(),
-  ownerId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  ownerId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
+
+export const contactPatchSchema = patchSchema(contactInputSchema);
 
 export const dealInputSchema = z.object({
   title: z.string().trim().min(1).max(160),
   value: z.coerce.number().int().min(0).max(1_000_000_000),
   currency: z.enum(CURRENCIES).default("USD"),
   stageId: idSchema,
-  contactId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
-  companyId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  contactId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
+  companyId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
   expectedCloseDate: optionalDate,
   description: optionalText(5000),
   ...baseFields,
-  ownerId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  ownerId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
 
-export const dealPatchSchema = dealInputSchema.partial();
+export const dealPatchSchema = patchSchema(dealInputSchema);
 
 export const stageMoveSchema = z.object({
   stageId: idSchema,
@@ -248,12 +292,21 @@ export const activityInputSchema = z.object({
   body: optionalText(5000),
   dueAt: optionalDate,
   completedAt: optionalDate,
-  contactId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
-  companyId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
-  dealId: z.preprocess((v) => (v === "" ? null : v), idSchema.nullable().optional()),
+  contactId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
+  companyId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
+  dealId: z.preprocess(
+    (v) => (v === "" ? null : v),
+    idSchema.nullable().optional(),
+  ),
 });
 
-export const activityPatchSchema = activityInputSchema.partial();
+export const activityPatchSchema = patchSchema(activityInputSchema);
 
 export const stageInputSchema = z.object({
   name: z.string().trim().min(1).max(60),
@@ -262,7 +315,7 @@ export const stageInputSchema = z.object({
   targetDays: z.coerce.number().int().min(1).max(365).default(30),
 });
 
-export const stagePatchSchema = stageInputSchema.partial().omit({});
+export const stagePatchSchema = patchSchema(stageInputSchema);
 
 export const inviteInputSchema = z.object({
   email: emailSchema,

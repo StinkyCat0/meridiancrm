@@ -29,18 +29,22 @@ interface FormErrors {
   name?: string;
 }
 
-export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModalProps) {
+export function CompanyFormModal({
+  company,
+  onClose,
+  onSaved,
+}: CompanyFormModalProps) {
   const queryClient = useQueryClient();
   const formId = useId();
   const [name, setName] = useState(company?.name ?? "");
   const [customerType, setCustomerType] = useState<CustomerType>(
     company?.customerType ?? "RESIDENTIAL",
   );
-  const [domain, setDomain] = useState(company?.domain ?? "");
+  const [domain] = useState(company?.domain ?? "");
   const [industry, setIndustry] = useState<Industry | "">(
     toIndustry(company?.industry),
   );
-  const [size, setSize] = useState(company?.size ?? "");
+  const [size] = useState(company?.size ?? "");
   const [phone, setPhone] = useState(company?.phone ?? "");
   const [email, setEmail] = useState(company?.email ?? "");
   const [website, setWebsite] = useState(company?.website ?? "");
@@ -51,11 +55,22 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
 
   const save = useMutation({
     mutationFn: (input: CreateCompanyInput) =>
-      company ? api.companies.update(company.id, input) : api.companies.create(input),
+      company
+        ? api.companies.update(company.id, input)
+        : api.companies.create(input),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.companies.timeline(saved.id),
+      });
       void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.deals.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dispatch.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.ops.summary() });
       void queryClient.invalidateQueries({ queryKey: ["insights"] });
       toast.success(company ? "Customer updated" : "Customer created");
       onSaved(saved);
@@ -103,13 +118,23 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {company ? "Save customer" : "Create customer"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4"
+      >
         <Field label="Name" htmlFor={id("name")} required error={errors.name}>
           <Input
             id={id("name")}
@@ -126,11 +151,17 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Customer type" htmlFor={id("customerType")}>
+          <Field
+            label="Account type"
+            htmlFor={id("customerType")}
+            hint="Residential, commercial or property manager account."
+          >
             <Select
               id={id("customerType")}
               value={customerType}
-              onChange={(event) => setCustomerType(event.target.value as CustomerType)}
+              onChange={(event) =>
+                setCustomerType(event.target.value as CustomerType)
+              }
             >
               {CUSTOMER_TYPES.map((value) => (
                 <option key={value} value={value}>
@@ -139,13 +170,17 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
               ))}
             </Select>
           </Field>
-          <Field label="Industry" htmlFor={id("industry")}>
+          <Field
+            label="Vertical"
+            htmlFor={id("industry")}
+            hint="What kind of property or business is this?"
+          >
             <Select
               id={id("industry")}
               value={industry}
               onChange={(event) => setIndustry(toIndustry(event.target.value))}
             >
-              <option value="">No industry</option>
+              <option value="">No vertical</option>
               {INDUSTRIES.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -155,26 +190,10 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
           </Field>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Domain" htmlFor={id("domain")}>
-            <Input
-              id={id("domain")}
-              value={domain}
-              onChange={(event) => setDomain(event.target.value)}
-              maxLength={200}
-              placeholder="meridian.studio"
-            />
-          </Field>
-          <Field label="Size" htmlFor={id("size")}>
-            <Input
-              id={id("size")}
-              value={size}
-              onChange={(event) => setSize(event.target.value)}
-              maxLength={40}
-              placeholder="11–50"
-            />
-          </Field>
-        </div>
+        <p className="rounded-input border border-border bg-surface-2/60 px-3 py-2.5 text-xs leading-relaxed text-muted">
+          Every record is a residential, commercial or property manager account
+          — the board, route and billing all use that distinction.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Phone" htmlFor={id("phone")}>
@@ -200,7 +219,11 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Website" htmlFor={id("website")} hint="Include https://">
+          <Field
+            label="Website"
+            htmlFor={id("website")}
+            hint="Include https://"
+          >
             <Input
               id={id("website")}
               type="url"
@@ -221,7 +244,11 @@ export function CompanyFormModal({ company, onClose, onSaved }: CompanyFormModal
           </Field>
         </div>
 
-        <Field label="Tags" htmlFor={id("tags")} hint="Comma separated, up to 12 tags.">
+        <Field
+          label="Tags"
+          htmlFor={id("tags")}
+          hint="Comma separated, up to 12 tags."
+        >
           <Input
             id={id("tags")}
             value={tags}

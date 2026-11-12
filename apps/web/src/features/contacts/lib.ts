@@ -3,7 +3,9 @@ import type { Contact } from "@meridian/contracts";
 
 export const TAG_LIMIT = 12;
 
-export function contactName(contact: Pick<Contact, "firstName" | "lastName">): string {
+export function contactName(
+  contact: Pick<Contact, "firstName" | "lastName">,
+): string {
   return `${contact.firstName} ${contact.lastName}`.trim();
 }
 
@@ -21,7 +23,11 @@ export function tagsToInput(tags: string[]): string {
 }
 
 function validationDetails(details: unknown): string | null {
-  if (typeof details !== "object" || details === null || !("fieldErrors" in details)) {
+  if (
+    typeof details !== "object" ||
+    details === null ||
+    !("fieldErrors" in details)
+  ) {
     return null;
   }
   const fieldErrors: unknown = details.fieldErrors;

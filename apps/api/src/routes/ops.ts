@@ -8,16 +8,23 @@ import { jobInclude, toJob } from "./jobs.js";
 const DAY_MS = 86_400_000;
 
 function dayStart(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 function parseDay(value: string | undefined): Date {
   if (!value) return dayStart(new Date());
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) throw badRequest("Use a YYYY-MM-DD date");
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  const date = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+  );
   // Date.UTC rolls invalid values over (Feb 31 becomes Mar 3), so round-trip.
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
     throw badRequest("Use a valid calendar date");
   }
   return date;
@@ -40,8 +47,15 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
       const start = parseDay(query.date);
       const end = new Date(start.getTime() + DAY_MS);
       const now = new Date();
-      const weekEnd = new Date(Math.max(now.getTime(), start.getTime()) + 7 * DAY_MS);
-      const openStatuses = ["UNSCHEDULED", "SCHEDULED", "DISPATCHED", "IN_PROGRESS"];
+      const weekEnd = new Date(
+        Math.max(now.getTime(), start.getTime()) + 7 * DAY_MS,
+      );
+      const openStatuses = [
+        "UNSCHEDULED",
+        "SCHEDULED",
+        "DISPATCHED",
+        "IN_PROGRESS",
+      ];
 
       const workspace = await prisma.workspace.findUnique({
         where: { id: auth.workspaceId },
@@ -72,7 +86,10 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
           orderBy: [{ scheduledStart: "asc" }, { createdAt: "desc" }],
         }),
         prisma.job.findMany({
-          where: { workspaceId: auth.workspaceId, completedAt: { gte: start, lt: end } },
+          where: {
+            workspaceId: auth.workspaceId,
+            completedAt: { gte: start, lt: end },
+          },
           select: { total: true },
         }),
         prisma.job.count({
@@ -107,7 +124,9 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
           },
           select: { amount: true, amountPaid: true, dueAt: true },
         }),
-        prisma.company.count({ where: { workspaceId: auth.workspaceId, archived: false } }),
+        prisma.company.count({
+          where: { workspaceId: auth.workspaceId, archived: false },
+        }),
         prisma.job.count({
           where: {
             workspaceId: auth.workspaceId,
@@ -120,7 +139,10 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
           select: { value: true },
         }),
         prisma.estimate.findMany({
-          where: { workspaceId: auth.workspaceId, status: { in: ["DRAFT", "SENT"] } },
+          where: {
+            workspaceId: auth.workspaceId,
+            status: { in: ["DRAFT", "SENT"] },
+          },
           select: { total: true },
         }),
         prisma.job.findMany({
@@ -136,11 +158,13 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
       ]);
 
       const outstanding = openInvoices.reduce(
-        (sum, invoice) => sum + Math.max(0, invoice.amount - invoice.amountPaid),
+        (sum, invoice) =>
+          sum + Math.max(0, invoice.amount - invoice.amountPaid),
         0,
       );
       const overdueInvoices = openInvoices.filter(
-        (invoice) => invoice.dueAt !== null && invoice.dueAt.getTime() < now.getTime(),
+        (invoice) =>
+          invoice.dueAt !== null && invoice.dueAt.getTime() < now.getTime(),
       ).length;
 
       const today = todayRows.map(toJob);
@@ -161,7 +185,10 @@ export async function opsRoutes(app: FastifyInstance): Promise<void> {
         recurringJobs,
         pipelineValue: openDeals.reduce((sum, deal) => sum + deal.value, 0),
         openEstimates: openEstimates.length,
-        openEstimateValue: openEstimates.reduce((sum, estimate) => sum + estimate.total, 0),
+        openEstimateValue: openEstimates.reduce(
+          (sum, estimate) => sum + estimate.total,
+          0,
+        ),
         today,
         upcoming,
         currency: workspace.currency,

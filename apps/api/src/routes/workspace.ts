@@ -29,15 +29,30 @@ import {
 } from "../lib/http.js";
 import { prisma } from "../lib/db.js";
 
-type UserRecord = { id: string; name: string; email: string; avatarUrl: string | null };
+type UserRecord = {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+};
 type WorkspaceRecord = {
   id: string;
   name: string;
   slug: string;
   currency: string;
+  businessType: string;
+  timezone: string;
+  serviceArea: string | null;
+  depotLatitude: number | null;
+  depotLongitude: number | null;
   createdAt: Date;
 };
-type MembershipRecord = { id: string; role: string; createdAt: Date; user: UserRecord };
+type MembershipRecord = {
+  id: string;
+  role: string;
+  createdAt: Date;
+  user: UserRecord;
+};
 type InviteRecord = {
   id: string;
   email: string;
@@ -51,7 +66,12 @@ type InviteRecord = {
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function toPublicUser(user: UserRecord): PublicUser {
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 function toWorkspaceSummary(workspace: WorkspaceRecord): WorkspaceSummary {
@@ -60,6 +80,11 @@ function toWorkspaceSummary(workspace: WorkspaceRecord): WorkspaceSummary {
     name: workspace.name,
     slug: workspace.slug,
     currency: workspace.currency,
+    businessType: workspace.businessType as WorkspaceSummary["businessType"],
+    timezone: workspace.timezone,
+    serviceArea: workspace.serviceArea,
+    depotLatitude: workspace.depotLatitude,
+    depotLongitude: workspace.depotLongitude,
     createdAt: workspace.createdAt.toISOString(),
   };
 }
@@ -98,7 +123,9 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const auth = getAuth(request);
-      const workspace = await prisma.workspace.findUnique({ where: { id: auth.workspaceId } });
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: auth.workspaceId },
+      });
       if (!workspace) throw notFound("Workspace");
       return reply.status(200).send(toWorkspaceSummary(workspace));
     },
@@ -124,6 +151,19 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
         data: {
           ...(body.name !== undefined ? { name: body.name } : {}),
           ...(body.currency !== undefined ? { currency: body.currency } : {}),
+          ...(body.businessType !== undefined
+            ? { businessType: body.businessType }
+            : {}),
+          ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
+          ...(body.serviceArea !== undefined
+            ? { serviceArea: body.serviceArea ?? null }
+            : {}),
+          ...(body.depotLatitude !== undefined
+            ? { depotLatitude: body.depotLatitude }
+            : {}),
+          ...(body.depotLongitude !== undefined
+            ? { depotLongitude: body.depotLongitude }
+            : {}),
         },
       });
 
@@ -180,9 +220,12 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
       await requireRole(request, "ADMIN");
       const { id } = request.params as { id: string };
 
-      const requestedRole = (request.body as { role?: unknown } | undefined)?.role;
+      const requestedRole = (request.body as { role?: unknown } | undefined)
+        ?.role;
       if (requestedRole === "OWNER") {
-        throw conflict("Ownership transfer is not available here. Promote and demote separately.");
+        throw conflict(
+          "Ownership transfer is not available here. Promote and demote separately.",
+        );
       }
       const body = parseOrThrow(memberPatchSchema, request.body);
 
@@ -201,7 +244,9 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
             where: { workspaceId: auth.workspaceId, role: "OWNER" },
           });
           if (owners <= 1) {
-            throw conflict("You are the last owner. Promote someone else before changing your role.");
+            throw conflict(
+              "You are the last owner. Promote someone else before changing your role.",
+            );
           }
         }
 
@@ -216,7 +261,9 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
             where: { workspaceId: auth.workspaceId, role: "OWNER" },
           });
           if (owners === 0) {
-            throw conflict("You are the last owner. Promote someone else before changing your role.");
+            throw conflict(
+              "You are the last owner. Promote someone else before changing your role.",
+            );
           }
         }
 
@@ -265,7 +312,8 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
           throw badRequest("You cannot remove yourself from the workspace");
         }
         if (membership.role === "OWNER") {
-          if (auth.role !== "OWNER") throw forbidden("Only an owner can remove an owner");
+          if (auth.role !== "OWNER")
+            throw forbidden("Only an owner can remove an owner");
           const owners = await tx.membership.count({
             where: { workspaceId: auth.workspaceId, role: "OWNER" },
           });
@@ -281,7 +329,11 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
           if (owners === 0) throw conflict("You cannot remove the last owner");
         }
 
-        return { id: membership.id, userId: membership.userId, role: membership.role };
+        return {
+          id: membership.id,
+          userId: membership.userId,
+          role: membership.role,
+        };
       });
 
       await audit({
@@ -339,13 +391,19 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
         where: { workspaceId: auth.workspaceId, user: { email: body.email } },
         select: { id: true },
       });
-      if (alreadyMember) throw conflict("That person is already a member of this workspace");
+      if (alreadyMember)
+        throw conflict("That person is already a member of this workspace");
 
       const token = randomBytes(32).toString("base64url");
       const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
 
       const invite = await prisma.invite.upsert({
-        where: { workspaceId_email: { workspaceId: auth.workspaceId, email: body.email } },
+        where: {
+          workspaceId_email: {
+            workspaceId: auth.workspaceId,
+            email: body.email,
+          },
+        },
         create: {
           workspaceId: auth.workspaceId,
           email: body.email,
@@ -430,12 +488,20 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       await requireRole(request, "ADMIN");
-      const query = parseOrThrow(paginationSchema, request.query) as PaginationQuery;
+      const query = parseOrThrow(
+        paginationSchema,
+        request.query,
+      ) as PaginationQuery;
 
       const term = query.q ? likeTerm(query.q) : null;
-      const where: Prisma.AuditLogWhereInput = { workspaceId: auth.workspaceId };
+      const where: Prisma.AuditLogWhereInput = {
+        workspaceId: auth.workspaceId,
+      };
       if (term) {
-        where.OR = [{ action: { contains: term } }, { entityType: { contains: term } }];
+        where.OR = [
+          { action: { contains: term } },
+          { entityType: { contains: term } },
+        ];
       }
 
       const [total, rows] = await Promise.all([
@@ -454,7 +520,11 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
         if (row.metadata) {
           try {
             const parsed: unknown = JSON.parse(row.metadata);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            if (
+              parsed &&
+              typeof parsed === "object" &&
+              !Array.isArray(parsed)
+            ) {
               metadata = parsed as Record<string, unknown>;
             }
           } catch {
@@ -480,4 +550,3 @@ export async function workspaceRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 }
-

@@ -50,7 +50,9 @@ export function UserMenu({ compact = false, placement = "up" }: UserMenuProps) {
     try {
       await logout();
     } catch {
-      toast.error("The server session could not be closed. You have been signed out locally.");
+      toast.error(
+        "The server session could not be closed. You have been signed out locally.",
+      );
     } finally {
       setSigningOut(false);
       setOpen(false);
@@ -79,8 +81,12 @@ export function UserMenu({ compact = false, placement = "up" }: UserMenuProps) {
         {!compact ? (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-medium text-fg">{name}</span>
-              <span className="block truncate text-[11px] text-muted">{user?.email}</span>
+              <span className="block truncate text-xs font-medium text-fg">
+                {name}
+              </span>
+              <span className="block truncate text-[11px] text-muted">
+                {user?.email}
+              </span>
             </span>
             <ChevronDown className="size-3.5 text-muted" aria-hidden="true" />
           </>
@@ -93,7 +99,9 @@ export function UserMenu({ compact = false, placement = "up" }: UserMenuProps) {
           aria-label="Account"
           className={cn(
             "absolute z-40 w-60 overflow-hidden rounded-card border border-border bg-surface p-1.5 shadow-panel",
-            placement === "up" ? "bottom-full left-0 mb-2" : "right-0 top-full mt-2",
+            placement === "up"
+              ? "bottom-full left-0 mb-2"
+              : "right-0 top-full mt-2",
           )}
         >
           <div className="px-2.5 py-2">
@@ -130,7 +138,10 @@ export function UserMenu({ compact = false, placement = "up" }: UserMenuProps) {
           <button
             type="button"
             role="menuitem"
-            className={cn(menuItemClasses, "text-danger hover:bg-danger/10 hover:text-danger")}
+            className={cn(
+              menuItemClasses,
+              "text-danger hover:bg-danger/10 hover:text-danger",
+            )}
             onClick={() => void handleSignOut()}
             disabled={signingOut}
           >

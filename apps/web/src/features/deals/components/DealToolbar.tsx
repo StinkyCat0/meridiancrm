@@ -87,7 +87,9 @@ export function DealToolbar({
 
           <Select
             value={status}
-            onChange={(event) => onStatusChange(event.target.value as DealStatusFilter)}
+            onChange={(event) =>
+              onStatusChange(event.target.value as DealStatusFilter)
+            }
             aria-label="Filter by status"
             className="min-w-[calc(50%_-_0.25rem)] flex-1 sm:w-[140px] sm:flex-none"
           >

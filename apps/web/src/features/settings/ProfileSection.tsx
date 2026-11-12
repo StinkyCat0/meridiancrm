@@ -68,7 +68,9 @@ export function ProfileSection() {
       });
       await refreshMe();
       await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.workspace.members });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.workspace.members,
+      });
       await queryClient.invalidateQueries({ queryKey: ["workspace", "audit"] });
       toast.success("Profile updated");
     } catch (cause) {
@@ -139,12 +141,23 @@ export function ProfileSection() {
           </div>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={(event) => void handleProfileSubmit(event)}>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => void handleProfileSubmit(event)}
+          >
             <div className="flex items-center gap-3">
-              <Avatar name={name || user?.name || "Unassigned"} src={avatarUrl || null} size="lg" />
+              <Avatar
+                name={name || user?.name || "Unassigned"}
+                src={avatarUrl || null}
+                size="lg"
+              />
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-fg">{name || "Your name"}</p>
-                <p className="truncate text-xs text-muted">{user?.email ?? "—"}</p>
+                <p className="truncate text-sm font-medium text-fg">
+                  {name || "Your name"}
+                </p>
+                <p className="truncate text-xs text-muted">
+                  {user?.email ?? "—"}
+                </p>
               </div>
             </div>
 
@@ -157,7 +170,11 @@ export function ProfileSection() {
               />
             </Field>
 
-            <Field label="Avatar URL" htmlFor="profile-avatar" hint="Optional. Use a full URL.">
+            <Field
+              label="Avatar URL"
+              htmlFor="profile-avatar"
+              hint="Optional. Use a full URL."
+            >
               <Input
                 id="profile-avatar"
                 type="url"
@@ -168,8 +185,17 @@ export function ProfileSection() {
               />
             </Field>
 
-            <Field label="Email" htmlFor="profile-email" hint="Email cannot be changed here.">
-              <Input id="profile-email" value={user?.email ?? ""} readOnly className="opacity-60" />
+            <Field
+              label="Email"
+              htmlFor="profile-email"
+              hint="Email cannot be changed here."
+            >
+              <Input
+                id="profile-email"
+                value={user?.email ?? ""}
+                readOnly
+                className="opacity-60"
+              />
             </Field>
 
             {profileError ? (
@@ -196,8 +222,15 @@ export function ProfileSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={(event) => void handlePasswordSubmit(event)}>
-              <Field label="Current password" htmlFor="password-current" required>
+            <form
+              className="space-y-4"
+              onSubmit={(event) => void handlePasswordSubmit(event)}
+            >
+              <Field
+                label="Current password"
+                htmlFor="password-current"
+                required
+              >
                 <Input
                   id="password-current"
                   type="password"
@@ -206,7 +239,12 @@ export function ProfileSection() {
                   onChange={(event) => setCurrentPassword(event.target.value)}
                 />
               </Field>
-              <Field label="New password" htmlFor="password-new" required hint="10+ characters with a letter and a number.">
+              <Field
+                label="New password"
+                htmlFor="password-new"
+                required
+                hint="10+ characters with a letter and a number."
+              >
                 <Input
                   id="password-new"
                   type="password"
@@ -215,7 +253,11 @@ export function ProfileSection() {
                   onChange={(event) => setNewPassword(event.target.value)}
                 />
               </Field>
-              <Field label="Confirm new password" htmlFor="password-confirm" required>
+              <Field
+                label="Confirm new password"
+                htmlFor="password-confirm"
+                required
+              >
                 <Input
                   id="password-confirm"
                   type="password"
@@ -231,7 +273,11 @@ export function ProfileSection() {
                 </p>
               ) : null}
 
-              <Button type="submit" variant="secondary" loading={savingPassword}>
+              <Button
+                type="submit"
+                variant="secondary"
+                loading={savingPassword}
+              >
                 <ShieldCheck className="size-4" aria-hidden="true" />
                 Change password
               </Button>
@@ -249,7 +295,11 @@ export function ProfileSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <Button variant="danger" loading={signingOut} onClick={() => void handleSignOut()}>
+            <Button
+              variant="danger"
+              loading={signingOut}
+              onClick={() => void handleSignOut()}
+            >
               <LogOut className="size-4" aria-hidden="true" />
               Sign out
             </Button>

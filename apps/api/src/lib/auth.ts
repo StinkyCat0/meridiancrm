@@ -1,4 +1,10 @@
-import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from "node:crypto";
+import {
+  createHash,
+  randomBytes,
+  scrypt as scryptCallback,
+  timingSafeEqual,
+  type ScryptOptions,
+} from "node:crypto";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { SignJWT, jwtVerify } from "jose";
 import { atLeast, type Role } from "@meridian/contracts";
@@ -9,7 +15,12 @@ import { forbidden, unauthorized } from "./http.js";
 const SCRYPT_KEYLEN = 64;
 const SCRYPT_N = 32_768;
 
-const scrypt = (password: string, salt: string, keylen: number, options: ScryptOptions) => {
+const scrypt = (
+  password: string,
+  salt: string,
+  keylen: number,
+  options: ScryptOptions,
+) => {
   const { promise, resolve, reject } = Promise.withResolvers<Buffer>();
   scryptCallback(password, salt, keylen, options, (error, derived) => {
     if (error) reject(error);
@@ -36,11 +47,17 @@ const secretKey = new TextEncoder().encode(config.jwtSecret);
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString("hex");
-  const derived = (await scrypt(password, salt, SCRYPT_KEYLEN, { N: SCRYPT_N, maxmem: 96 * 1024 * 1024 })) as Buffer;
+  const derived = (await scrypt(password, salt, SCRYPT_KEYLEN, {
+    N: SCRYPT_N,
+    maxmem: 96 * 1024 * 1024,
+  })) as Buffer;
   return `scrypt$${SCRYPT_N}$${salt}$${derived.toString("hex")}`;
 }
 
-export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  stored: string,
+): Promise<boolean> {
   const [scheme, nRaw, salt, hash] = stored.split("$");
   if (scheme !== "scrypt" || !nRaw || !salt || !hash) return false;
   const expected = Buffer.from(hash, "hex");
@@ -48,7 +65,9 @@ export async function verifyPassword(password: string, stored: string): Promise<
     N: Number.parseInt(nRaw, 10),
     maxmem: 96 * 1024 * 1024,
   })) as Buffer;
-  return derived.length === expected.length && timingSafeEqual(derived, expected);
+  return (
+    derived.length === expected.length && timingSafeEqual(derived, expected)
+  );
 }
 
 export interface SessionTokens {
@@ -89,13 +108,16 @@ export function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export async function verifyAccessToken(token: string): Promise<{ userId: string; workspaceId: string }> {
+export async function verifyAccessToken(
+  token: string,
+): Promise<{ userId: string; workspaceId: string }> {
   try {
     const { payload } = await jwtVerify(token, secretKey, {
       issuer: config.jwtIssuer,
       audience: "meridian-web",
     });
-    if (!payload.sub || typeof payload.wid !== "string") throw new Error("malformed token");
+    if (!payload.sub || typeof payload.wid !== "string")
+      throw new Error("malformed token");
     return { userId: payload.sub, workspaceId: payload.wid };
   } catch {
     throw unauthorized("Your session has expired. Sign in again.");
@@ -112,7 +134,8 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
     where: { userId_workspaceId: { userId, workspaceId } },
     include: { user: true },
   });
-  if (!membership) throw forbidden("You no longer have access to this workspace");
+  if (!membership)
+    throw forbidden("You no longer have access to this workspace");
 
   request.auth = {
     userId,
@@ -123,7 +146,10 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
   };
 }
 
-export async function requireRole(request: FastifyRequest, minimum: Role): Promise<void> {
+export async function requireRole(
+  request: FastifyRequest,
+  minimum: Role,
+): Promise<void> {
   if (!request.auth) await authenticate(request);
   if (!request.auth || !atLeast(request.auth.role, minimum)) {
     throw forbidden("Your role does not allow this action");

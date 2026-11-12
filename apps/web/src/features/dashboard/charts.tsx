@@ -73,15 +73,23 @@ export function RevenueChartCard({ summary }: { summary: DashboardSummary }) {
       <CardHeader className="pb-2">
         <div>
           <CardTitle>Revenue momentum</CardTitle>
-          <CardDescription className="mt-1">Won revenue against newly created deals.</CardDescription>
+          <CardDescription className="mt-1">
+            Won revenue against newly created deals.
+          </CardDescription>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-[10px] font-medium text-muted">
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-accent"
+              aria-hidden="true"
+            />
             Won
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-accent-2" aria-hidden="true" />
+            <span
+              className="size-2 rounded-full bg-accent-2"
+              aria-hidden="true"
+            />
             Created
           </span>
         </div>
@@ -89,11 +97,28 @@ export function RevenueChartCard({ summary }: { summary: DashboardSummary }) {
       <CardContent className="pt-2">
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
+            <AreaChart
+              data={data}
+              margin={{ top: 8, right: 4, bottom: 0, left: 0 }}
+            >
               <defs>
-                <linearGradient id="won-revenue-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.32} />
-                  <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0} />
+                <linearGradient
+                  id="won-revenue-fill"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-accent)"
+                    stopOpacity={0.32}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-accent)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke={gridStroke} vertical={false} />
@@ -110,7 +135,9 @@ export function RevenueChartCard({ summary }: { summary: DashboardSummary }) {
                 tickLine={false}
                 axisLine={false}
                 width={48}
-                tickFormatter={(value: number) => compactMoney(value, summary.currency)}
+                tickFormatter={(value: number) =>
+                  compactMoney(value, summary.currency)
+                }
               />
               <YAxis
                 yAxisId="count"
@@ -125,13 +152,23 @@ export function RevenueChartCard({ summary }: { summary: DashboardSummary }) {
                 contentStyle={tooltipContentStyle}
                 labelStyle={tooltipLabelStyle}
                 itemStyle={tooltipItemStyle}
-                cursor={{ stroke: "rgba(255,255,255,0.16)", strokeDasharray: "4 4" }}
+                cursor={{
+                  stroke: "rgba(255,255,255,0.16)",
+                  strokeDasharray: "4 4",
+                }}
                 formatter={(value, name) => {
-                  const numeric = typeof value === "number" ? value : Number(value);
+                  const numeric =
+                    typeof value === "number" ? value : Number(value);
                   if (name === "Won revenue") {
-                    return [formatMoney(numeric, summary.currency), "Won revenue"];
+                    return [
+                      formatMoney(numeric, summary.currency),
+                      "Won revenue",
+                    ];
                   }
-                  return [`${numeric} ${numeric === 1 ? "deal" : "deals"}`, "New deals"];
+                  return [
+                    `${numeric} ${numeric === 1 ? "deal" : "deals"}`,
+                    "New deals",
+                  ];
                 }}
               />
               <Area
@@ -175,7 +212,9 @@ export function StageChartCard({ summary }: { summary: DashboardSummary }) {
       <CardHeader className="pb-2">
         <div>
           <CardTitle>Stage distribution</CardTitle>
-          <CardDescription className="mt-1">Open pipeline value by stage.</CardDescription>
+          <CardDescription className="mt-1">
+            Open pipeline value by stage.
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="pt-2">
@@ -197,7 +236,9 @@ export function StageChartCard({ summary }: { summary: DashboardSummary }) {
                   tick={axisTick}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value: number) => compactMoney(value, summary.currency)}
+                  tickFormatter={(value: number) =>
+                    compactMoney(value, summary.currency)
+                  }
                 />
                 <YAxis
                   type="category"
@@ -213,11 +254,19 @@ export function StageChartCard({ summary }: { summary: DashboardSummary }) {
                   itemStyle={tooltipItemStyle}
                   cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   formatter={(value) => [
-                    formatMoney(typeof value === "number" ? value : Number(value), summary.currency),
+                    formatMoney(
+                      typeof value === "number" ? value : Number(value),
+                      summary.currency,
+                    ),
                     "Pipeline value",
                   ]}
                 />
-                <Bar dataKey="value" name="Pipeline value" barSize={14} radius={[0, 6, 6, 0]}>
+                <Bar
+                  dataKey="value"
+                  name="Pipeline value"
+                  barSize={14}
+                  radius={[0, 6, 6, 0]}
+                >
                   {data.map((stage) => (
                     <Cell key={stage.stageId} fill={STAGE_COLORS[stage.kind]} />
                   ))}
@@ -260,7 +309,9 @@ export function ActivityMixCard({ summary }: { summary: DashboardSummary }) {
       </CardHeader>
       <CardContent className="space-y-3">
         {total === 0 ? (
-          <p className="py-4 text-center text-sm text-muted">No activity logged in the last 30 days.</p>
+          <p className="py-4 text-center text-sm text-muted">
+            No activity logged in the last 30 days.
+          </p>
         ) : (
           summary.activityMix.map((item) => {
             const Icon = MIX_ICONS[item.type];
@@ -270,14 +321,21 @@ export function ActivityMixCard({ summary }: { summary: DashboardSummary }) {
                 <div className="flex items-center justify-between gap-3 text-xs">
                   <span className="inline-flex min-w-0 items-center gap-2 text-muted">
                     <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                    <span className="truncate">{ACTIVITY_TYPE_META[item.type].label}</span>
+                    <span className="truncate">
+                      {ACTIVITY_TYPE_META[item.type].label}
+                    </span>
                   </span>
                   <span className="num shrink-0 text-fg">{item.count}</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                   <div
-                    className={cn("h-full rounded-full transition-[width] duration-300", MIX_BAR_COLORS[item.type])}
-                    style={{ width: `${Math.max(item.count > 0 ? 4 : 0, share)}%` }}
+                    className={cn(
+                      "h-full rounded-full transition-[width] duration-300",
+                      MIX_BAR_COLORS[item.type],
+                    )}
+                    style={{
+                      width: `${Math.max(item.count > 0 ? 4 : 0, share)}%`,
+                    }}
                   />
                 </div>
               </div>

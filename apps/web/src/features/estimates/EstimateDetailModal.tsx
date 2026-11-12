@@ -60,7 +60,8 @@ export function EstimateDetailModal({
   }
 
   const setStatus = useMutation({
-    mutationFn: (status: Estimate["status"]) => api.estimates.setStatus(estimateId, status),
+    mutationFn: (status: Estimate["status"]) =>
+      api.estimates.setStatus(estimateId, status),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.estimates.detail(estimateId), updated);
       invalidate();
@@ -72,7 +73,9 @@ export function EstimateDetailModal({
   const convert = useMutation({
     mutationFn: () =>
       api.estimates.convert(estimateId, {
-        scheduledStart: scheduledStart ? new Date(scheduledStart).toISOString() : null,
+        scheduledStart: scheduledStart
+          ? new Date(scheduledStart).toISOString()
+          : null,
         assigneeId: assigneeId || null,
       }),
     onSuccess: (job) => {
@@ -107,7 +110,9 @@ export function EstimateDetailModal({
       size="lg"
       title={estimate ? `${estimate.number} · ${estimate.title}` : "Estimate"}
       description={
-        estimate ? `${estimate.customer.name} · ${estimate.location.label}` : "Estimate details"
+        estimate
+          ? `${estimate.customer.name} · ${estimate.location.label}`
+          : "Estimate details"
       }
     >
       {estimateQuery.isPending ? (
@@ -118,8 +123,12 @@ export function EstimateDetailModal({
         </div>
       ) : estimateQuery.isError ? (
         <div className="rounded-card border border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm font-medium text-danger">Could not load this estimate.</p>
-          <p className="mt-1 text-sm text-muted">{apiErrorMessage(estimateQuery.error)}</p>
+          <p className="text-sm font-medium text-danger">
+            Could not load this estimate.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {apiErrorMessage(estimateQuery.error)}
+          </p>
           <Button
             size="sm"
             variant="secondary"
@@ -142,12 +151,20 @@ export function EstimateDetailModal({
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={() => onEdit(estimate)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onEdit(estimate)}
+              >
                 <Pencil className="size-3.5" aria-hidden="true" />
                 Edit
               </Button>
               {atLeast(role ?? "MEMBER", "ADMIN") ? (
-                <Button size="sm" variant="danger" onClick={() => setConfirmDelete(true)}>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setConfirmDelete(true)}
+                >
                   <Trash2 className="size-3.5" aria-hidden="true" />
                   Delete
                 </Button>
@@ -157,7 +174,9 @@ export function EstimateDetailModal({
 
           {confirmDelete ? (
             <div className="rounded-card border border-danger/30 bg-danger/5 p-4">
-              <p className="text-sm font-medium text-fg">Delete this estimate?</p>
+              <p className="text-sm font-medium text-fg">
+                Delete this estimate?
+              </p>
               <p className="mt-1 text-xs text-muted">This cannot be undone.</p>
               <div className="mt-3 flex gap-2">
                 <Button
@@ -183,7 +202,9 @@ export function EstimateDetailModal({
           <dl className="grid gap-4 rounded-card border border-border bg-surface-2/40 p-4 sm:grid-cols-2">
             <div className="min-w-0">
               <dt className="label-micro">Customer</dt>
-              <dd className="mt-1 truncate text-sm text-fg">{estimate.customer.name}</dd>
+              <dd className="mt-1 truncate text-sm text-fg">
+                {estimate.customer.name}
+              </dd>
             </div>
             <div className="min-w-0">
               <dt className="label-micro">Location</dt>
@@ -200,7 +221,9 @@ export function EstimateDetailModal({
             <div className="min-w-0">
               <dt className="label-micro">Expires</dt>
               <dd className="mt-1 text-sm text-fg">
-                {estimate.expiresAt ? formatDate(estimate.expiresAt) : "No expiry"}
+                {estimate.expiresAt
+                  ? formatDate(estimate.expiresAt)
+                  : "No expiry"}
               </dd>
             </div>
           </dl>
@@ -216,14 +239,21 @@ export function EstimateDetailModal({
             ) : (
               <ul className="divide-y divide-border overflow-hidden rounded-card border border-border text-sm">
                 {estimate.lineItems.map((line) => (
-                  <li key={line.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                  <li
+                    key={line.id}
+                    className="flex items-start justify-between gap-3 px-4 py-3"
+                  >
                     <span className="min-w-0">
-                      <span className="block truncate text-fg">{line.name}</span>
+                      <span className="block truncate text-fg">
+                        {line.name}
+                      </span>
                       <span className="num text-xs text-muted">
                         {line.quantity} × {money(line.unitPrice, currency)}
                       </span>
                     </span>
-                    <span className="num shrink-0 text-fg">{money(line.total, currency)}</span>
+                    <span className="num shrink-0 text-fg">
+                      {money(line.total, currency)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -231,11 +261,17 @@ export function EstimateDetailModal({
             <dl className="mt-3 grid gap-2 rounded-card border border-border bg-surface-2/40 p-4 text-sm sm:grid-cols-3">
               <div>
                 <dt className="label-micro">Subtotal</dt>
-                <dd className="num mt-1 text-fg">{money(estimate.subtotal, currency)}</dd>
+                <dd className="num mt-1 text-fg">
+                  {money(estimate.subtotal, currency)}
+                </dd>
               </div>
               <div>
-                <dt className="label-micro">Tax ({estimate.taxRate.toFixed(2)}%)</dt>
-                <dd className="num mt-1 text-fg">{money(estimate.tax, currency)}</dd>
+                <dt className="label-micro">
+                  Tax ({estimate.taxRate.toFixed(2)}%)
+                </dt>
+                <dd className="num mt-1 text-fg">
+                  {money(estimate.tax, currency)}
+                </dd>
               </div>
               <div>
                 <dt className="label-micro">Total</dt>
@@ -273,7 +309,8 @@ export function EstimateDetailModal({
                   Approve
                 </Button>
               ) : null}
-              {estimate.status !== "DECLINED" && estimate.status !== "APPROVED" ? (
+              {estimate.status !== "DECLINED" &&
+              estimate.status !== "APPROVED" ? (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -298,7 +335,9 @@ export function EstimateDetailModal({
 
             {converting && canConvert ? (
               <div className="mt-3 rounded-card border border-border bg-surface-2/40 p-4">
-                <p className="text-sm font-medium text-fg">Schedule the converted job</p>
+                <p className="text-sm font-medium text-fg">
+                  Schedule the converted job
+                </p>
                 <p className="mt-1 text-xs text-muted">
                   Optional — the job can also be scheduled later.
                 </p>
@@ -308,7 +347,9 @@ export function EstimateDetailModal({
                     <input
                       type="datetime-local"
                       value={scheduledStart}
-                      onChange={(event) => setScheduledStart(event.target.value)}
+                      onChange={(event) =>
+                        setScheduledStart(event.target.value)
+                      }
                       className="h-10 w-full rounded-input border border-border bg-surface px-3 text-sm text-fg outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     />
                   </label>
@@ -356,7 +397,9 @@ export function EstimateDetailModal({
                   className="font-medium text-accent hover:text-accent/80"
                   onClick={() => {
                     onClose();
-                    navigate(`/app/schedule?job=${encodeURIComponent(estimate.jobId ?? "")}`);
+                    navigate(
+                      `/app/schedule?job=${encodeURIComponent(estimate.jobId ?? "")}`,
+                    );
                   }}
                 >
                   Open job

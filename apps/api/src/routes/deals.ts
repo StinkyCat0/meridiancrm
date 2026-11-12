@@ -17,7 +17,15 @@ import type { Prisma } from "@prisma/client";
 import { authenticate, getAuth, requireRole } from "../lib/auth.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/db.js";
-import { badRequest, likeTerm, notFound, pageMeta, parseOrThrow, parseTags, serializeTags } from "../lib/http.js";
+import {
+  badRequest,
+  likeTerm,
+  notFound,
+  pageMeta,
+  parseOrThrow,
+  parseTags,
+  serializeTags,
+} from "../lib/http.js";
 
 const DAY_MS = 86_400_000;
 
@@ -30,12 +38,16 @@ const userSelect = {
 
 export const dealInclude = {
   stage: true,
-  contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+  contact: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
   company: { select: { id: true, name: true, domain: true } },
   owner: { select: userSelect },
 } satisfies Prisma.DealInclude;
 
-export type DealWithRelations = Prisma.DealGetPayload<{ include: typeof dealInclude }>;
+export type DealWithRelations = Prisma.DealGetPayload<{
+  include: typeof dealInclude;
+}>;
 
 type StageShape = {
   id: string;
@@ -65,7 +77,12 @@ const idParamsSchema = z.object({ id: idSchema });
 
 function toPublicUser(user: PublicUser | null | undefined): PublicUser | null {
   if (!user) return null;
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 export function toStage(stage: StageShape): Stage {
@@ -91,13 +108,18 @@ export async function loadDealActivityStats(
 ): Promise<Map<string, DealActivityStats>> {
   const stats = new Map<string, DealActivityStats>();
   if (!dealIds.length) return stats;
-  for (const id of dealIds) stats.set(id, { count30d: 0, lastActivityAt: null });
+  for (const id of dealIds)
+    stats.set(id, { count30d: 0, lastActivityAt: null });
 
   const cutoff = new Date(now.getTime() - 30 * DAY_MS);
   const [recent, overall] = await Promise.all([
     prisma.activity.groupBy({
       by: ["dealId"],
-      where: { workspaceId, dealId: { in: dealIds }, createdAt: { gte: cutoff } },
+      where: {
+        workspaceId,
+        dealId: { in: dealIds },
+        createdAt: { gte: cutoff },
+      },
       _count: { _all: true },
     }),
     prisma.activity.groupBy({
@@ -132,7 +154,10 @@ export function toDeal(
   );
   const lastActivityAt = stats?.lastActivityAt ?? null;
   const lastActivityDaysAgo = lastActivityAt
-    ? Math.max(0, Math.floor((now.getTime() - lastActivityAt.getTime()) / DAY_MS))
+    ? Math.max(
+        0,
+        Math.floor((now.getTime() - lastActivityAt.getTime()) / DAY_MS),
+      )
     : null;
 
   const momentum = computeMomentum({
@@ -163,10 +188,16 @@ export function toDeal(
         }
       : null,
     company: row.company
-      ? { id: row.company.id, name: row.company.name, domain: row.company.domain }
+      ? {
+          id: row.company.id,
+          name: row.company.name,
+          domain: row.company.domain,
+        }
       : null,
     owner: toPublicUser(row.owner),
-    expectedCloseDate: row.expectedCloseDate ? row.expectedCloseDate.toISOString() : null,
+    expectedCloseDate: row.expectedCloseDate
+      ? row.expectedCloseDate.toISOString()
+      : null,
     closedAt: row.closedAt ? row.closedAt.toISOString() : null,
     stageChangedAt: row.stageChangedAt.toISOString(),
     description: row.description,
@@ -195,7 +226,10 @@ function dealOrder(
   }
 }
 
-async function requireStage(workspaceId: string, stageId: string): Promise<StageShape> {
+async function requireStage(
+  workspaceId: string,
+  stageId: string,
+): Promise<StageShape> {
   const stage = await prisma.stage.findFirst({
     where: { id: stageId, pipeline: { workspaceId } },
     select: {
@@ -212,7 +246,10 @@ async function requireStage(workspaceId: string, stageId: string): Promise<Stage
   return stage;
 }
 
-async function requireContact(workspaceId: string, contactId: string): Promise<void> {
+async function requireContact(
+  workspaceId: string,
+  contactId: string,
+): Promise<void> {
   const contact = await prisma.contact.findFirst({
     where: { id: contactId, workspaceId },
     select: { id: true },
@@ -220,7 +257,10 @@ async function requireContact(workspaceId: string, contactId: string): Promise<v
   if (!contact) throw notFound("Contact");
 }
 
-async function requireCompany(workspaceId: string, companyId: string): Promise<void> {
+async function requireCompany(
+  workspaceId: string,
+  companyId: string,
+): Promise<void> {
   const company = await prisma.company.findFirst({
     where: { id: companyId, workspaceId },
     select: { id: true },
@@ -243,13 +283,22 @@ async function resolveOwnerId(
   return requested;
 }
 
-async function loadDeal(workspaceId: string, id: string): Promise<DealWithRelations> {
-  const row = await prisma.deal.findFirst({ where: { id, workspaceId }, include: dealInclude });
+async function loadDeal(
+  workspaceId: string,
+  id: string,
+): Promise<DealWithRelations> {
+  const row = await prisma.deal.findFirst({
+    where: { id, workspaceId },
+    include: dealInclude,
+  });
   if (!row) throw notFound("Deal");
   return row;
 }
 
-async function serializeDeal(workspaceId: string, row: DealWithRelations): Promise<Deal> {
+async function serializeDeal(
+  workspaceId: string,
+  row: DealWithRelations,
+): Promise<Deal> {
   const stats = await loadDealActivityStats(workspaceId, [row.id]);
   return toDeal(row, stats.get(row.id));
 }
@@ -322,9 +371,15 @@ export async function dealRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const input = parseOrThrow(dealInputSchema, request.body);
       const stage = await requireStage(auth.workspaceId, input.stageId);
-      if (input.contactId) await requireContact(auth.workspaceId, input.contactId);
-      if (input.companyId) await requireCompany(auth.workspaceId, input.companyId);
-      const ownerId = await resolveOwnerId(auth.workspaceId, input.ownerId, auth.userId);
+      if (input.contactId)
+        await requireContact(auth.workspaceId, input.contactId);
+      if (input.companyId)
+        await requireCompany(auth.workspaceId, input.companyId);
+      const ownerId = await resolveOwnerId(
+        auth.workspaceId,
+        input.ownerId,
+        auth.userId,
+      );
       const now = new Date();
 
       const created = await prisma.$transaction(async (tx) => {
@@ -385,7 +440,10 @@ export async function dealRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
-      return serializeDeal(auth.workspaceId, await loadDeal(auth.workspaceId, id));
+      return serializeDeal(
+        auth.workspaceId,
+        await loadDeal(auth.workspaceId, id),
+      );
     },
   );
 
@@ -422,20 +480,28 @@ export async function dealRoutes(app: FastifyInstance): Promise<void> {
       if (input.value !== undefined) data.value = input.value;
       if (input.currency !== undefined) data.currency = input.currency;
       if (input.contactId !== undefined) {
-        if (input.contactId) await requireContact(auth.workspaceId, input.contactId);
+        if (input.contactId)
+          await requireContact(auth.workspaceId, input.contactId);
         data.contactId = input.contactId ?? null;
       }
       if (input.companyId !== undefined) {
-        if (input.companyId) await requireCompany(auth.workspaceId, input.companyId);
+        if (input.companyId)
+          await requireCompany(auth.workspaceId, input.companyId);
         data.companyId = input.companyId ?? null;
       }
       if (input.expectedCloseDate !== undefined) {
         data.expectedCloseDate = input.expectedCloseDate ?? null;
       }
-      if (input.description !== undefined) data.description = input.description ?? null;
-      if (input.tags !== undefined) data.tags = serializeTags(input.tags) ?? "[]";
+      if (input.description !== undefined)
+        data.description = input.description ?? null;
+      if (input.tags !== undefined)
+        data.tags = serializeTags(input.tags) ?? "[]";
       if (input.ownerId !== undefined) {
-        data.ownerId = await resolveOwnerId(auth.workspaceId, input.ownerId, auth.userId);
+        data.ownerId = await resolveOwnerId(
+          auth.workspaceId,
+          input.ownerId,
+          auth.userId,
+        );
       }
 
       const applied = await prisma.$transaction(async (tx) => {

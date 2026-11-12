@@ -25,21 +25,26 @@ import {
 } from "../lib/http.js";
 import {
   allocateNumber,
+  applyServiceCosts,
   bpsToTaxRate,
   contactSummarySelect,
+  createWithDocumentNumber,
   customerSelect,
-  locationSummarySelect,
   loadAssignee,
+  locationSummarySelect,
   priceLineItems,
   taxRateToBps,
   toContactSummary,
   toCustomerSummary,
   toLineItem,
+  toLineItemCreate,
   toLocationSummary,
   totalsFor,
   validateAssociation,
   validateServiceIds,
 } from "../lib/service-ops.js";
+import { assertNoScheduleConflict } from "../lib/schedule.js";
+import { emitEvent } from "../lib/events.js";
 import { jobInclude, toJob } from "./jobs.js";
 
 export const estimateInclude = {
@@ -50,7 +55,9 @@ export const estimateInclude = {
   lineItems: { orderBy: { position: "asc" } },
 } satisfies Prisma.EstimateInclude;
 
-type EstimateRow = Prisma.EstimateGetPayload<{ include: typeof estimateInclude }>;
+type EstimateRow = Prisma.EstimateGetPayload<{
+  include: typeof estimateInclude;
+}>;
 
 export function toEstimate(row: EstimateRow): Estimate {
   return {
@@ -84,7 +91,10 @@ const listQuerySchema = paginationSchema.extend({
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(64) });
 
-async function loadEstimateRow(workspaceId: string, id: string): Promise<EstimateRow> {
+async function loadEstimateRow(
+  workspaceId: string,
+  id: string,
+): Promise<EstimateRow> {
   const row = await prisma.estimate.findFirst({
     where: { id, workspaceId },
     include: estimateInclude,
@@ -93,14 +103,12 @@ async function loadEstimateRow(workspaceId: string, id: string): Promise<Estimat
   return row;
 }
 
-async function nextEstimateNumber(workspaceId: string): Promise<string> {
-  return allocateNumber("EST", async (candidate) =>
-    Boolean(
-      await prisma.estimate.findUnique({
-        where: { workspaceId_number: { workspaceId, number: candidate } },
-      }),
-    ),
-  );
+function quoteEvent(
+  status: EstimateStatus,
+): "QUOTE_SENT" | "QUOTE_APPROVED" | null {
+  if (status === "SENT") return "QUOTE_SENT";
+  if (status === "APPROVED") return "QUOTE_APPROVED";
+  return null;
 }
 
 export async function estimateRoutes(app: FastifyInstance): Promise<void> {
@@ -133,8 +141,10 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
           : {}),
       };
 
-      const orderBy: Prisma.EstimateOrderByWithRelationInput =
-        query.sort === "total" ? { total: query.order } : { updatedAt: query.order };
+      const orderBy: Prisma.EstimateOrderByWithRelationInput[] =
+        query.sort === "total"
+          ? [{ total: query.order }, { id: "asc" }]
+          : [{ updatedAt: query.order }, { id: "asc" }];
 
       const [total, rows] = await Promise.all([
         prisma.estimate.count({ where }),
@@ -167,34 +177,47 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const input = parseOrThrow(estimateInputSchema, request.body);
-      await validateAssociation(auth.workspaceId, input.customerId, input.locationId, input.contactId);
+      await validateAssociation(
+        auth.workspaceId,
+        input.customerId,
+        input.locationId,
+        input.contactId,
+      );
       await validateServiceIds(auth.workspaceId, input.lineItems);
 
-      const { lines, subtotal } = priceLineItems(input.lineItems);
-      const totals = totalsFor(subtotal, taxRateToBps(input.taxRate));
-      const number = await nextEstimateNumber(auth.workspaceId);
+      const priced = priceLineItems(
+        await applyServiceCosts(auth.workspaceId, input.lineItems),
+      );
+      const totals = totalsFor(priced.subtotal, taxRateToBps(input.taxRate));
 
-      const created = await prisma.estimate.create({
-        data: {
-          workspaceId: auth.workspaceId,
-          number,
-          title: input.title,
-          status: input.status,
-          customerId: input.customerId,
-          locationId: input.locationId,
-          contactId: input.contactId ?? null,
-          ownerId: auth.userId,
-          issuedAt: input.issuedAt ?? (input.status === "DRAFT" ? null : new Date()),
-          expiresAt: input.expiresAt ?? null,
-          taxRate: taxRateToBps(input.taxRate),
-          subtotal: totals.subtotal,
-          tax: totals.tax,
-          total: totals.total,
-          notes: input.notes ?? null,
-          lineItems: { create: lines },
-        },
-        include: estimateInclude,
-      });
+      const created = await createWithDocumentNumber(
+        auth.workspaceId,
+        "EST",
+        async (tx, number) =>
+          tx.estimate.create({
+            data: {
+              workspaceId: auth.workspaceId,
+              number,
+              title: input.title,
+              status: input.status,
+              customerId: input.customerId,
+              locationId: input.locationId,
+              contactId: input.contactId ?? null,
+              ownerId: auth.userId,
+              issuedAt:
+                input.issuedAt ??
+                (input.status === "DRAFT" ? null : new Date()),
+              expiresAt: input.expiresAt ?? null,
+              taxRate: taxRateToBps(input.taxRate),
+              subtotal: totals.subtotal,
+              tax: totals.tax,
+              total: totals.total,
+              notes: input.notes ?? null,
+              lineItems: { create: toLineItemCreate(priced.lines) },
+            },
+            include: estimateInclude,
+          }),
+      );
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -213,7 +236,11 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
     "/estimates/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["estimates"], summary: "Fetch an estimate", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["estimates"],
+        summary: "Fetch an estimate",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
@@ -226,18 +253,27 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
     "/estimates/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["estimates"], summary: "Update an estimate", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["estimates"],
+        summary: "Update an estimate",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request) => {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadEstimateRow(auth.workspaceId, id);
-      if (existing.jobId) throw conflict("This estimate has already been converted to a job");
+      if (existing.jobId)
+        throw conflict("This estimate has already been converted to a job");
       const input = parseOrThrow(estimatePatchSchema, request.body);
 
       const customerId = input.customerId ?? existing.customerId;
       const locationId = input.locationId ?? existing.locationId;
-      if (input.customerId !== undefined || input.locationId !== undefined || input.contactId !== undefined) {
+      if (
+        input.customerId !== undefined ||
+        input.locationId !== undefined ||
+        input.contactId !== undefined
+      ) {
         await validateAssociation(
           auth.workspaceId,
           customerId,
@@ -253,26 +289,43 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
       if (input.title !== undefined) data.title = input.title;
       if (input.status !== undefined) {
         data.status = input.status;
-        if (input.status !== "DRAFT" && !existing.issuedAt) data.issuedAt = new Date();
+        if (input.status !== "DRAFT" && !existing.issuedAt)
+          data.issuedAt = new Date();
       }
       if (input.customerId !== undefined) data.customerId = input.customerId;
       if (input.locationId !== undefined) data.locationId = input.locationId;
-      if (input.contactId !== undefined) data.contactId = input.contactId ?? null;
+      if (input.contactId !== undefined)
+        data.contactId = input.contactId ?? null;
       if (input.issuedAt !== undefined) data.issuedAt = input.issuedAt ?? null;
-      if (input.expiresAt !== undefined) data.expiresAt = input.expiresAt ?? null;
+      if (input.expiresAt !== undefined)
+        data.expiresAt = input.expiresAt ?? null;
       if (input.notes !== undefined) data.notes = input.notes ?? null;
 
-      const taxRate = input.taxRate !== undefined ? taxRateToBps(input.taxRate) : existing.taxRate;
+      const taxRate =
+        input.taxRate !== undefined
+          ? taxRateToBps(input.taxRate)
+          : existing.taxRate;
       if (input.taxRate !== undefined) data.taxRate = taxRate;
+
+      const pricedLines =
+        input.lineItems !== undefined
+          ? priceLineItems(
+              await applyServiceCosts(auth.workspaceId, input.lineItems),
+            )
+          : null;
 
       const updated = await prisma.$transaction(async (tx) => {
         let subtotal = existing.subtotal;
-        if (input.lineItems !== undefined) {
-          const priced = priceLineItems(input.lineItems);
-          subtotal = priced.subtotal;
-          await tx.estimateLineItem.deleteMany({ where: { estimateId: existing.id } });
+        if (pricedLines) {
+          subtotal = pricedLines.subtotal;
+          await tx.estimateLineItem.deleteMany({
+            where: { estimateId: existing.id },
+          });
           await tx.estimateLineItem.createMany({
-            data: priced.lines.map((line) => ({ ...line, estimateId: existing.id })),
+            data: pricedLines.lines.map((line) => ({
+              ...line,
+              estimateId: existing.id,
+            })),
           });
         }
         if (input.lineItems !== undefined || input.taxRate !== undefined) {
@@ -281,7 +334,11 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
           data.tax = totals.tax;
           data.total = totals.total;
         }
-        return tx.estimate.update({ where: { id: existing.id }, data, include: estimateInclude });
+        return tx.estimate.update({
+          where: { id: existing.id },
+          data,
+          include: estimateInclude,
+        });
       });
 
       await audit({
@@ -291,6 +348,22 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
         entityType: "estimate",
         entityId: updated.id,
       });
+
+      const changedTo =
+        input.status && input.status !== existing.status ? input.status : null;
+      const eventType = changedTo ? quoteEvent(changedTo) : null;
+      if (eventType) {
+        await emitEvent({
+          workspaceId: auth.workspaceId,
+          type: eventType,
+          entityType: "estimate",
+          entityId: updated.id,
+          actorId: auth.userId,
+          customerId: updated.customerId,
+          estimateId: updated.id,
+          payload: { number: updated.number, status: updated.status },
+        });
+      }
 
       return toEstimate(updated);
     },
@@ -316,7 +389,9 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
         where: { id: existing.id },
         data: {
           status: input.status,
-          ...(input.status !== "DRAFT" && !existing.issuedAt ? { issuedAt: new Date() } : {}),
+          ...(input.status !== "DRAFT" && !existing.issuedAt
+            ? { issuedAt: new Date() }
+            : {}),
         },
         include: estimateInclude,
       });
@@ -329,6 +404,21 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
         entityId: updated.id,
         metadata: { from: existing.status, to: input.status },
       });
+
+      const eventType =
+        input.status !== existing.status ? quoteEvent(input.status) : null;
+      if (eventType) {
+        await emitEvent({
+          workspaceId: auth.workspaceId,
+          type: eventType,
+          entityType: "estimate",
+          entityId: updated.id,
+          actorId: auth.userId,
+          customerId: updated.customerId,
+          estimateId: updated.id,
+          payload: { number: updated.number, status: updated.status },
+        });
+      }
 
       return toEstimate(updated);
     },
@@ -350,20 +440,20 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
       const existing = await loadEstimateRow(auth.workspaceId, id);
       const input = parseOrThrow(estimateConvertSchema, request.body ?? {});
 
-      if (existing.jobId) throw conflict(`This estimate is already on ${existing.job?.number ?? "a job"}`);
+      if (existing.jobId)
+        throw conflict(
+          `This estimate is already on ${existing.job?.number ?? "a job"}`,
+        );
       if (existing.status !== "SENT" && existing.status !== "APPROVED") {
-        throw badRequest("Only sent or approved estimates can be converted to jobs");
+        throw badRequest(
+          "Only sent or approved estimates can be converted to jobs",
+        );
       }
-      if (input.assigneeId) await loadAssignee(auth.workspaceId, input.assigneeId);
+      if (input.assigneeId)
+        await loadAssignee(auth.workspaceId, input.assigneeId);
 
       const start = input.scheduledStart ?? null;
-      const number = await allocateNumber("JOB", async (candidate) =>
-        Boolean(
-          await prisma.job.findUnique({
-            where: { workspaceId_number: { workspaceId: auth.workspaceId, number: candidate } },
-          }),
-        ),
-      );
+      const end = start ? new Date(start.getTime() + 60 * 60_000) : null;
 
       const job = await prisma.$transaction(async (tx) => {
         // Claim the estimate inside the transaction so concurrent converts cannot both create a job.
@@ -380,6 +470,16 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
           throw conflict("This estimate has already been converted to a job");
         }
 
+        if (start) {
+          await assertNoScheduleConflict(tx, {
+            workspaceId: auth.workspaceId,
+            assigneeId: input.assigneeId ?? null,
+            start,
+            end,
+          });
+        }
+
+        const number = await allocateNumber(tx, auth.workspaceId, "JOB");
         const created = await tx.job.create({
           data: {
             workspaceId: auth.workspaceId,
@@ -393,9 +493,7 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
             contactId: existing.contactId,
             assigneeId: input.assigneeId ?? null,
             scheduledStart: start,
-            scheduledEnd: start
-              ? new Date(start.getTime() + 60 * 60_000)
-              : null,
+            scheduledEnd: end,
             durationMinutes: 60,
             taxRate: existing.taxRate,
             subtotal: existing.subtotal,
@@ -409,6 +507,7 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
                 name: line.name,
                 quantity: line.quantity,
                 unitPrice: line.unitPrice,
+                unitCost: line.unitCost,
                 total: line.total,
                 position: line.position,
               })),
@@ -432,6 +531,30 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
         metadata: { jobId: job.id, jobNumber: job.number },
       });
 
+      await emitEvent({
+        workspaceId: auth.workspaceId,
+        type: "JOB_CREATED",
+        entityType: "job",
+        entityId: job.id,
+        actorId: auth.userId,
+        customerId: job.customerId,
+        jobId: job.id,
+        payload: { number: job.number, title: job.title, status: job.status },
+      });
+      if (existing.status !== "APPROVED") {
+        await emitEvent({
+          workspaceId: auth.workspaceId,
+          type: "QUOTE_APPROVED",
+          entityType: "estimate",
+          entityId: existing.id,
+          actorId: auth.userId,
+          customerId: existing.customerId,
+          jobId: job.id,
+          estimateId: existing.id,
+          payload: { number: existing.number, status: "APPROVED" },
+        });
+      }
+
       return reply.status(201).send(toJob(job));
     },
   );
@@ -440,7 +563,11 @@ export async function estimateRoutes(app: FastifyInstance): Promise<void> {
     "/estimates/:id",
     {
       preHandler: authenticate,
-      schema: { tags: ["estimates"], summary: "Delete an estimate", security: [{ bearerAuth: [] }] },
+      schema: {
+        tags: ["estimates"],
+        summary: "Delete an estimate",
+        security: [{ bearerAuth: [] }],
+      },
     },
     async (request, reply) => {
       const auth = getAuth(request);

@@ -1,4 +1,8 @@
-import { ACTIVITY_TYPE_META, type ActivityType, type Deal } from "@meridian/contracts";
+import {
+  ACTIVITY_TYPE_META,
+  type ActivityType,
+  type Deal,
+} from "@meridian/contracts";
 import {
   Mail,
   Phone,
@@ -14,7 +18,11 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { cn, formatDate, relativeTime } from "../../../lib/utils";
-import { useCreateDealActivity, useDealActivities, useToggleActivity } from "../hooks";
+import {
+  useCreateDealActivity,
+  useDealActivities,
+  useToggleActivity,
+} from "../hooks";
 
 const ACTIVITY_ICONS: Record<ActivityType, LucideIcon> = {
   NOTE: StickyNote,
@@ -34,7 +42,9 @@ export function DealActivityFeed({ deal }: { deal: Deal }) {
   const [activityType, setActivityType] = useState<QuickType>("NOTE");
   const [quickTitle, setQuickTitle] = useState("");
 
-  const pendingTaskId = toggleActivity.isPending ? toggleActivity.variables?.activity.id : null;
+  const pendingTaskId = toggleActivity.isPending
+    ? toggleActivity.variables?.activity.id
+    : null;
   const rows = activities.data?.data ?? [];
 
   function handleQuickAdd(event: FormEvent<HTMLFormElement>) {
@@ -60,12 +70,18 @@ export function DealActivityFeed({ deal }: { deal: Deal }) {
           Activity
         </h3>
         {rows.length > 0 ? (
-          <span className="num text-[10px] text-muted">{rows.length} logged</span>
+          <span className="num text-[10px] text-muted">
+            {rows.length} logged
+          </span>
         ) : null}
       </div>
 
       <div className="mt-2 rounded-card border border-border bg-surface-2/40 p-3">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Activity type">
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="group"
+          aria-label="Activity type"
+        >
           {QUICK_TYPES.map((type) => (
             <Button
               key={type}
@@ -79,7 +95,10 @@ export function DealActivityFeed({ deal }: { deal: Deal }) {
             </Button>
           ))}
         </div>
-        <form onSubmit={handleQuickAdd} className="mt-2 flex items-center gap-2">
+        <form
+          onSubmit={handleQuickAdd}
+          className="mt-2 flex items-center gap-2"
+        >
           <Input
             value={quickTitle}
             onChange={(event) => setQuickTitle(event.target.value)}
@@ -94,7 +113,9 @@ export function DealActivityFeed({ deal }: { deal: Deal }) {
             loading={createActivity.isPending}
             disabled={!quickTitle.trim()}
           >
-            {createActivity.isPending ? null : <Plus className="size-4" aria-hidden="true" />}
+            {createActivity.isPending ? null : (
+              <Plus className="size-4" aria-hidden="true" />
+            )}
             <span className="sr-only">Add activity</span>
           </Button>
         </form>
@@ -160,14 +181,21 @@ export function DealActivityFeed({ deal }: { deal: Deal }) {
                   ) : null}
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted">
                     <span>{ACTIVITY_TYPE_META[activity.type].label}</span>
-                    {activity.dueAt ? <span>Due {formatDate(activity.dueAt)}</span> : null}
-                    {activity.owner ? <span>by {activity.owner.name}</span> : null}
+                    {activity.dueAt ? (
+                      <span>Due {formatDate(activity.dueAt)}</span>
+                    ) : null}
+                    {activity.owner ? (
+                      <span>by {activity.owner.name}</span>
+                    ) : null}
                     {activity.type === "TASK" ? (
                       <button
                         type="button"
                         disabled={pendingTaskId === activity.id}
                         onClick={() =>
-                          toggleActivity.mutate({ activity, completed: !completed })
+                          toggleActivity.mutate({
+                            activity,
+                            completed: !completed,
+                          })
                         }
                         aria-label={
                           completed

@@ -2,19 +2,21 @@ import { api, type Job } from "@meridian/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClock,
+  CalendarX,
   CheckCircle2,
   Copy,
   MapPin,
-  PauseCircle,
   Pencil,
   PlayCircle,
   Receipt,
   RotateCcw,
+  Truck,
   UserRound,
   XCircle,
+  type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -31,13 +33,80 @@ import {
   customerTypeLabel,
   money,
 } from "../operations/shared";
-import { RECURRENCE_LABEL } from "@meridian/contracts";
+import {
+  JOB_STATUS_TRANSITIONS,
+  RECURRENCE_LABEL,
+  type JobStatus,
+} from "@meridian/contracts";
 
 interface JobDetailModalProps {
   jobId: string;
   onClose: () => void;
   onEdit: (job: Job) => void;
   onDuplicated: (job: Job) => void;
+}
+
+interface StatusAction {
+  target: JobStatus;
+  label: string;
+  icon: LucideIcon;
+  variant: "primary" | "secondary";
+}
+
+function statusAction(
+  current: JobStatus,
+  target: JobStatus,
+): StatusAction | null {
+  switch (target) {
+    case "SCHEDULED":
+      if (current === "NO_SHOW") {
+        return {
+          target,
+          label: "Rebook",
+          icon: RotateCcw,
+          variant: "primary",
+        };
+      }
+      if (current === "DISPATCHED") {
+        return {
+          target,
+          label: "Back to scheduled",
+          icon: RotateCcw,
+          variant: "secondary",
+        };
+      }
+      return {
+        target,
+        label: "Schedule",
+        icon: CalendarClock,
+        variant: "primary",
+      };
+    case "DISPATCHED":
+      return { target, label: "Dispatch", icon: Truck, variant: "secondary" };
+    case "IN_PROGRESS":
+      return {
+        target,
+        label: "Start job",
+        icon: PlayCircle,
+        variant: "primary",
+      };
+    case "COMPLETED":
+      return {
+        target,
+        label: "Mark complete",
+        icon: CheckCircle2,
+        variant: "secondary",
+      };
+    case "NO_SHOW":
+      return {
+        target,
+        label: "Mark no-show",
+        icon: CalendarX,
+        variant: "secondary",
+      };
+    default:
+      return null;
+  }
 }
 
 export function JobDetailModal({
@@ -52,6 +121,9 @@ export function JobDetailModal({
   const currency = workspace?.currency ?? "USD";
   const [canceling, setCanceling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [invoicePage, setInvoicePage] = useState(1);
+
+  const INVOICE_PAGE_SIZE = 8;
 
   const jobQuery = useQuery({
     queryKey: queryKeys.jobs.detail(jobId),
@@ -60,19 +132,37 @@ export function JobDetailModal({
   });
 
   const estimatesQuery = useQuery({
-    queryKey: queryKeys.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 20 }),
-    queryFn: () => api.estimates.list({ customerId: jobQuery.data?.customer.id, pageSize: 20 }),
+    queryKey: queryKeys.estimates.list({
+      customerId: jobQuery.data?.customer.id,
+      pageSize: 50,
+    }),
+    queryFn: () =>
+      api.estimates.list({
+        customerId: jobQuery.data?.customer.id,
+        pageSize: 50,
+      }),
     enabled: Boolean(jobQuery.data?.customer.id),
   });
 
+  const invoiceListQuery = {
+    jobId,
+    page: invoicePage,
+    pageSize: INVOICE_PAGE_SIZE,
+  };
+
   const invoicesQuery = useQuery({
-    queryKey: queryKeys.invoices.list({ jobId, pageSize: 20 }),
-    queryFn: () => api.invoices.list({ jobId, pageSize: 20 }),
+    queryKey: queryKeys.invoices.list(invoiceListQuery),
+    queryFn: () => api.invoices.list(invoiceListQuery),
   });
 
   function invalidate(job: Job) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.detail(job.id) });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.jobs.detail(job.id),
+    });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.estimates.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.locations.all });
     void queryClient.invalidateQueries({ queryKey: ["ops"] });
     void queryClient.invalidateQueries({ queryKey: ["insights"] });
     void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
@@ -101,12 +191,47 @@ export function JobDetailModal({
   });
 
   const job = jobQuery.data;
+  const statusActions = job
+    ? JOB_STATUS_TRANSITIONS[job.status]
+        .filter(
+          (target) =>
+            target !== job.status &&
+            target !== "CANCELED" &&
+            // Unscheduling also clears the window; the edit form owns that.
+            target !== "UNSCHEDULED" &&
+            (target !== "SCHEDULED" || Boolean(job.scheduledStart)),
+        )
+        .map((target) => statusAction(job.status, target))
+        .filter((action): action is StatusAction => action !== null)
+    : [];
+  const canCancel = job
+    ? JOB_STATUS_TRANSITIONS[job.status].includes("CANCELED")
+    : false;
   const openInvoices = (invoicesQuery.data?.data ?? []).filter(
     (invoice) => invoice.status !== "VOID",
   );
   const linkedEstimates = (estimatesQuery.data?.data ?? []).filter(
     (estimate) => estimate.jobId === job?.id,
   );
+  const invoiceTotal = invoicesQuery.data?.meta.total ?? 0;
+  const invoiceTotalPages = invoicesQuery.data?.meta.totalPages ?? 1;
+  const invoicePageSize =
+    invoicesQuery.data?.meta.pageSize ?? INVOICE_PAGE_SIZE;
+  const invoiceCurrentPage = invoicesQuery.data?.meta.page ?? invoicePage;
+  const invoiceRangeStart =
+    invoiceTotal === 0 ? 0 : (invoiceCurrentPage - 1) * invoicePageSize + 1;
+  const invoiceRangeEnd = Math.min(
+    invoiceCurrentPage * invoicePageSize,
+    invoiceTotal,
+  );
+
+  useEffect(() => {
+    setInvoicePage(1);
+  }, [jobId]);
+
+  useEffect(() => {
+    if (invoicePage > invoiceTotalPages) setInvoicePage(invoiceTotalPages);
+  }, [invoicePage, invoiceTotalPages]);
 
   function createInvoice() {
     if (!job) return;
@@ -134,8 +259,12 @@ export function JobDetailModal({
         </div>
       ) : jobQuery.isError ? (
         <div className="rounded-card border border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm font-medium text-danger">Could not load this job.</p>
-          <p className="mt-1 text-sm text-muted">{apiErrorMessage(jobQuery.error)}</p>
+          <p className="text-sm font-medium text-danger">
+            Could not load this job.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {apiErrorMessage(jobQuery.error)}
+          </p>
           <Button
             size="sm"
             variant="secondary"
@@ -183,9 +312,14 @@ export function JobDetailModal({
             <div className="min-w-0 sm:col-span-2">
               <dt className="label-micro">Service location</dt>
               <dd className="mt-1 flex items-start gap-2 text-sm text-fg">
-                <MapPin className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+                <MapPin
+                  className="mt-0.5 size-4 shrink-0 text-muted"
+                  aria-hidden="true"
+                />
                 <span>
-                  <span className="block font-medium">{job.location.label}</span>
+                  <span className="block font-medium">
+                    {job.location.label}
+                  </span>
                   <span className="block text-muted">
                     {[
                       job.location.line1,
@@ -203,7 +337,9 @@ export function JobDetailModal({
               <dt className="label-micro">Customer</dt>
               <dd className="mt-1 flex items-center gap-2 text-sm text-fg">
                 <span className="truncate">{job.customer.name}</span>
-                <Badge tone="neutral">{customerTypeLabel(job.customer.customerType)}</Badge>
+                <Badge tone="neutral">
+                  {customerTypeLabel(job.customer.customerType)}
+                </Badge>
               </dd>
             </div>
             <div className="min-w-0">
@@ -221,18 +357,27 @@ export function JobDetailModal({
             <div className="min-w-0">
               <dt className="label-micro">Schedule</dt>
               <dd className="mt-1 flex items-center gap-2 text-sm text-fg">
-                <CalendarClock className="size-3.5 text-muted" aria-hidden="true" />
-                {job.scheduledStart ? formatDateTime(job.scheduledStart) : "Unscheduled"}
+                <CalendarClock
+                  className="size-3.5 text-muted"
+                  aria-hidden="true"
+                />
+                {job.scheduledStart
+                  ? formatDateTime(job.scheduledStart)
+                  : "Unscheduled"}
               </dd>
             </div>
             <div className="min-w-0">
               <dt className="label-micro">Duration</dt>
-              <dd className="num mt-1 text-sm text-fg">{job.durationMinutes} min</dd>
+              <dd className="num mt-1 text-sm text-fg">
+                {job.durationMinutes} min
+              </dd>
             </div>
             {job.recurrence ? (
               <div className="min-w-0">
                 <dt className="label-micro">Repeats</dt>
-                <dd className="mt-1 text-sm text-fg">{RECURRENCE_LABEL[job.recurrence]}</dd>
+                <dd className="mt-1 text-sm text-fg">
+                  {RECURRENCE_LABEL[job.recurrence]}
+                </dd>
               </div>
             ) : null}
             <div className="min-w-0">
@@ -246,54 +391,27 @@ export function JobDetailModal({
               Next step
             </h3>
             <div className="flex flex-wrap gap-2">
-              {job.status !== "IN_PROGRESS" &&
-              job.status !== "COMPLETED" &&
-              job.status !== "CANCELED" ? (
+              {statusActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={action.target}
+                    size="sm"
+                    variant={action.variant}
+                    onClick={() => setStatus.mutate({ status: action.target })}
+                    loading={setStatus.isPending}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                    {action.label}
+                  </Button>
+                );
+              })}
+              {canCancel ? (
                 <Button
                   size="sm"
-                  variant="primary"
-                  onClick={() => setStatus.mutate({ status: "IN_PROGRESS" })}
-                  loading={setStatus.isPending}
+                  variant="danger"
+                  onClick={() => setCanceling(true)}
                 >
-                  <PlayCircle className="size-4" aria-hidden="true" />
-                  Start job
-                </Button>
-              ) : null}
-              {job.status !== "COMPLETED" && job.status !== "CANCELED" ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setStatus.mutate({ status: "COMPLETED" })}
-                  loading={setStatus.isPending}
-                >
-                  <CheckCircle2 className="size-4" aria-hidden="true" />
-                  Mark complete
-                </Button>
-              ) : null}
-              {job.status === "COMPLETED" || job.status === "CANCELED" ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setStatus.mutate({ status: "SCHEDULED" })}
-                  loading={setStatus.isPending}
-                >
-                  <RotateCcw className="size-4" aria-hidden="true" />
-                  Reopen
-                </Button>
-              ) : null}
-              {job.status === "IN_PROGRESS" ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setStatus.mutate({ status: "SCHEDULED" })}
-                  loading={setStatus.isPending}
-                >
-                  <PauseCircle className="size-4" aria-hidden="true" />
-                  Back to scheduled
-                </Button>
-              ) : null}
-              {job.status !== "CANCELED" ? (
-                <Button size="sm" variant="danger" onClick={() => setCanceling(true)}>
                   <XCircle className="size-4" aria-hidden="true" />
                   Cancel
                 </Button>
@@ -357,14 +475,21 @@ export function JobDetailModal({
             ) : (
               <ul className="divide-y divide-border overflow-hidden rounded-card border border-border text-sm">
                 {job.lineItems.map((line) => (
-                  <li key={line.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                  <li
+                    key={line.id}
+                    className="flex items-start justify-between gap-3 px-4 py-3"
+                  >
                     <span className="min-w-0">
-                      <span className="block truncate text-fg">{line.name}</span>
+                      <span className="block truncate text-fg">
+                        {line.name}
+                      </span>
                       <span className="num text-xs text-muted">
                         {line.quantity} × {money(line.unitPrice, currency)}
                       </span>
                     </span>
-                    <span className="num shrink-0 text-fg">{money(line.total, currency)}</span>
+                    <span className="num shrink-0 text-fg">
+                      {money(line.total, currency)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -372,7 +497,9 @@ export function JobDetailModal({
             <dl className="mt-3 grid gap-2 rounded-card border border-border bg-surface-2/40 p-4 text-sm sm:grid-cols-3">
               <div>
                 <dt className="label-micro">Subtotal</dt>
-                <dd className="num mt-1 text-fg">{money(job.subtotal, currency)}</dd>
+                <dd className="num mt-1 text-fg">
+                  {money(job.subtotal, currency)}
+                </dd>
               </div>
               <div>
                 <dt className="label-micro">Tax ({job.taxRate.toFixed(2)}%)</dt>
@@ -380,14 +507,22 @@ export function JobDetailModal({
               </div>
               <div>
                 <dt className="label-micro">Total</dt>
-                <dd className="num mt-1 text-base text-fg">{money(job.total, currency)}</dd>
+                <dd className="num mt-1 text-base text-fg">
+                  {money(job.total, currency)}
+                </dd>
               </div>
             </dl>
           </section>
 
-          <section aria-labelledby="job-documents-heading" className="space-y-3">
+          <section
+            aria-labelledby="job-documents-heading"
+            className="space-y-3"
+          >
             <div className="flex items-center justify-between gap-3">
-              <h3 id="job-documents-heading" className="text-sm font-medium text-fg">
+              <h3
+                id="job-documents-heading"
+                className="text-sm font-medium text-fg"
+              >
                 Linked documents
               </h3>
               <Button size="sm" variant="secondary" onClick={createInvoice}>
@@ -397,47 +532,153 @@ export function JobDetailModal({
             </div>
             {invoicesQuery.isPending ? (
               <Skeleton className="h-12" />
-            ) : openInvoices.length === 0 ? (
+            ) : invoicesQuery.isError ? (
+              <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
+                <p className="font-medium text-danger">
+                  Could not load invoices.
+                </p>
+                <p className="mt-1 text-muted">
+                  {apiErrorMessage(invoicesQuery.error)}
+                </p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => void invoicesQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : invoiceTotal === 0 ? (
               <p className="rounded-card border border-dashed border-border px-4 py-4 text-sm text-muted">
                 No invoices on this job yet.
               </p>
             ) : (
-              <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
-                {openInvoices.map((invoice) => (
-                  <li key={invoice.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm text-fg">{invoice.number}</span>
-                      <span className="block truncate text-xs text-muted">
-                        Issued {formatDate(invoice.issuedAt)}
+              <>
+                <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+                  {openInvoices.map((invoice) => (
+                    <li
+                      key={invoice.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-fg">
+                          {invoice.number}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          Issued {formatDate(invoice.issuedAt)}
+                        </span>
                       </span>
+                      <span className="flex items-center gap-2">
+                        <InvoiceStatusBadge
+                          status={invoice.status}
+                          overdue={invoice.overdue}
+                        />
+                        <span className="num text-sm text-fg">
+                          {formatMoney(invoice.amount, currency)}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="num text-xs text-muted">
+                    Showing {invoiceRangeStart}–{invoiceRangeEnd} of{" "}
+                    {invoiceTotal}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        setInvoicePage((current) => Math.max(1, current - 1))
+                      }
+                      disabled={invoiceCurrentPage <= 1}
+                      aria-label="Previous invoice page"
+                    >
+                      Previous
+                    </Button>
+                    <span className="num text-xs text-muted">
+                      Page {invoiceCurrentPage} of {invoiceTotalPages}
                     </span>
-                    <span className="flex items-center gap-2">
-                      <InvoiceStatusBadge status={invoice.status} overdue={invoice.overdue} />
-                      <span className="num text-sm text-fg">{formatMoney(invoice.amount, currency)}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        setInvoicePage((current) =>
+                          Math.min(invoiceTotalPages, current + 1),
+                        )
+                      }
+                      disabled={invoiceCurrentPage >= invoiceTotalPages}
+                      aria-label="Next invoice page"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
-            {(linkedEstimates).length ? (
-              <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
-                {linkedEstimates.slice(0, 3).map((estimate) => (
-                  <li key={estimate.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm text-fg">
-                        {estimate.number} · {estimate.title}
+            {estimatesQuery.isError ? (
+              <div className="rounded-card border border-danger/30 bg-danger/5 p-4 text-sm">
+                <p className="font-medium text-danger">
+                  Could not load estimates.
+                </p>
+                <p className="mt-1 text-muted">
+                  {apiErrorMessage(estimatesQuery.error)}
+                </p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => void estimatesQuery.refetch()}
+                >
+                  Try again
+                </Button>
+              </div>
+            ) : linkedEstimates.length ? (
+              <div className="space-y-2">
+                <p className="num text-xs text-muted">
+                  Linked estimates · {linkedEstimates.length}
+                </p>
+                <ul className="divide-y divide-border overflow-hidden rounded-card border border-border">
+                  {linkedEstimates.map((estimate) => (
+                    <li
+                      key={estimate.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm text-fg">
+                          {estimate.number} · {estimate.title}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          Estimate
+                        </span>
                       </span>
-                      <span className="block truncate text-xs text-muted">Estimate</span>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <EstimateStatusBadge status={estimate.status} />
-                      <span className="num text-sm text-fg">
-                        {formatMoney(estimate.total, currency)}
+                      <span className="flex items-center gap-2">
+                        <EstimateStatusBadge status={estimate.status} />
+                        <span className="num text-sm text-fg">
+                          {formatMoney(estimate.total, currency)}
+                        </span>
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+                {estimatesQuery.data &&
+                estimatesQuery.data.meta.total > linkedEstimates.length ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="num text-xs text-muted">
+                      Showing {linkedEstimates.length} linked of{" "}
+                      {estimatesQuery.data.meta.total} customer estimates
+                    </p>
+                    <Link
+                      to="/app/estimates"
+                      className="text-xs font-medium text-accent transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      View estimates
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
           </section>
 

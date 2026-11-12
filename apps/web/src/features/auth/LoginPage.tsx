@@ -64,13 +64,19 @@ export default function LoginPage() {
     <AuthLayout>
       <div className="mb-8">
         <p className="label-micro">Welcome back</p>
-        <h1 className="mt-2 text-3xl font-light tracking-tight text-fg">Sign in</h1>
+        <h1 className="mt-2 text-3xl font-light tracking-tight text-fg">
+          Sign in
+        </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           Continue to your workspace.
         </p>
       </div>
 
-      <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
+      <form
+        className="space-y-4"
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+      >
         <Field label="Email" htmlFor="login-email">
           <Input
             id="login-email"
@@ -117,7 +123,9 @@ export default function LoginPage() {
       >
         <span className="min-w-0">
           <span className="label-micro">Demo access</span>
-          <span className="mt-1 block truncate text-xs font-medium text-fg">{DEMO_EMAIL}</span>
+          <span className="mt-1 block truncate text-xs font-medium text-fg">
+            {DEMO_EMAIL}
+          </span>
           <span className="block text-xs text-muted">{DEMO_PASSWORD}</span>
         </span>
         <span className="shrink-0 text-muted">

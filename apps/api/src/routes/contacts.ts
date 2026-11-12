@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   contactInputSchema,
+  contactPatchSchema,
   idSchema,
   paginationSchema,
   type Contact,
@@ -11,7 +12,15 @@ import type { Prisma } from "@prisma/client";
 import { authenticate, getAuth, requireRole } from "../lib/auth.js";
 import { audit } from "../lib/audit.js";
 import { prisma } from "../lib/db.js";
-import { badRequest, likeTerm, notFound, pageMeta, parseOrThrow, parseTags, serializeTags } from "../lib/http.js";
+import {
+  badRequest,
+  likeTerm,
+  notFound,
+  pageMeta,
+  parseOrThrow,
+  parseTags,
+  serializeTags,
+} from "../lib/http.js";
 
 const userSelect = {
   id: true,
@@ -40,10 +49,19 @@ const deleteQuerySchema = z.object({
 
 function toPublicUser(user: PublicUser | null | undefined): PublicUser | null {
   if (!user) return null;
-  return { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
-function toContact(row: ContactRow, lastActivityAt: Date | null, openDealCount: number): Contact {
+function toContact(
+  row: ContactRow,
+  lastActivityAt: Date | null,
+  openDealCount: number,
+): Contact {
   return {
     id: row.id,
     firstName: row.firstName,
@@ -52,7 +70,11 @@ function toContact(row: ContactRow, lastActivityAt: Date | null, openDealCount: 
     phone: row.phone,
     title: row.title,
     company: row.company
-      ? { id: row.company.id, name: row.company.name, domain: row.company.domain }
+      ? {
+          id: row.company.id,
+          name: row.company.name,
+          domain: row.company.domain,
+        }
       : null,
     owner: toPublicUser(row.owner),
     tags: parseTags(row.tags),
@@ -64,7 +86,9 @@ function toContact(row: ContactRow, lastActivityAt: Date | null, openDealCount: 
   };
 }
 
-function archiveFilter(archive: "active" | "archived" | "all"): { archived?: boolean } {
+function archiveFilter(archive: "active" | "archived" | "all"): {
+  archived?: boolean;
+} {
   if (archive === "all") return {};
   return { archived: archive === "archived" };
 }
@@ -112,7 +136,11 @@ async function openDealCountByContact(
   const result = new Map<string, number>();
   if (!contactIds.length) return result;
   const rows = await prisma.deal.findMany({
-    where: { workspaceId, contactId: { in: contactIds }, stage: { kind: "OPEN" } },
+    where: {
+      workspaceId,
+      contactId: { in: contactIds },
+      stage: { kind: "OPEN" },
+    },
     select: { contactId: true },
   });
   for (const row of rows) {
@@ -137,7 +165,10 @@ async function resolveOwnerId(
   return requested;
 }
 
-async function requireCompany(workspaceId: string, companyId: string): Promise<void> {
+async function requireCompany(
+  workspaceId: string,
+  companyId: string,
+): Promise<void> {
   const company = await prisma.company.findFirst({
     where: { id: companyId, workspaceId },
     select: { id: true },
@@ -145,18 +176,31 @@ async function requireCompany(workspaceId: string, companyId: string): Promise<v
   if (!company) throw notFound("Company");
 }
 
-async function loadContact(workspaceId: string, id: string): Promise<ContactRow> {
-  const row = await prisma.contact.findFirst({ where: { id, workspaceId }, include: contactInclude });
+async function loadContact(
+  workspaceId: string,
+  id: string,
+): Promise<ContactRow> {
+  const row = await prisma.contact.findFirst({
+    where: { id, workspaceId },
+    include: contactInclude,
+  });
   if (!row) throw notFound("Contact");
   return row;
 }
 
-async function serializeContact(workspaceId: string, row: ContactRow): Promise<Contact> {
+async function serializeContact(
+  workspaceId: string,
+  row: ContactRow,
+): Promise<Contact> {
   const [lastActivity, openDeals] = await Promise.all([
     lastActivityByContact(workspaceId, [row.id]),
     openDealCountByContact(workspaceId, [row.id]),
   ]);
-  return toContact(row, lastActivity.get(row.id) ?? null, openDeals.get(row.id) ?? 0);
+  return toContact(
+    row,
+    lastActivity.get(row.id) ?? null,
+    openDeals.get(row.id) ?? 0,
+  );
 }
 
 export async function contactRoutes(app: FastifyInstance): Promise<void> {
@@ -207,7 +251,11 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
 
       return {
         data: rows.map((row) =>
-          toContact(row, lastActivity.get(row.id) ?? null, openDeals.get(row.id) ?? 0),
+          toContact(
+            row,
+            lastActivity.get(row.id) ?? null,
+            openDeals.get(row.id) ?? 0,
+          ),
         ),
         meta: pageMeta(total, query.page, query.pageSize),
       };
@@ -227,8 +275,13 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const auth = getAuth(request);
       const input = parseOrThrow(contactInputSchema, request.body);
-      if (input.companyId) await requireCompany(auth.workspaceId, input.companyId);
-      const ownerId = await resolveOwnerId(auth.workspaceId, input.ownerId, auth.userId);
+      if (input.companyId)
+        await requireCompany(auth.workspaceId, input.companyId);
+      const ownerId = await resolveOwnerId(
+        auth.workspaceId,
+        input.ownerId,
+        auth.userId,
+      );
 
       const created = await prisma.contact.create({
         data: {
@@ -272,7 +325,10 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
     async (request) => {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
-      return serializeContact(auth.workspaceId, await loadContact(auth.workspaceId, id));
+      return serializeContact(
+        auth.workspaceId,
+        await loadContact(auth.workspaceId, id),
+      );
     },
   );
 
@@ -290,7 +346,7 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
       const auth = getAuth(request);
       const { id } = parseOrThrow(idParamsSchema, request.params);
       const existing = await loadContact(auth.workspaceId, id);
-      const input = parseOrThrow(contactInputSchema.partial(), request.body);
+      const input = parseOrThrow(contactPatchSchema, request.body);
 
       const data: Prisma.ContactUncheckedUpdateInput = {};
       if (input.firstName !== undefined) data.firstName = input.firstName;
@@ -299,13 +355,19 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
       if (input.phone !== undefined) data.phone = input.phone ?? null;
       if (input.title !== undefined) data.title = input.title ?? null;
       if (input.companyId !== undefined) {
-        if (input.companyId) await requireCompany(auth.workspaceId, input.companyId);
+        if (input.companyId)
+          await requireCompany(auth.workspaceId, input.companyId);
         data.companyId = input.companyId ?? null;
       }
-      if (input.tags !== undefined) data.tags = serializeTags(input.tags) ?? "[]";
+      if (input.tags !== undefined)
+        data.tags = serializeTags(input.tags) ?? "[]";
       if (input.archived !== undefined) data.archived = input.archived;
       if (input.ownerId !== undefined) {
-        data.ownerId = await resolveOwnerId(auth.workspaceId, input.ownerId, auth.userId);
+        data.ownerId = await resolveOwnerId(
+          auth.workspaceId,
+          input.ownerId,
+          auth.userId,
+        );
       }
 
       const updated = await prisma.contact.update({
@@ -386,7 +448,10 @@ export async function contactRoutes(app: FastifyInstance): Promise<void> {
           metadata: { name: `${existing.firstName} ${existing.lastName}` },
         });
       } else {
-        await prisma.contact.update({ where: { id: existing.id }, data: { archived: true } });
+        await prisma.contact.update({
+          where: { id: existing.id },
+          data: { archived: true },
+        });
         await audit({
           workspaceId: auth.workspaceId,
           actorId: auth.userId,

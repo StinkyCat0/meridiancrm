@@ -1,5 +1,11 @@
 import type { Deal } from "@meridian/contracts";
-import { CalendarDays, ChevronDown, ChevronUp, ChevronsUpDown, UserRound } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  UserRound,
+} from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { Avatar } from "../../../components/ui/Avatar";
 import { Badge } from "../../../components/ui/Badge";
@@ -19,13 +25,32 @@ interface SortHeaderProps {
   align?: "left" | "right";
 }
 
-function SortHeader({ label, field, sort, order, onSort, align = "left" }: SortHeaderProps) {
+function SortHeader({
+  label,
+  field,
+  sort,
+  order,
+  onSort,
+  align = "left",
+}: SortHeaderProps) {
   const active = sort === field;
-  const ariaSort = active ? (order === "asc" ? "ascending" : "descending") : "none";
-  const Icon = !active ? ChevronsUpDown : order === "asc" ? ChevronUp : ChevronDown;
+  const ariaSort = active
+    ? order === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+  const Icon = !active
+    ? ChevronsUpDown
+    : order === "asc"
+      ? ChevronUp
+      : ChevronDown;
 
   return (
-    <th scope="col" aria-sort={ariaSort} className={cn("px-4 py-3", align === "right" && "text-right")}>
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className={cn("px-4 py-3", align === "right" && "text-right")}
+    >
       <button
         type="button"
         onClick={() => onSort(field)}
@@ -50,13 +75,23 @@ interface DealTableProps {
   onOpenDeal: (deal: Deal) => void;
 }
 
-function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, deal: Deal, onOpenDeal: (deal: Deal) => void) {
+function handleRowKeyDown(
+  event: KeyboardEvent<HTMLTableRowElement>,
+  deal: Deal,
+  onOpenDeal: (deal: Deal) => void,
+) {
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   onOpenDeal(deal);
 }
 
-export function DealTable({ deals, sort, order, onSort, onOpenDeal }: DealTableProps) {
+export function DealTable({
+  deals,
+  sort,
+  order,
+  onSort,
+  onOpenDeal,
+}: DealTableProps) {
   return (
     <div className="overflow-x-auto rounded-card border border-border bg-surface">
       <table className="w-full min-w-[920px] border-collapse text-sm">
@@ -64,17 +99,32 @@ export function DealTable({ deals, sort, order, onSort, onOpenDeal }: DealTableP
         <thead>
           <tr className="border-b border-border bg-white/[0.02]">
             <th scope="col" className="px-4 py-3 text-left">
-              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Deal</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                Deal
+              </span>
             </th>
             <th scope="col" className="px-4 py-3 text-left">
-              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Company</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                Company
+              </span>
             </th>
             <th scope="col" className="px-4 py-3 text-left">
-              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Stage</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                Stage
+              </span>
             </th>
-            <SortHeader label="Value" field="value" sort={sort} order={order} onSort={onSort} align="right" />
+            <SortHeader
+              label="Value"
+              field="value"
+              sort={sort}
+              order={order}
+              onSort={onSort}
+              align="right"
+            />
             <th scope="col" className="px-4 py-3 text-left">
-              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Momentum</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                Momentum
+              </span>
             </th>
             <SortHeader
               label="Close date"
@@ -84,7 +134,9 @@ export function DealTable({ deals, sort, order, onSort, onOpenDeal }: DealTableP
               onSort={onSort}
             />
             <th scope="col" className="px-4 py-3 text-left">
-              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Owner</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                Owner
+              </span>
             </th>
           </tr>
         </thead>
@@ -107,14 +159,20 @@ export function DealTable({ deals, sort, order, onSort, onOpenDeal }: DealTableP
                 <td className="max-w-[240px] px-4 py-3">
                   <p className="truncate font-medium text-fg">{deal.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {deal.contact ? `${deal.contact.firstName} ${deal.contact.lastName}` : "No contact"}
+                    {deal.contact
+                      ? `${deal.contact.firstName} ${deal.contact.lastName}`
+                      : "No contact"}
                   </p>
                 </td>
                 <td className="max-w-[180px] px-4 py-3">
-                  <p className="truncate text-muted">{deal.company?.name ?? "—"}</p>
+                  <p className="truncate text-muted">
+                    {deal.company?.name ?? "—"}
+                  </p>
                 </td>
                 <td className="px-4 py-3">
-                  <Badge tone={stageKindTone(deal.stage.kind)}>{deal.stage.name}</Badge>
+                  <Badge tone={stageKindTone(deal.stage.kind)}>
+                    {deal.stage.name}
+                  </Badge>
                 </td>
                 <td className="num whitespace-nowrap px-4 py-3 text-right font-medium text-fg">
                   {formatMoney(deal.value, deal.currency)}
@@ -141,13 +199,19 @@ export function DealTable({ deals, sort, order, onSort, onOpenDeal }: DealTableP
                     )}
                   >
                     <CalendarDays className="size-3" aria-hidden="true" />
-                    {deal.expectedCloseDate ? formatDate(deal.expectedCloseDate, "MMM d, yyyy") : "—"}
+                    {deal.expectedCloseDate
+                      ? formatDate(deal.expectedCloseDate, "MMM d, yyyy")
+                      : "—"}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-2">
                     {deal.owner ? (
-                      <Avatar name={deal.owner.name} src={deal.owner.avatarUrl} size="xs" />
+                      <Avatar
+                        name={deal.owner.name}
+                        src={deal.owner.avatarUrl}
+                        size="xs"
+                      />
                     ) : (
                       <span
                         role="img"
@@ -195,7 +259,10 @@ export function DealTableSkeleton({ rows = 8 }: { rows?: number }) {
         ))}
       </div>
       {Array.from({ length: rows }, (_, row) => (
-        <div key={row} className="flex items-center gap-6 border-b border-border/70 px-4 py-3.5 last:border-b-0">
+        <div
+          key={row}
+          className="flex items-center gap-6 border-b border-border/70 px-4 py-3.5 last:border-b-0"
+        >
           {skeletonWidths.map((cell, index) => (
             <div key={index} className="flex-1">
               {cell}

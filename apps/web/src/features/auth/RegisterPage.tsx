@@ -27,7 +27,8 @@ export default function RegisterPage() {
 
   function update(field: RegisterField, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
-    if (errors[field]) setErrors((current) => ({ ...current, [field]: undefined }));
+    if (errors[field])
+      setErrors((current) => ({ ...current, [field]: undefined }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -66,14 +67,25 @@ export default function RegisterPage() {
     <AuthLayout>
       <div className="mb-8">
         <p className="label-micro">New workspace</p>
-        <h1 className="mt-2 text-3xl font-light tracking-tight text-fg">Create your workspace</h1>
+        <h1 className="mt-2 text-3xl font-light tracking-tight text-fg">
+          Create your workspace
+        </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           One workspace for the way service teams work.
         </p>
       </div>
 
-      <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        <Field label="Your name" htmlFor="register-name" error={errors.name} required>
+      <form
+        className="space-y-4"
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+      >
+        <Field
+          label="Your name"
+          htmlFor="register-name"
+          error={errors.name}
+          required
+        >
           <Input
             id="register-name"
             name="name"
@@ -86,7 +98,12 @@ export default function RegisterPage() {
           />
         </Field>
 
-        <Field label="Workspace name" htmlFor="register-workspace" error={errors.workspaceName} required>
+        <Field
+          label="Workspace name"
+          htmlFor="register-workspace"
+          error={errors.workspaceName}
+          required
+        >
           <Input
             id="register-workspace"
             name="workspaceName"
@@ -99,7 +116,12 @@ export default function RegisterPage() {
           />
         </Field>
 
-        <Field label="Email" htmlFor="register-email" error={errors.email} required>
+        <Field
+          label="Email"
+          htmlFor="register-email"
+          error={errors.email}
+          required
+        >
           <Input
             id="register-email"
             name="email"

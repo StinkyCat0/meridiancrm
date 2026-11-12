@@ -39,11 +39,13 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="relative max-w-md">
           <p className="label-micro">Built for the field</p>
           <blockquote className="mt-5 text-[28px] font-light leading-[1.25] tracking-tight text-fg">
-            Run the whole service day — first call to final invoice — from one calm surface.
+            Run the whole service day — first call to final invoice — from one
+            calm surface.
           </blockquote>
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted">
-            For window cleaners, HVAC crews, utilities, salons and nail studios: customers,
-            service locations, the price book, and every job kept in view.
+            For window cleaners, HVAC crews, utilities, salons and nail studios:
+            customers, service locations, the price book, and every job kept in
+            view.
           </p>
           <div className="mt-8 h-px w-24 bg-gradient-to-r from-accent to-accent-2" />
         </div>

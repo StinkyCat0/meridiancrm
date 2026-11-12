@@ -57,7 +57,10 @@ export function fromDateInput(value: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export function money(cents: number | null | undefined, currency: string): string {
+export function money(
+  cents: number | null | undefined,
+  currency: string,
+): string {
   return formatMoney(cents ?? 0, currency);
 }
 
@@ -110,24 +113,39 @@ export function InvoiceStatusBadge({
 
 export function usePriceBook() {
   return useQuery({
-    queryKey: queryKeys.services.list({ pageSize: 100, archive: "active", sort: "name" }),
-    queryFn: () => api.services.list({ pageSize: 100, archive: "active", sort: "name" }),
+    queryKey: queryKeys.services.list({
+      pageSize: 100,
+      archive: "active",
+      sort: "name",
+    }),
+    queryFn: () =>
+      api.services.list({ pageSize: 100, archive: "active", sort: "name" }),
     staleTime: 60_000,
   });
 }
 
 export function useCustomers() {
   return useQuery({
-    queryKey: queryKeys.companies.list({ pageSize: 100, archive: "active", sort: "name" }),
-    queryFn: () => api.companies.list({ pageSize: 100, archive: "active", sort: "name" }),
+    queryKey: queryKeys.companies.list({
+      pageSize: 100,
+      archive: "active",
+      sort: "name",
+    }),
+    queryFn: () =>
+      api.companies.list({ pageSize: 100, archive: "active", sort: "name" }),
     staleTime: 60_000,
   });
 }
 
 export function useCustomerLocations(customerId: string) {
   return useQuery({
-    queryKey: queryKeys.locations.list({ customerId, pageSize: 100, archive: "active" }),
-    queryFn: () => api.locations.list({ customerId, pageSize: 100, archive: "active" }),
+    queryKey: queryKeys.locations.list({
+      customerId,
+      pageSize: 100,
+      archive: "active",
+    }),
+    queryFn: () =>
+      api.locations.list({ customerId, pageSize: 100, archive: "active" }),
     enabled: Boolean(customerId),
     staleTime: 60_000,
   });
@@ -161,7 +179,13 @@ function nextKey(): string {
 }
 
 export function emptyLine(): LineItemDraft {
-  return { key: nextKey(), serviceId: "", name: "", quantity: "1", unitPrice: "" };
+  return {
+    key: nextKey(),
+    serviceId: "",
+    name: "",
+    quantity: "1",
+    unitPrice: "",
+  };
 }
 
 export function draftFromItems(items: LineItemInput[]): LineItemDraft[] {
@@ -200,13 +224,19 @@ interface LineItemsEditorProps {
   currency: string;
 }
 
-export function LineItemsEditor({ lines, onChange, currency }: LineItemsEditorProps) {
+export function LineItemsEditor({
+  lines,
+  onChange,
+  currency,
+}: LineItemsEditorProps) {
   const servicesQuery = usePriceBook();
   const services = servicesQuery.data?.data ?? [];
   const prefix = useId();
 
   function update(key: string, patch: Partial<LineItemDraft>) {
-    onChange(lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
+    onChange(
+      lines.map((line) => (line.key === key ? { ...line, ...patch } : line)),
+    );
   }
 
   return (
@@ -225,18 +255,26 @@ export function LineItemsEditor({ lines, onChange, currency }: LineItemsEditorPr
       </div>
 
       {lines.map((line) => {
-        const lineTotal = Math.round((Number(line.quantity) || 0) * toCents(line.unitPrice));
+        const lineTotal = Math.round(
+          (Number(line.quantity) || 0) * toCents(line.unitPrice),
+        );
         return (
           <div
             key={line.key}
             className="grid gap-2 rounded-card border border-border bg-surface-2/40 p-3 sm:grid-cols-[minmax(0,1.4fr)_88px_112px_auto]"
           >
-            <Field label="Service" htmlFor={`${prefix}-service-${line.key}`} className="min-w-0">
+            <Field
+              label="Service"
+              htmlFor={`${prefix}-service-${line.key}`}
+              className="min-w-0"
+            >
               <Select
                 id={`${prefix}-service-${line.key}`}
                 value={line.serviceId}
                 onChange={(event) => {
-                  const service = services.find((item) => item.id === event.target.value);
+                  const service = services.find(
+                    (item) => item.id === event.target.value,
+                  );
                   if (service) {
                     update(line.key, {
                       serviceId: service.id,
@@ -265,22 +303,31 @@ export function LineItemsEditor({ lines, onChange, currency }: LineItemsEditorPr
                 min="0.01"
                 step="0.01"
                 value={line.quantity}
-                onChange={(event) => update(line.key, { quantity: event.target.value })}
+                onChange={(event) =>
+                  update(line.key, { quantity: event.target.value })
+                }
               />
             </Field>
 
-            <Field label={`Unit (${currency})`} htmlFor={`${prefix}-price-${line.key}`}>
+            <Field
+              label={`Unit (${currency})`}
+              htmlFor={`${prefix}-price-${line.key}`}
+            >
               <Input
                 id={`${prefix}-price-${line.key}`}
                 inputMode="decimal"
                 value={line.unitPrice}
-                onChange={(event) => update(line.key, { unitPrice: event.target.value })}
+                onChange={(event) =>
+                  update(line.key, { unitPrice: event.target.value })
+                }
                 placeholder="0.00"
               />
             </Field>
 
             <div className="flex items-end justify-between gap-2 sm:flex-col sm:items-end sm:justify-end">
-              <span className="num text-sm text-fg">{money(lineTotal, currency)}</span>
+              <span className="num text-sm text-fg">
+                {money(lineTotal, currency)}
+              </span>
               <Button
                 type="button"
                 size="sm"
@@ -288,7 +335,9 @@ export function LineItemsEditor({ lines, onChange, currency }: LineItemsEditorPr
                 aria-label="Remove line"
                 onClick={() =>
                   onChange(
-                    lines.length === 1 ? [emptyLine()] : lines.filter((item) => item.key !== line.key),
+                    lines.length === 1
+                      ? [emptyLine()]
+                      : lines.filter((item) => item.key !== line.key),
                   )
                 }
               >
@@ -304,7 +353,9 @@ export function LineItemsEditor({ lines, onChange, currency }: LineItemsEditorPr
               <Input
                 id={`${prefix}-name-${line.key}`}
                 value={line.name}
-                onChange={(event) => update(line.key, { name: event.target.value })}
+                onChange={(event) =>
+                  update(line.key, { name: event.target.value })
+                }
                 placeholder="What is being done"
                 maxLength={160}
               />
@@ -347,7 +398,9 @@ export function TotalsPreview({
       </div>
       <div>
         <dt className="label-micro">Total</dt>
-        <dd className="num mt-1 text-base text-fg">{money(subtotal + tax, currency)}</dd>
+        <dd className="num mt-1 text-base text-fg">
+          {money(subtotal + tax, currency)}
+        </dd>
       </div>
     </dl>
   );
@@ -379,7 +432,8 @@ export function CustomerLocationFields({
     if (!customerId) return;
     if (locations.length === 0) return;
     if (locations.some((location) => location.id === locationId)) return;
-    const primary = locations.find((location) => location.isPrimary) ?? locations[0];
+    const primary =
+      locations.find((location) => location.isPrimary) ?? locations[0];
     if (primary) onChange({ customerId, locationId: primary.id });
     // onChange is intentionally omitted: it changes identity every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -392,10 +446,14 @@ export function CustomerLocationFields({
           id={`${prefix}-customer`}
           value={customerId}
           disabled={disabled}
-          onChange={(event) => onChange({ customerId: event.target.value, locationId: "" })}
+          onChange={(event) =>
+            onChange({ customerId: event.target.value, locationId: "" })
+          }
         >
           <option value="">
-            {customersQuery.isPending ? "Loading customers…" : "Select a customer"}
+            {customersQuery.isPending
+              ? "Loading customers…"
+              : "Select a customer"}
           </option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>
@@ -418,7 +476,9 @@ export function CustomerLocationFields({
           id={`${prefix}-location`}
           value={locationId}
           disabled={disabled || !customerId}
-          onChange={(event) => onChange({ customerId, locationId: event.target.value })}
+          onChange={(event) =>
+            onChange({ customerId, locationId: event.target.value })
+          }
         >
           <option value="">
             {!customerId
@@ -436,7 +496,8 @@ export function CustomerLocationFields({
       </Field>
       {customerId ? (
         <p className="text-xs text-muted sm:col-span-2">
-          {workspace?.currency ?? "USD"} · addresses are managed on the customer record.
+          {workspace?.currency ?? "USD"} · addresses are managed on the customer
+          record.
         </p>
       ) : null}
     </div>

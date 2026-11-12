@@ -1,4 +1,8 @@
-import { api, type CreateServiceInput, type ServiceItem } from "@meridian/api-client";
+import {
+  api,
+  type CreateServiceInput,
+  type ServiceItem,
+} from "@meridian/api-client";
 import {
   SERVICE_UNITS,
   SERVICE_UNIT_META,
@@ -40,7 +44,9 @@ export function ServiceFormModal({
   const [category, setCategory] = useState(service?.category ?? "");
   const [description, setDescription] = useState(service?.description ?? "");
   const [unit, setUnit] = useState<ServiceUnit>(service?.unit ?? "VISIT");
-  const [duration, setDuration] = useState(String(service?.durationMinutes ?? 60));
+  const [duration, setDuration] = useState(
+    String(service?.durationMinutes ?? 60),
+  );
   const [price, setPrice] = useState(
     service ? (service.price / 100).toFixed(2) : "",
   );
@@ -55,7 +61,9 @@ export function ServiceFormModal({
 
   const save = useMutation({
     mutationFn: (input: CreateServiceInput) =>
-      service ? api.services.update(service.id, input) : api.services.create(input),
+      service
+        ? api.services.update(service.id, input)
+        : api.services.create(input),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
       toast.success(service ? "Service updated" : "Service added");
@@ -73,7 +81,8 @@ export function ServiceFormModal({
     if (save.isPending) return;
     const nextErrors: typeof errors = {};
     if (!name.trim()) nextErrors.name = "Name the service.";
-    if (price.trim() && toCents(price) < 0) nextErrors.price = "Price cannot be negative.";
+    if (price.trim() && toCents(price) < 0)
+      nextErrors.price = "Price cannot be negative.";
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
@@ -103,21 +112,37 @@ export function ServiceFormModal({
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {service ? "Save service" : "Add service"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-4">
-        <Field label="Service name" htmlFor={id("name")} required error={errors.name}>
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4"
+      >
+        <Field
+          label="Service name"
+          htmlFor={id("name")}
+          required
+          error={errors.name}
+        >
           <Input
             id={id("name")}
             data-autofocus
             value={name}
             onChange={(event) => {
               setName(event.target.value);
-              if (errors.name) setErrors((current) => ({ ...current, name: undefined }));
+              if (errors.name)
+                setErrors((current) => ({ ...current, name: undefined }));
             }}
             invalid={Boolean(errors.name)}
             maxLength={160}
@@ -126,7 +151,11 @@ export function ServiceFormModal({
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Category" htmlFor={id("category")} hint="Group the price book.">
+          <Field
+            label="Category"
+            htmlFor={id("category")}
+            hint="Group the price book."
+          >
             <Input
               id={id("category")}
               list={`${formId}-categories`}
@@ -157,14 +186,19 @@ export function ServiceFormModal({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={`Price (${currency})`} htmlFor={id("price")} error={errors.price}>
+          <Field
+            label={`Price (${currency})`}
+            htmlFor={id("price")}
+            error={errors.price}
+          >
             <Input
               id={id("price")}
               inputMode="decimal"
               value={price}
               onChange={(event) => {
                 setPrice(event.target.value);
-                if (errors.price) setErrors((current) => ({ ...current, price: undefined }));
+                if (errors.price)
+                  setErrors((current) => ({ ...current, price: undefined }));
               }}
               placeholder="0.00"
             />

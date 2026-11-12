@@ -39,7 +39,8 @@ export default function InvitePage() {
   const [pending, setPending] = useState(false);
 
   const invite = inviteQuery.data;
-  const status = inviteQuery.error instanceof ApiError ? inviteQuery.error.status : null;
+  const status =
+    inviteQuery.error instanceof ApiError ? inviteQuery.error.status : null;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,8 +49,12 @@ export default function InvitePage() {
     const nameResult = registerSchema.shape.name.safeParse(name);
     const passwordResult = registerSchema.shape.password.safeParse(password);
     setErrors({
-      name: nameResult.success ? undefined : nameResult.error.issues[0]?.message,
-      password: passwordResult.success ? undefined : passwordResult.error.issues[0]?.message,
+      name: nameResult.success
+        ? undefined
+        : nameResult.error.issues[0]?.message,
+      password: passwordResult.success
+        ? undefined
+        : passwordResult.error.issues[0]?.message,
     });
     if (!nameResult.success || !passwordResult.success) return;
 
@@ -82,7 +87,11 @@ export default function InvitePage() {
   if (inviteQuery.isPending) {
     return (
       <AuthLayout>
-        <div className="space-y-4" role="status" aria-label="Loading invitation">
+        <div
+          className="space-y-4"
+          role="status"
+          aria-label="Loading invitation"
+        >
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-8 w-2/3" />
           <Skeleton className="h-4 w-full" />
@@ -107,7 +116,8 @@ export default function InvitePage() {
         : status === 409
           ? {
               title: "Invitation already used",
-              description: "This invitation has been accepted. Sign in to continue.",
+              description:
+                "This invitation has been accepted. Sign in to continue.",
             }
           : status === 404
             ? {
@@ -127,7 +137,9 @@ export default function InvitePage() {
           description={unavailable.description}
           action={
             canRetry ? (
-              <Button onClick={() => void inviteQuery.refetch()}>Try again</Button>
+              <Button onClick={() => void inviteQuery.refetch()}>
+                Try again
+              </Button>
             ) : null
           }
         />
@@ -152,14 +164,27 @@ export default function InvitePage() {
           <span className="label-micro">Invited</span>
           <Badge tone="accent">{invite.role}</Badge>
         </div>
-        <p className="mt-2 truncate text-sm font-medium text-fg">{invite.email}</p>
+        <p className="mt-2 truncate text-sm font-medium text-fg">
+          {invite.email}
+        </p>
         <p className="mt-1 text-xs text-muted">
-          {invite.invitedByName ? `Invited by ${invite.invitedByName}` : "Workspace invitation"}
+          {invite.invitedByName
+            ? `Invited by ${invite.invitedByName}`
+            : "Workspace invitation"}
         </p>
       </div>
 
-      <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)} noValidate>
-        <Field label="Your name" htmlFor="invite-name" error={errors.name} required>
+      <form
+        className="space-y-4"
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+      >
+        <Field
+          label="Your name"
+          htmlFor="invite-name"
+          error={errors.name}
+          required
+        >
           <Input
             id="invite-name"
             name="name"
@@ -168,7 +193,8 @@ export default function InvitePage() {
             value={name}
             onChange={(event) => {
               setName(event.target.value);
-              if (errors.name) setErrors((current) => ({ ...current, name: undefined }));
+              if (errors.name)
+                setErrors((current) => ({ ...current, name: undefined }));
             }}
             invalid={Boolean(errors.name)}
             required
@@ -190,7 +216,8 @@ export default function InvitePage() {
             value={password}
             onChange={(event) => {
               setPassword(event.target.value);
-              if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
+              if (errors.password)
+                setErrors((current) => ({ ...current, password: undefined }));
             }}
             invalid={Boolean(errors.password)}
             required

@@ -105,7 +105,9 @@ export function ContactDetailSheet({
       title={contact ? contactName(contact) : "Contact"}
       description={
         contact
-          ? [contact.title, contact.company?.name].filter(Boolean).join(" · ") || "Contact record"
+          ? [contact.title, contact.company?.name]
+              .filter(Boolean)
+              .join(" · ") || "Contact record"
           : "Contact record"
       }
     >
@@ -127,10 +129,18 @@ export function ContactDetailSheet({
         </div>
       ) : contactQuery.isError ? (
         <div className="rounded-card border border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm font-medium text-danger">Could not load this contact.</p>
-          <p className="mt-1 text-sm text-muted">{apiErrorMessage(contactQuery.error)}</p>
+          <p className="text-sm font-medium text-danger">
+            Could not load this contact.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            {apiErrorMessage(contactQuery.error)}
+          </p>
           <div className="mt-4 flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => void contactQuery.refetch()}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void contactQuery.refetch()}
+            >
               Try again
             </Button>
             <Button size="sm" variant="ghost" onClick={onClose}>
@@ -148,7 +158,9 @@ export function ContactDetailSheet({
                   <h3 className="truncate text-base font-medium text-fg">
                     {contactName(contact)}
                   </h3>
-                  {contact.archived ? <Badge tone="warning">Archived</Badge> : null}
+                  {contact.archived ? (
+                    <Badge tone="warning">Archived</Badge>
+                  ) : null}
                 </div>
                 <p className="mt-0.5 truncate text-sm text-muted">
                   {contact.title ?? "No title"}
@@ -156,7 +168,11 @@ export function ContactDetailSheet({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={() => onEdit(contact)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onEdit(contact)}
+              >
                 <Pencil aria-hidden="true" className="size-3.5" />
                 Edit
               </Button>
@@ -190,9 +206,12 @@ export function ContactDetailSheet({
               aria-label="Confirm archive contact"
               className="rounded-card border border-danger/30 bg-danger/5 p-4"
             >
-              <p className="text-sm font-medium text-fg">Archive this contact?</p>
+              <p className="text-sm font-medium text-fg">
+                Archive this contact?
+              </p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                They leave active lists and can be restored from the Archived view.
+                They leave active lists and can be restored from the Archived
+                view.
               </p>
               <div className="mt-3 flex gap-2">
                 <Button
@@ -256,7 +275,10 @@ export function ContactDetailSheet({
                     to={`/app/companies/${contact.company.id}`}
                     className="inline-flex max-w-full items-center gap-1.5 text-accent hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   >
-                    <Building2 className="size-3.5 shrink-0" aria-hidden="true" />
+                    <Building2
+                      className="size-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
                     <span className="truncate">{contact.company.name}</span>
                   </Link>
                 ) : (
@@ -269,7 +291,11 @@ export function ContactDetailSheet({
               <dd className="mt-1 flex items-center gap-2 text-sm text-fg">
                 {contact.owner ? (
                   <>
-                    <Avatar name={contact.owner.name} src={contact.owner.avatarUrl} size="xs" />
+                    <Avatar
+                      name={contact.owner.name}
+                      src={contact.owner.avatarUrl}
+                      size="xs"
+                    />
                     <span className="truncate">{contact.owner.name}</span>
                   </>
                 ) : (
@@ -279,11 +305,15 @@ export function ContactDetailSheet({
             </div>
             <div className="min-w-0">
               <dt className="label-micro">Last activity</dt>
-              <dd className="mt-1 text-sm text-fg">{relativeTime(contact.lastActivityAt)}</dd>
+              <dd className="mt-1 text-sm text-fg">
+                {relativeTime(contact.lastActivityAt)}
+              </dd>
             </div>
             <div className="min-w-0">
               <dt className="label-micro">Added</dt>
-              <dd className="mt-1 text-sm text-fg">{formatDate(contact.createdAt)}</dd>
+              <dd className="mt-1 text-sm text-fg">
+                {formatDate(contact.createdAt)}
+              </dd>
             </div>
           </dl>
 
@@ -302,9 +332,15 @@ export function ContactDetailSheet({
             )}
           </div>
 
-          <section aria-labelledby="contact-deals-heading" className="space-y-3">
+          <section
+            aria-labelledby="contact-deals-heading"
+            className="space-y-3"
+          >
             <div className="flex items-center justify-between gap-3">
-              <h3 id="contact-deals-heading" className="text-sm font-medium text-fg">
+              <h3
+                id="contact-deals-heading"
+                className="text-sm font-medium text-fg"
+              >
                 Open deals
               </h3>
               <span className="num text-xs text-muted">
@@ -312,7 +348,11 @@ export function ContactDetailSheet({
               </span>
             </div>
             {dealsQuery.isPending ? (
-              <div className="space-y-2" role="status" aria-label="Loading deals">
+              <div
+                className="space-y-2"
+                role="status"
+                aria-label="Loading deals"
+              >
                 <Skeleton className="h-12" />
                 <Skeleton className="h-12" />
               </div>
@@ -349,7 +389,9 @@ export function ContactDetailSheet({
                         )}
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-fg">{deal.title}</span>
+                        <span className="block truncate text-sm text-fg">
+                          {deal.title}
+                        </span>
                         <span className="mt-0.5 block text-xs text-muted">
                           {deal.stage.name}
                         </span>
@@ -357,8 +399,13 @@ export function ContactDetailSheet({
                       <span className="num shrink-0 text-sm text-fg">
                         {formatMoney(deal.value, deal.currency)}
                       </span>
-                      <Badge tone={stageTone[deal.stage.kind]}>{deal.stage.kind}</Badge>
-                      <ArrowUpRight className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                      <Badge tone={stageTone[deal.stage.kind]}>
+                        {deal.stage.kind}
+                      </Badge>
+                      <ArrowUpRight
+                        className="size-3.5 shrink-0 text-muted"
+                        aria-hidden="true"
+                      />
                     </Link>
                   </li>
                 ))}

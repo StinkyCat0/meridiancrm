@@ -14,6 +14,13 @@ import { jobRoutes } from "./jobs.js";
 import { estimateRoutes } from "./estimates.js";
 import { invoiceRoutes } from "./invoices.js";
 import { opsRoutes } from "./ops.js";
+import { communicationsRoutes } from "./communications.js";
+import { timelineRoutes } from "./timeline.js";
+import { dispatchRoutes } from "./dispatch.js";
+import { financeRoutes } from "./finance.js";
+import { automationRoutes } from "./automations.js";
+import { intelligenceRoutes } from "./intelligence.js";
+import { teamRoutes } from "./team.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get("/health", { schema: { hide: true } }, async (_request, reply) => {
@@ -25,7 +32,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
     return reply.status(database === "up" ? 200 : 503).send({
       status: database === "up" ? "ok" : "degraded",
-      version: "0.1.0",
+      version: "0.2.0",
       uptime: Math.round(process.uptime()),
       database,
     });
@@ -45,4 +52,11 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(estimateRoutes);
   await app.register(invoiceRoutes);
   await app.register(opsRoutes);
+  await app.register(communicationsRoutes);
+  await app.register(timelineRoutes);
+  await app.register(dispatchRoutes);
+  await app.register(financeRoutes);
+  await app.register(automationRoutes);
+  await app.register(intelligenceRoutes);
+  await app.register(teamRoutes);
 }

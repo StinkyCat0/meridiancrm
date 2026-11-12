@@ -36,10 +36,28 @@ const DEFAULT_STAGES: Array<{
   kind: StageKind;
   targetDays: number;
 }> = [
-  { name: "Discovery", order: 0, probability: 10, kind: "OPEN", targetDays: 14 },
-  { name: "Qualified", order: 1, probability: 25, kind: "OPEN", targetDays: 21 },
+  {
+    name: "Discovery",
+    order: 0,
+    probability: 10,
+    kind: "OPEN",
+    targetDays: 14,
+  },
+  {
+    name: "Qualified",
+    order: 1,
+    probability: 25,
+    kind: "OPEN",
+    targetDays: 21,
+  },
   { name: "Proposal", order: 2, probability: 50, kind: "OPEN", targetDays: 14 },
-  { name: "Negotiation", order: 3, probability: 75, kind: "OPEN", targetDays: 10 },
+  {
+    name: "Negotiation",
+    order: 3,
+    probability: 75,
+    kind: "OPEN",
+    targetDays: 10,
+  },
   { name: "Won", order: 4, probability: 100, kind: "WON", targetDays: 30 },
   { name: "Lost", order: 5, probability: 0, kind: "LOST", targetDays: 30 },
 ];
@@ -86,7 +104,10 @@ function toPipeline(row: PipelineRow): Pipeline {
   };
 }
 
-async function requirePipeline(workspaceId: string, id: string): Promise<PipelineRow> {
+async function requirePipeline(
+  workspaceId: string,
+  id: string,
+): Promise<PipelineRow> {
   const row = await prisma.pipeline.findFirst({
     where: { id, workspaceId },
     include: pipelineInclude,
@@ -95,7 +116,10 @@ async function requirePipeline(workspaceId: string, id: string): Promise<Pipelin
   return row;
 }
 
-async function requireStageRow(workspaceId: string, id: string): Promise<StageRow> {
+async function requireStageRow(
+  workspaceId: string,
+  id: string,
+): Promise<StageRow> {
   const row = await prisma.stage.findFirst({
     where: { id, pipeline: { workspaceId } },
   });
@@ -282,29 +306,35 @@ export async function pipelineRoutes(app: FastifyInstance): Promise<void> {
       if (input.kind !== undefined) data.kind = input.kind;
       if (input.targetDays !== undefined) data.targetDays = input.targetDays;
 
-      const kindChanged = input.kind !== undefined && input.kind !== existing.kind;
+      const kindChanged =
+        input.kind !== undefined && input.kind !== existing.kind;
       const now = new Date();
 
-      const { updated, reconciledDeals } = await prisma.$transaction(async (tx) => {
-        const stage = await tx.stage.update({ where: { id: existing.id }, data });
-        if (!kindChanged) return { updated: stage, reconciledDeals: 0 };
+      const { updated, reconciledDeals } = await prisma.$transaction(
+        async (tx) => {
+          const stage = await tx.stage.update({
+            where: { id: existing.id },
+            data,
+          });
+          if (!kindChanged) return { updated: stage, reconciledDeals: 0 };
 
-        const kind = input.kind as StageKind;
-        const closed = kind !== "OPEN";
-        // closedAt tracks whether the deal is currently closed, so it must follow the
-        // stage kind. stageChangedAt is only restarted when moving to a closed kind: the
-        // "time in stage" clock marks when the deal entered its closed state, while
-        // reopening to OPEN leaves the existing clock untouched so momentum keeps
-        // reflecting how long the deal has been sitting in this stage.
-        const moved = await tx.deal.updateMany({
-          where: { workspaceId: auth.workspaceId, stageId: existing.id },
-          data: {
-            closedAt: closed ? now : null,
-            ...(closed ? { stageChangedAt: now } : {}),
-          },
-        });
-        return { updated: stage, reconciledDeals: moved.count };
-      });
+          const kind = input.kind as StageKind;
+          const closed = kind !== "OPEN";
+          // closedAt tracks whether the deal is currently closed, so it must follow the
+          // stage kind. stageChangedAt is only restarted when moving to a closed kind: the
+          // "time in stage" clock marks when the deal entered its closed state, while
+          // reopening to OPEN leaves the existing clock untouched so momentum keeps
+          // reflecting how long the deal has been sitting in this stage.
+          const moved = await tx.deal.updateMany({
+            where: { workspaceId: auth.workspaceId, stageId: existing.id },
+            data: {
+              closedAt: closed ? now : null,
+              ...(closed ? { stageChangedAt: now } : {}),
+            },
+          });
+          return { updated: stage, reconciledDeals: moved.count };
+        },
+      );
 
       await audit({
         workspaceId: auth.workspaceId,
@@ -349,9 +379,12 @@ export async function pipelineRoutes(app: FastifyInstance): Promise<void> {
         ]);
 
         if (dealCount > 0) {
-          throw conflict("This stage still has deals. Move them before deleting it.", {
-            dealCount,
-          });
+          throw conflict(
+            "This stage still has deals. Move them before deleting it.",
+            {
+              dealCount,
+            },
+          );
         }
         // Stage history references this stage with onDelete: Restrict; deleting it would
         // either fail or orphan past deal transitions, so the stage is retained instead.
@@ -373,7 +406,10 @@ export async function pipelineRoutes(app: FastifyInstance): Promise<void> {
         });
         for (const [index, stage] of remaining.entries()) {
           if (stage.order !== index) {
-            await tx.stage.update({ where: { id: stage.id }, data: { order: index } });
+            await tx.stage.update({
+              where: { id: stage.id },
+              data: { order: index },
+            });
           }
         }
       });
@@ -410,7 +446,9 @@ export async function pipelineRoutes(app: FastifyInstance): Promise<void> {
 
       const currentIds = pipeline.stages.map((stage) => stage.id);
       if (stageIds.length !== currentIds.length) {
-        throw badRequest("stageIds must contain every stage in the pipeline exactly once");
+        throw badRequest(
+          "stageIds must contain every stage in the pipeline exactly once",
+        );
       }
       const currentSet = new Set(currentIds);
       const requestedSet = new Set(stageIds);
@@ -419,16 +457,24 @@ export async function pipelineRoutes(app: FastifyInstance): Promise<void> {
       }
       for (const stageId of stageIds) {
         if (!currentSet.has(stageId)) {
-          throw badRequest("stageIds must contain only stages from this pipeline");
+          throw badRequest(
+            "stageIds must contain only stages from this pipeline",
+          );
         }
       }
 
       const updated = await prisma.$transaction(async (tx) => {
         for (const [index, stageId] of stageIds.entries()) {
-          await tx.stage.update({ where: { id: stageId }, data: { order: -(index + 1) } });
+          await tx.stage.update({
+            where: { id: stageId },
+            data: { order: -(index + 1) },
+          });
         }
         for (const [index, stageId] of stageIds.entries()) {
-          await tx.stage.update({ where: { id: stageId }, data: { order: index } });
+          await tx.stage.update({
+            where: { id: stageId },
+            data: { order: index },
+          });
         }
         return tx.pipeline.findFirstOrThrow({
           where: { id: pipeline.id },

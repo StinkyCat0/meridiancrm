@@ -43,18 +43,28 @@ export function ContactFormModal({
   const [tags, setTags] = useState(tagsToInput(contact?.tags ?? []));
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const companyOptions: Array<{ id: string; name: string }> = companies.map((company) => ({
-    id: company.id,
-    name: company.name,
-  }));
+  const companyOptions: Array<{ id: string; name: string }> = companies.map(
+    (company) => ({
+      id: company.id,
+      name: company.name,
+    }),
+  );
   const currentCompany = contact?.company ?? null;
-  if (currentCompany && !companyOptions.some((option) => option.id === currentCompany.id)) {
-    companyOptions.unshift({ id: currentCompany.id, name: currentCompany.name });
+  if (
+    currentCompany &&
+    !companyOptions.some((option) => option.id === currentCompany.id)
+  ) {
+    companyOptions.unshift({
+      id: currentCompany.id,
+      name: currentCompany.name,
+    });
   }
 
   const save = useMutation({
     mutationFn: (input: CreateContactInput) =>
-      contact ? api.contacts.update(contact.id, input) : api.contacts.create(input),
+      contact
+        ? api.contacts.update(contact.id, input)
+        : api.contacts.create(input),
     onSuccess: (saved) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.companies.all });
@@ -111,13 +121,23 @@ export function ContactFormModal({
           <Button variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId} loading={save.isPending}>
+          <Button
+            variant="primary"
+            type="submit"
+            form={formId}
+            loading={save.isPending}
+          >
             {contact ? "Save contact" : "Create contact"}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
             label="First name"
@@ -136,7 +156,12 @@ export function ContactFormModal({
               placeholder="Avery"
             />
           </Field>
-          <Field label="Last name" htmlFor={id("lastName")} required error={errors.lastName}>
+          <Field
+            label="Last name"
+            htmlFor={id("lastName")}
+            required
+            error={errors.lastName}
+          >
             <Input
               id={id("lastName")}
               value={lastName}

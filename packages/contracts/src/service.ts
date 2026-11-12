@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema, optionalDate, optionalText } from "./common.js";
+import { idSchema, optionalDate, optionalText, patchSchema } from "./common.js";
 import {
   CUSTOMER_TYPES,
   ESTIMATE_STATUSES,
@@ -37,6 +37,8 @@ export interface LocationSummary {
   city: string;
   state: string | null;
   postalCode: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface ServiceSummary {
@@ -54,6 +56,7 @@ export interface ServiceItem {
   unit: ServiceUnit;
   durationMinutes: number;
   price: number;
+  cost: number;
   taxable: boolean;
   archived: boolean;
   usageCount: number;
@@ -75,6 +78,8 @@ export interface Location {
   gateCode: string | null;
   contactName: string | null;
   contactPhone: string | null;
+  latitude: number | null;
+  longitude: number | null;
   isPrimary: boolean;
   archived: boolean;
   openJobCount: number;
@@ -88,6 +93,7 @@ export interface LineItem {
   name: string;
   quantity: number;
   unitPrice: number;
+  unitCost: number;
   total: number;
 }
 
@@ -100,7 +106,12 @@ export interface Job {
   source: string | null;
   customer: CustomerSummary;
   location: LocationSummary;
-  contact: { id: string; firstName: string; lastName: string; phone: string | null } | null;
+  contact: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+  } | null;
   assignee: PublicUser | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
@@ -114,6 +125,9 @@ export interface Job {
   total: number;
   deposit: number;
   notes: string | null;
+  cancelReason: string | null;
+  rating: number | null;
+  ratingNote: string | null;
   recurrence: RecurrenceFrequency | null;
   recurrenceUntil: string | null;
   createdAt: string;
@@ -127,7 +141,12 @@ export interface Estimate {
   status: EstimateStatus;
   customer: CustomerSummary;
   location: LocationSummary;
-  contact: { id: string; firstName: string; lastName: string; phone: string | null } | null;
+  contact: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+  } | null;
   lineItems: LineItem[];
   subtotal: number;
   taxRate: number;
@@ -188,7 +207,10 @@ export interface OpsSummary {
 /* Inputs                                                                      */
 /* -------------------------------------------------------------------------- */
 
-const nullableId = z.preprocess((value) => (value === "" ? null : value), idSchema.nullable().optional());
+const nullableId = z.preprocess(
+  (value) => (value === "" ? null : value),
+  idSchema.nullable().optional(),
+);
 
 export const locationInputSchema = z.object({
   customerId: idSchema,
@@ -203,11 +225,15 @@ export const locationInputSchema = z.object({
   gateCode: optionalText(60),
   contactName: optionalText(120),
   contactPhone: optionalText(40),
+  latitude: z.coerce.number().min(-90).max(90).nullable().optional(),
+  longitude: z.coerce.number().min(-180).max(180).nullable().optional(),
   isPrimary: z.boolean().optional(),
   archived: z.boolean().optional(),
 });
 
-export const locationPatchSchema = locationInputSchema.partial().omit({ customerId: true });
+export const locationPatchSchema = patchSchema(locationInputSchema).omit({
+  customerId: true,
+});
 
 export const serviceInputSchema = z.object({
   name: z.string().trim().min(1).max(160),
@@ -216,17 +242,19 @@ export const serviceInputSchema = z.object({
   unit: z.enum(SERVICE_UNITS).default("VISIT"),
   durationMinutes: z.coerce.number().int().min(5).max(1440).default(60),
   price: z.coerce.number().int().min(0).max(1_000_000_000).default(0),
+  cost: z.coerce.number().int().min(0).max(1_000_000_000).default(0),
   taxable: z.boolean().default(true),
   archived: z.boolean().optional(),
 });
 
-export const servicePatchSchema = serviceInputSchema.partial();
+export const servicePatchSchema = patchSchema(serviceInputSchema);
 
 export const lineItemInputSchema = z.object({
   serviceId: nullableId,
   name: z.string().trim().min(1).max(160),
   quantity: z.coerce.number().min(0.01).max(10_000).default(1),
   unitPrice: z.coerce.number().int().min(0).max(1_000_000_000),
+  unitCost: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
 });
 
 export type LineItemInput = z.infer<typeof lineItemInputSchema>;
@@ -256,7 +284,11 @@ export const jobInputSchema = z.object({
   lineItems: z.array(lineItemInputSchema).max(50).default([]),
 });
 
-export const jobPatchSchema = jobInputSchema.partial();
+export const jobPatchSchema = patchSchema(jobInputSchema).extend({
+  rating: z.coerce.number().int().min(1).max(5).nullable().optional(),
+  ratingNote: optionalText(500),
+  cancelReason: optionalText(240),
+});
 export const jobStatusSchema = z.object({
   status: z.enum(JOB_STATUSES),
   cancelReason: optionalText(240),
@@ -278,7 +310,7 @@ export const estimateInputSchema = z.object({
   lineItems: z.array(lineItemInputSchema).max(50).default([]),
 });
 
-export const estimatePatchSchema = estimateInputSchema.partial();
+export const estimatePatchSchema = patchSchema(estimateInputSchema);
 export const estimateStatusSchema = z.object({
   status: z.enum(ESTIMATE_STATUSES),
 });

@@ -8,6 +8,7 @@ import {
   CornerDownLeft,
   FileText,
   MapPin,
+  MessageSquare,
   Plus,
   Receipt,
   Search,
@@ -84,16 +85,108 @@ const QUICK_ACTIONS: readonly ActionSeed[] = [
 ];
 
 const NAVIGATION: readonly ActionSeed[] = [
-  { label: "Overview", sublabel: "Dispatch and pipeline", to: "/app", keywords: "dashboard home" },
-  { label: "Schedule", sublabel: "Jobs and dispatch", to: "/app/schedule", keywords: "jobs work orders calendar route" },
-  { label: "Customers", sublabel: "People, sites and accounts", to: "/app/companies", keywords: "clients accounts" },
-  { label: "Estimates", sublabel: "Quotes", to: "/app/estimates", keywords: "proposals quotes" },
-  { label: "Invoices", sublabel: "Receivables", to: "/app/invoices", keywords: "billing payments" },
-  { label: "Services", sublabel: "Price book", to: "/app/services", keywords: "pricing catalog" },
-  { label: "Contacts", sublabel: "People", to: "/app/contacts", keywords: "people" },
-  { label: "Deals", sublabel: "Pipeline", to: "/app/deals", keywords: "opportunities revenue" },
-  { label: "Activities", sublabel: "Calls, email, meetings, tasks", to: "/app/activities", keywords: "tasks notes" },
-  { label: "Settings", sublabel: "Workspace and team", to: "/app/settings", keywords: "admin members" },
+  {
+    label: "Overview",
+    sublabel: "Your day, revenue and priorities",
+    to: "/app",
+    keywords: "dashboard home",
+  },
+  {
+    label: "Dispatch",
+    sublabel: "Map, board and route",
+    to: "/app/dispatch",
+    keywords: "map route assign technicians",
+  },
+  {
+    label: "Calendar",
+    sublabel: "Week view",
+    to: "/app/calendar",
+    keywords: "appointments schedule week",
+  },
+  {
+    label: "Jobs",
+    sublabel: "Work orders",
+    to: "/app/schedule",
+    keywords: "jobs work orders",
+  },
+  {
+    label: "Customers",
+    sublabel: "People, sites and accounts",
+    to: "/app/companies",
+    keywords: "clients accounts",
+  },
+  {
+    label: "Inbox",
+    sublabel: "Calls, texts and follow-ups",
+    to: "/app/inbox",
+    keywords: "messages sms email calls conversations",
+  },
+  {
+    label: "Quotes",
+    sublabel: "Estimates",
+    to: "/app/estimates",
+    keywords: "proposals quotes",
+  },
+  {
+    label: "Invoices",
+    sublabel: "Receivables",
+    to: "/app/invoices",
+    keywords: "billing payments",
+  },
+  {
+    label: "Revenue",
+    sublabel: "Margins and expenses",
+    to: "/app/revenue",
+    keywords: "finance money profit",
+  },
+  {
+    label: "Automations",
+    sublabel: "Workflow rules",
+    to: "/app/automations",
+    keywords: "rules triggers workflow",
+  },
+  {
+    label: "Intelligence",
+    sublabel: "Recommendations and forecast",
+    to: "/app/intelligence",
+    keywords: "ai insights churn upsell",
+  },
+  {
+    label: "Team",
+    sublabel: "Performance and workload",
+    to: "/app/team",
+    keywords: "technicians staff",
+  },
+  {
+    label: "Price book",
+    sublabel: "Services",
+    to: "/app/services",
+    keywords: "pricing catalog",
+  },
+  {
+    label: "Contacts",
+    sublabel: "People",
+    to: "/app/contacts",
+    keywords: "people",
+  },
+  {
+    label: "Leads",
+    sublabel: "Pipeline",
+    to: "/app/deals",
+    keywords: "opportunities deals",
+  },
+  {
+    label: "Activities",
+    sublabel: "Calls, email, meetings, tasks",
+    to: "/app/activities",
+    keywords: "tasks notes",
+  },
+  {
+    label: "Settings",
+    sublabel: "Workspace and team",
+    to: "/app/settings",
+    keywords: "admin members",
+  },
 ];
 
 const HIT_GROUPS: Record<SearchHit["type"], string> = {
@@ -104,6 +197,7 @@ const HIT_GROUPS: Record<SearchHit["type"], string> = {
   job: "Jobs",
   estimate: "Estimates",
   invoice: "Invoices",
+  communication: "Communications",
 };
 
 const HIT_ICONS: Record<SearchHit["type"], LucideIcon> = {
@@ -114,6 +208,7 @@ const HIT_ICONS: Record<SearchHit["type"], LucideIcon> = {
   job: Wrench,
   estimate: FileText,
   invoice: Receipt,
+  communication: MessageSquare,
 };
 
 interface CommandItem {
@@ -160,7 +255,11 @@ export function CommandPalette() {
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k") {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        event.key.toLowerCase() === "k"
+      ) {
         event.preventDefault();
         setOpen((current) => !current);
       }
@@ -181,7 +280,9 @@ export function CommandPalette() {
     if (!open) return;
 
     previouslyFocused.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     setQuery("");
@@ -275,7 +376,8 @@ export function CommandPalette() {
   }, [query, trimmedQuery, search.data, go]);
 
   const items = useMemo(() => groups.flatMap((group) => group.items), [groups]);
-  const safeIndex = items.length === 0 ? -1 : Math.min(activeIndex, items.length - 1);
+  const safeIndex =
+    items.length === 0 ? -1 : Math.min(activeIndex, items.length - 1);
   const activeItem = safeIndex >= 0 ? items[safeIndex] : undefined;
 
   const isSearching =
@@ -285,11 +387,15 @@ export function CommandPalette() {
       search.isFetching ||
       search.isPending);
   const hasNoResults =
-    trimmedQuery.length >= 2 && !isSearching && !search.isError && items.length === 0;
+    trimmedQuery.length >= 2 &&
+    !isSearching &&
+    !search.isError &&
+    items.length === 0;
   const searchFailed = search.isError && trimmedQuery.length >= 2;
 
   useEffect(() => {
-    if (safeIndex >= 0) itemRefs.current[safeIndex]?.scrollIntoView({ block: "nearest" });
+    if (safeIndex >= 0)
+      itemRefs.current[safeIndex]?.scrollIntoView({ block: "nearest" });
   }, [safeIndex]);
 
   useEffect(() => {
@@ -304,7 +410,8 @@ export function CommandPalette() {
       if (items.length > 0) setActiveIndex((safeIndex + 1) % items.length);
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      if (items.length > 0) setActiveIndex(safeIndex <= 0 ? items.length - 1 : safeIndex - 1);
+      if (items.length > 0)
+        setActiveIndex(safeIndex <= 0 ? items.length - 1 : safeIndex - 1);
     } else if (event.key === "Home") {
       event.preventDefault();
       setActiveIndex(0);
@@ -390,7 +497,8 @@ export function CommandPalette() {
 
           {searchFailed ? (
             <p className="px-3 py-8 text-center text-sm text-muted">
-              Search is unavailable right now. Check your connection and try again.
+              Search is unavailable right now. Check your connection and try
+              again.
             </p>
           ) : null}
 
@@ -405,7 +513,12 @@ export function CommandPalette() {
 
           {!isSearching && !hasNoResults && !searchFailed
             ? groups.map((group) => (
-                <div key={group.label} role="group" aria-label={group.label} className="mb-2 last:mb-0">
+                <div
+                  key={group.label}
+                  role="group"
+                  aria-label={group.label}
+                  className="mb-2 last:mb-0"
+                >
                   <p className="label-micro px-2 pb-1 pt-2">{group.label}</p>
                   {group.items.map((item) => {
                     const index = runningIndex;
@@ -428,7 +541,9 @@ export function CommandPalette() {
                         onClick={() => item.onSelect()}
                         className={cn(
                           "flex w-full items-center gap-3 rounded-input px-2.5 py-2 text-left transition-colors",
-                          active ? "bg-white/[0.06] text-fg" : "text-muted hover:bg-white/[0.03]",
+                          active
+                            ? "bg-white/[0.06] text-fg"
+                            : "text-muted hover:bg-white/[0.03]",
                         )}
                       >
                         <span
@@ -441,13 +556,20 @@ export function CommandPalette() {
                           <Icon className="size-3.5" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm text-fg">{item.label}</span>
+                          <span className="block truncate text-sm text-fg">
+                            {item.label}
+                          </span>
                           {item.sublabel ? (
-                            <span className="block truncate text-xs text-muted">{item.sublabel}</span>
+                            <span className="block truncate text-xs text-muted">
+                              {item.sublabel}
+                            </span>
                           ) : null}
                         </span>
                         {active ? (
-                          <CornerDownLeft className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
+                          <CornerDownLeft
+                            className="size-3.5 shrink-0 text-muted"
+                            aria-hidden="true"
+                          />
                         ) : null}
                       </button>
                     );
@@ -459,12 +581,19 @@ export function CommandPalette() {
 
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 py-2 text-[10px] text-muted">
           <span>
-            <kbd className="rounded border border-border bg-bg/60 px-1 py-0.5">↑</kbd>
-            <kbd className="ml-1 rounded border border-border bg-bg/60 px-1 py-0.5">↓</kbd>{" "}
+            <kbd className="rounded border border-border bg-bg/60 px-1 py-0.5">
+              ↑
+            </kbd>
+            <kbd className="ml-1 rounded border border-border bg-bg/60 px-1 py-0.5">
+              ↓
+            </kbd>{" "}
             to navigate
           </span>
           <span>
-            <kbd className="rounded border border-border bg-bg/60 px-1 py-0.5">↵</kbd> to open
+            <kbd className="rounded border border-border bg-bg/60 px-1 py-0.5">
+              ↵
+            </kbd>{" "}
+            to open
           </span>
         </div>
       </div>

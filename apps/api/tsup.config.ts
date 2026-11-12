@@ -10,6 +10,9 @@ export default defineConfig({
   sourcemap: true,
   // Keep Prisma's runtime and generated client external; they are deployed with node_modules.
   external: ["@prisma/client", ".prisma/client"],
+  // Contracts export TypeScript source; bundle them so `node dist/server.js` works
+  // without a source loader in production.
+  noExternal: ["@meridian/contracts"],
   splitting: false,
   minify: false,
 });

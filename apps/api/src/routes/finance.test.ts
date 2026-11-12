@@ -303,8 +303,9 @@ describe("finance summary", () => {
     expect(summary.averageTicket).toBe(8000);
 
     // Job cost 6000; 10000/15000 collected = 4000, refund releases 800.
-    expect(summary.grossProfit).toBe(8000 - 3200 - 1500);
-    expect(summary.grossMarginPct).toBe(41.3);
+    // Gross profit excludes operating expenses; the $1,500 expense is separate.
+    expect(summary.grossProfit).toBe(8000 - 3200);
+    expect(summary.grossMarginPct).toBe(60);
 
     const windows = summary.serviceMargins.find(
       (row) => row.category === "Windows",

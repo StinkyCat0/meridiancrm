@@ -53,16 +53,16 @@ estimates, invoices, payments, expenses, logged communications, and automation r
 
 ## Verification evidence
 
-Verified on `main` after the website-bridge merges (2026-11-12):
+Verified on `main` after the Studio coupling merges (2026-11-24):
 
-- **API integration tests:** 134 passing across auth, CRM, service operations, communications,
-  dispatch, finance, automations, intelligence, and team suites.
+- **API integration tests:** 148 passing across auth, CRM, service operations, communications,
+  dispatch, finance, automations, intelligence, team, Studio BFF, and website-handoff suites.
 - **Contract tests:** 17 passing (momentum, formatters, route optimization, message drafts, invoice
   rules, scoring).
 - **Typechecks:** `npm run typecheck` clean for API and web, run sequentially as CI does.
 - **Builds:** `@meridian/api` (`tsup`) and `@meridian/web` (`vite build`) both succeed.
 - **Coverage:** `npm run test:coverage` satisfies the configured floor; the merged `main` run
-  reports 82.68% statements and 82.68% lines (statements/branches/functions/lines floors: 20/15/20/20).
+  reports 81.74% statements and 81.74% lines (statements/branches/functions/lines floors: 20/15/20/20).
 - **Formatting:** Prettier check clean across the repository.
 
 CI runs these same gates on every pull request: format check, Prisma client generation and

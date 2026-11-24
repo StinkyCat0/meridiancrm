@@ -216,10 +216,10 @@ defaults to `https://meridianstudios.org`.
 The intended live topology keeps the public site and customer API where they are and gives the CRM
 its own origin under the same domain:
 
-| Public origin | Runs |
-| --- | --- |
-| `https://meridianstudios.org` | website SPA, website API (`/api`, `/socket.io`, `/uploads`), MongoDB |
-| `https://crm.meridianstudios.org` | CRM SPA and CRM API (`/api/v1`), CRM SQLite/Postgres |
+| Public origin                     | Runs                                                                 |
+| --------------------------------- | -------------------------------------------------------------------- |
+| `https://meridianstudios.org`     | website SPA, website API (`/api`, `/socket.io`, `/uploads`), MongoDB |
+| `https://crm.meridianstudios.org` | CRM SPA and CRM API (`/api/v1`), CRM SQLite/Postgres                 |
 
 This is the recommended coupling because the CRM SPA, API base, refresh-cookie path, and service
 worker all assume an origin root. A path prefix such as `meridianstudios.org/crm` would require SPA

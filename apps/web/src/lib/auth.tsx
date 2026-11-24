@@ -45,6 +45,8 @@ export interface AuthContextValue extends AuthState {
   login: (input: LoginInput) => Promise<Session>;
   register: (input: RegisterInput) => Promise<Session>;
   acceptInvite: (input: AcceptInviteInput) => Promise<Session>;
+  /** Completes a one-time website → CRM login handoff with its code. */
+  acceptWebsiteHandoff: (code: string) => Promise<Session>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<MeResponse>;
 }
@@ -145,6 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [establish],
   );
 
+  const acceptWebsiteHandoff = useCallback(
+    async (code: string) => establish(await api.auth.websiteHandoff(code)),
+    [establish],
+  );
+
   const logout = useCallback(async () => {
     sessionVersion.current += 1;
     try {
@@ -162,10 +169,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       acceptInvite,
+      acceptWebsiteHandoff,
       logout,
       refreshMe,
     }),
-    [state, loading, login, register, acceptInvite, logout, refreshMe],
+    [
+      state,
+      loading,
+      login,
+      register,
+      acceptInvite,
+      acceptWebsiteHandoff,
+      logout,
+      refreshMe,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

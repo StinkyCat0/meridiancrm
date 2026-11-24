@@ -8,7 +8,9 @@ import { Skeleton } from "./components/ui/Skeleton";
 import InvitePage from "./features/auth/InvitePage";
 import LoginPage from "./features/auth/LoginPage";
 import RegisterPage from "./features/auth/RegisterPage";
-import { AuthProvider } from "./lib/auth";
+import WebsiteHandoffPage from "./features/auth/WebsiteHandoffPage";
+import StudioAccessNotice from "./features/studio/StudioAccessNotice";
+import { AuthProvider, RequireRole } from "./lib/auth";
 import { queryClient } from "./lib/query";
 
 const DashboardPage = lazy(() => import("./features/dashboard"));
@@ -28,6 +30,14 @@ const RevenuePage = lazy(() => import("./features/revenue"));
 const AutomationsPage = lazy(() => import("./features/automations"));
 const IntelligencePage = lazy(() => import("./features/intelligence"));
 const TeamPage = lazy(() => import("./features/team"));
+const StudioPage = lazy(() => import("./features/studio"));
+const StudioOverviewPage = lazy(() => import("./features/studio/Overview"));
+const StudioAccountsPage = lazy(() => import("./features/studio/Accounts"));
+const StudioInquiriesPage = lazy(() => import("./features/studio/Inquiries"));
+const StudioChatPage = lazy(() => import("./features/studio/Chat"));
+const StudioBillingPage = lazy(() => import("./features/studio/Billing"));
+const StudioDemosPage = lazy(() => import("./features/studio/Demos"));
+const StudioSettingsPage = lazy(() => import("./features/studio/Settings"));
 
 function RouteFallback() {
   return (
@@ -59,6 +69,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/app" replace />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/login/website" element={<WebsiteHandoffPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/invite/:token" element={<InvitePage />} />
 
@@ -214,6 +225,80 @@ export default function App() {
                   </LazyRoute>
                 }
               />
+              <Route
+                path="studio"
+                element={
+                  <RequireRole
+                    minimum="ADMIN"
+                    fallback={<StudioAccessNotice />}
+                  >
+                    <LazyRoute>
+                      <StudioPage />
+                    </LazyRoute>
+                  </RequireRole>
+                }
+              >
+                <Route
+                  index
+                  element={
+                    <LazyRoute>
+                      <StudioOverviewPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="accounts"
+                  element={
+                    <LazyRoute>
+                      <StudioAccountsPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="inquiries"
+                  element={
+                    <LazyRoute>
+                      <StudioInquiriesPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="chat"
+                  element={
+                    <LazyRoute>
+                      <StudioChatPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="billing"
+                  element={
+                    <LazyRoute>
+                      <StudioBillingPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="demos"
+                  element={
+                    <LazyRoute>
+                      <StudioDemosPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    <LazyRoute>
+                      <StudioSettingsPage />
+                    </LazyRoute>
+                  }
+                />
+                <Route
+                  path="*"
+                  element={<Navigate to="/app/studio" replace />}
+                />
+              </Route>
               <Route
                 path="settings"
                 element={

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Contact,
   FileText,
+  Globe2,
   LayoutDashboard,
   MapPinned,
   MessageSquare,
@@ -56,6 +57,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: "Run",
     items: [
+      { label: "Studio", to: "/app/studio", icon: Globe2 },
       { label: "Automations", to: "/app/automations", icon: Zap },
       { label: "Intelligence", to: "/app/intelligence", icon: Sparkles },
       { label: "Team", to: "/app/team", icon: Users },

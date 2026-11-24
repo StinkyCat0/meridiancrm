@@ -18,6 +18,8 @@ export const queryKeys = {
   auth: {
     me: ["auth", "me"] as const,
     invite: (token: string) => ["auth", "invite", token] as const,
+    websiteHandoff: (code: string) =>
+      ["auth", "website-handoff", code] as const,
   },
   workspace: {
     detail: ["workspace"] as const,
@@ -118,6 +120,21 @@ export const queryKeys = {
     recommendations: (query?: unknown) =>
       ["intelligence", "recommendations", query ?? null] as const,
     brief: ["intelligence", "brief"] as const,
+  },
+  studio: {
+    all: ["studio"] as const,
+    overview: ["studio", "overview"] as const,
+    accounts: (query?: unknown) =>
+      ["studio", "accounts", query ?? null] as const,
+    inquiries: (query?: unknown) =>
+      ["studio", "inquiries", query ?? null] as const,
+    chatRooms: (includeArchived: boolean) =>
+      ["studio", "chat", "rooms", includeArchived] as const,
+    messages: (roomId: string, query?: unknown) =>
+      ["studio", "chat", "messages", roomId, query ?? null] as const,
+    billing: (query?: unknown) => ["studio", "billing", query ?? null] as const,
+    demos: ["studio", "demos"] as const,
+    settings: ["studio", "settings"] as const,
   },
   team: {
     all: ["team"] as const,

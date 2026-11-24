@@ -211,6 +211,40 @@ the `studio.*` actions listed in [`docs/API.md`](./API.md#website-studio). Uncon
 120 requests/minute. The CRM web build uses `VITE_WEBSITE_URL` for "open website"/demo links and
 defaults to `https://meridianstudios.org`.
 
+## Hosting on the Meridian domain
+
+The intended live topology keeps the public site and customer API where they are and gives the CRM
+its own origin under the same domain:
+
+| Public origin | Runs |
+| --- | --- |
+| `https://meridianstudios.org` | website SPA, website API (`/api`, `/socket.io`, `/uploads`), MongoDB |
+| `https://crm.meridianstudios.org` | CRM SPA and CRM API (`/api/v1`), CRM SQLite/Postgres |
+
+This is the recommended coupling because the CRM SPA, API base, refresh-cookie path, and service
+worker all assume an origin root. A path prefix such as `meridianstudios.org/crm` would require SPA
+base-path, API-prefix, cookie-path, and asset-rewrite changes in both repos and is deliberately not
+the default.
+
+Deployment sequence:
+
+1. Put a TLS reverse proxy (Caddy/nginx) in front of the CRM on `crm.meridianstudios.org`, serving
+   the built web app and proxying `/api/*` to the CRM API. Keep the CRM API loopback-only.
+2. Set the CRM's `CORS_ORIGINS=https://crm.meridianstudios.org` and `WEB_APP_URL=https://crm.meridianstudios.org`;
+   leave `COOKIE_SECURE=1` behind TLS.
+3. Set the CRM's `WEBSITE_STUDIO_URL=https://meridianstudios.org` and `WEBSITE_STUDIO_TOKEN`; set
+   the website's `STUDIO_API_TOKEN` to the same value and `CRM_URL=https://crm.meridianstudios.org`.
+4. Set the CRM web build's `VITE_WEBSITE_URL=https://meridianstudios.org`.
+5. Add the CRM origin to the website's `FRONTEND_URL` only if the website needs to call the CRM
+   directly. The handoff is a top-level redirect, so it does not require CORS.
+6. Keep `WEBSITE_JWT_SECRET` only if the older direct JWT exchange stays enabled; the one-time
+   handoff uses only the Studio service token.
+
+The website login remains the identity boundary: `meridianstudios.org/login` authenticates against
+MongoDB, then verified staff with `access.canAccessCrm` are handed to
+`crm.meridianstudios.org/login/website?code=…`. Customers stay on the website; the CRM is the staff
+backend reached through that website login, not a replacement for the customer account/chat system.
+
 ## Operational notes
 
 - Rotate shared secrets as pairs and deploy both sides together: `WEBSITE_JWT_SECRET` (CRM) with the

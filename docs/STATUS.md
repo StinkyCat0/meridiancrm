@@ -44,8 +44,10 @@ estimates, invoices, payments, expenses, logged communications, and automation r
   technician revenue, and top customers.
 - Intelligence: local recommendations, forecast, health, upsells, and assistant brief.
 - Team performance and workload with utilization, ratings, revenue, and margin.
-- Website bridge: secret-gated contact intake into the lead pipeline and optional website-token SSO;
-  see [WEBSITE_INTEGRATION.md](WEBSITE_INTEGRATION.md).
+- Website bridge: secret-gated contact intake into the lead pipeline, optional website-token SSO,
+  one-time login handoff, and an ADMIN-only Studio section for website accounts, inquiries, live
+  chat, billing, demos, and integration health; see [WEBSITE_INTEGRATION.md](WEBSITE_INTEGRATION.md)
+  and [STUDIO_INTEGRATION.md](STUDIO_INTEGRATION.md).
 - Operations dashboard, dashboard analytics, global search, ⌘K/Ctrl+K palette, settings, audit,
   installable PWA, and documented REST API.
 

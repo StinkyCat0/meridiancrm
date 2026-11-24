@@ -8,6 +8,8 @@ import {
   registerSchema,
   updateProfileSchema,
   websiteExchangeSchema,
+  websiteHandoffPreviewSchema,
+  websiteHandoffSchema,
   type AuthSession,
   type MeResponse,
   type PublicUser,
@@ -42,6 +44,11 @@ import {
   verifyWebsiteToken,
   type WebsiteTokenClaims,
 } from "../lib/website-sso.js";
+import {
+  WebsiteStudioError,
+  studioConfigured,
+  websiteStudioRequest,
+} from "../lib/website-studio.js";
 
 type UserRecord = {
   id: string;
@@ -132,6 +139,64 @@ function sessionBody(
 function userAgentOf(request: FastifyRequest): string | undefined {
   const agent = request.headers["user-agent"];
   return typeof agent === "string" ? agent : undefined;
+}
+
+/**
+ * Resolves a website identity email to a CRM user and its earliest membership.
+ * The same 401 is returned for unknown users and unlinked users so account
+ * linkage is not disclosed.
+ */
+async function resolveCrmIdentity(email: string) {
+  const user = await prisma.user.findUnique({
+    where: { email: email.trim().toLowerCase() },
+    include: {
+      memberships: {
+        include: { workspace: true },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+      },
+    },
+  });
+  const membership = user?.memberships[0];
+  if (!user || !membership) {
+    throw unauthorized("This website account is not linked to a CRM workspace");
+  }
+  return { user, membership };
+}
+
+/**
+ * Website Studio failures: unconfigured is 503, an invalid/expired code keeps
+ * its client status, and everything else is a bad gateway.
+ */
+function handoffFailure(error: unknown): never {
+  if (error instanceof WebsiteStudioError) {
+    if (error.reason === "unconfigured") {
+      throw new AppError(
+        503,
+        ERROR_CODES.SERVICE_UNAVAILABLE,
+        "Website handoff is not configured",
+      );
+    }
+    if (error.status === 401 || error.status === 404) {
+      throw unauthorized("This website handoff code is invalid or expired");
+    }
+    if (error.status === 410) {
+      throw new AppError(
+        410,
+        ERROR_CODES.NOT_FOUND,
+        "This website handoff code has expired",
+      );
+    }
+    if (error.status === 403) {
+      throw forbidden("This website account is not allowed to use the CRM");
+    }
+    throw new AppError(
+      502,
+      "BAD_GATEWAY",
+      "The website handoff service is unavailable",
+    );
+  }
+  throw error;
 }
 
 let dummyPasswordHash: Promise<string> | null = null;
@@ -324,23 +389,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         throw error;
       }
 
-      const email = claims.email.trim().toLowerCase();
-      const user = await prisma.user.findUnique({
-        where: { email },
-        include: {
-          memberships: {
-            include: { workspace: true },
-            orderBy: { createdAt: "asc" },
-            take: 1,
-          },
-        },
-      });
-      const membership = user?.memberships[0];
-      if (!user || !membership) {
-        throw unauthorized(
-          "This website account is not linked to a CRM workspace",
-        );
-      }
+      const { user, membership } = await resolveCrmIdentity(claims.email);
 
       const role = membership.role as Role;
       const tokens = await createSession(
@@ -363,6 +412,98 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply
         .status(200)
         .send(sessionBody(tokens, user, membership.workspace, role));
+    },
+  );
+
+  app.post(
+    "/auth/website/handoff/preview",
+    {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Inspect a website login handoff code without consuming it",
+      },
+    },
+    async (request, reply) => {
+      if (!studioConfigured()) {
+        throw new AppError(
+          503,
+          ERROR_CODES.SERVICE_UNAVAILABLE,
+          "Website handoff is not configured",
+        );
+      }
+      const body = parseOrThrow(websiteHandoffSchema, request.body);
+      try {
+        const preview = parseOrThrow(
+          websiteHandoffPreviewSchema,
+          await websiteStudioRequest("/sso/inspect", {
+            method: "POST",
+            body,
+          }),
+        );
+        return reply.status(200).send(preview);
+      } catch (error) {
+        handoffFailure(error);
+      }
+    },
+  );
+
+  app.post(
+    "/auth/website/handoff",
+    {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+      schema: {
+        tags: ["auth"],
+        summary: "Consume a website handoff code and start a CRM session",
+      },
+    },
+    async (request, reply) => {
+      if (!studioConfigured()) {
+        throw new AppError(
+          503,
+          ERROR_CODES.SERVICE_UNAVAILABLE,
+          "Website handoff is not configured",
+        );
+      }
+      const body = parseOrThrow(websiteHandoffSchema, request.body);
+      try {
+        const preview = parseOrThrow(
+          websiteHandoffPreviewSchema,
+          await websiteStudioRequest("/sso/consume", {
+            method: "POST",
+            body,
+          }),
+        );
+
+        if (!preview.isVerified || !preview.crmAccess) {
+          throw forbidden("This website account is not allowed to use the CRM");
+        }
+
+        const { user, membership } = await resolveCrmIdentity(preview.email);
+        const role = membership.role as Role;
+        const tokens = await createSession(
+          user,
+          membership.workspaceId,
+          role,
+          userAgentOf(request),
+        );
+        setRefreshCookie(reply, tokens.refreshToken);
+
+        await audit({
+          workspaceId: membership.workspaceId,
+          actorId: user.id,
+          action: "auth.website_handoff",
+          entityType: "user",
+          entityId: user.id,
+          metadata: { websiteUserId: preview.websiteUserId },
+        });
+
+        return reply
+          .status(200)
+          .send(sessionBody(tokens, user, membership.workspace, role));
+      } catch (error) {
+        handoffFailure(error);
+      }
     },
   );
 

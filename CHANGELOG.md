@@ -7,6 +7,14 @@ and the project adheres to semantic versioning for public contracts.
 
 ### Added
 
+- Website Studio admin BFF under `/api/v1/studio` (ADMIN/OWNER only): proxied overview, accounts,
+  inquiries, chat rooms/messages, billing, demos, and settings, with audit coverage on every write
+  and no service token exposed to the browser.
+- One-time website login handoff (`/auth/website/handoff/preview` and `/auth/website/handoff`) using
+  the website's single-use SSO codes, resolving the CRM user and earliest membership and auditing as
+  `auth.website_handoff`.
+- Studio and handoff contracts plus typed `@meridian/api-client` methods, and `WEBSITE_STUDIO_URL`,
+  `WEBSITE_STUDIO_TOKEN`, and `WEBSITE_PUBLIC_URL` configuration.
 - CSV exports for invoices, payments, expenses and customers, with filter parity, bounded rows and
   spreadsheet formula-injection escaping.
 - Request ids on every API response and in request logs, accepting a validated inbound id or

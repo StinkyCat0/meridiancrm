@@ -63,8 +63,40 @@ import {
   type Stage,
   type StageHistoryEntry,
   type StageKind,
+  type StudioAccount,
+  type StudioAccountAccess,
+  type StudioAccountPage,
+  type StudioAccountRole,
+  type StudioAccountUpdateInput,
+  type StudioBillingItem,
+  type StudioBillingPage,
+  type StudioBillingSummary,
+  type StudioChatRoom,
+  type StudioChatRoomList,
+  type StudioDemo,
+  type StudioDemoKey,
+  type StudioDemoList,
+  type StudioInquiry,
+  type StudioInquiryFilter,
+  type StudioInquiryPage,
+  type StudioInquiryStatus,
+  type StudioInquiryUpdateInput,
+  type StudioMessage,
+  type StudioMessageCreateInput,
+  type StudioMessageList,
+  type StudioOverview,
+  type StudioPlan,
+  type StudioRoomCreateInput,
+  type StudioRoomUpdateInput,
+  type StudioSettings,
+  type StudioSettingsIntegration,
+  type StudioSettingsLink,
+  type StudioSubscription,
+  type StudioSubscriptionStatus,
   type TeamPerformance,
   type TeamWorkload,
+  type WebsiteHandoffInput,
+  type WebsiteHandoffPreview,
   type WorkspaceSummary,
 } from "@meridian/contracts";
 
@@ -223,6 +255,8 @@ const NO_REFRESH_PATHS: Record<string, true> = {
   "/auth/refresh": true,
   "/auth/logout": true,
   "/auth/accept-invite": true,
+  "/auth/website/handoff/preview": true,
+  "/auth/website/handoff": true,
 };
 
 async function sendRequest(
@@ -852,6 +886,22 @@ const auth = {
   },
   changePassword: (input: ChangePasswordInput): Promise<void> =>
     execute<void>("/auth/password", { method: "POST", body: input }),
+  websiteHandoffPreview: (code: string): Promise<WebsiteHandoffPreview> =>
+    execute<WebsiteHandoffPreview>("/auth/website/handoff/preview", {
+      method: "POST",
+      body: { code },
+      skipAuth: true,
+      skipRefresh: true,
+    }),
+  websiteHandoff: async (code: string): Promise<AuthSession> =>
+    storeSession(
+      await execute<AuthSession>("/auth/website/handoff", {
+        method: "POST",
+        body: { code },
+        skipAuth: true,
+        skipRefresh: true,
+      }),
+    ),
   getInvite: (token: string): Promise<InvitePreview> =>
     execute<InvitePreview>(`/auth/invite/${encodeURIComponent(token)}`),
   acceptInvite: async (input: AcceptInviteInput): Promise<AuthSession> =>
@@ -1290,6 +1340,105 @@ const team = {
 };
 
 /* -------------------------------------------------------------------------- */
+/* Studio (website admin BFF)                                                  */
+/* -------------------------------------------------------------------------- */
+
+export interface StudioAccountListParams {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StudioInquiryListParams {
+  status?: StudioInquiryFilter;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface StudioChatRoomListParams {
+  includeArchived?: boolean;
+}
+
+export interface StudioMessageListParams {
+  limit?: number;
+  before?: string;
+}
+
+export interface StudioBillingParams {
+  page?: number;
+  pageSize?: number;
+}
+
+const studio = {
+  overview: (): Promise<StudioOverview> =>
+    execute<StudioOverview>("/studio/overview"),
+  accounts: (query?: StudioAccountListParams): Promise<StudioAccountPage> =>
+    execute<StudioAccountPage>("/studio/accounts", { query }),
+  updateAccount: (
+    id: string,
+    input: StudioAccountUpdateInput,
+  ): Promise<{ account: StudioAccount }> =>
+    execute<{ account: StudioAccount }>(
+      `/studio/accounts/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: input },
+    ),
+  inquiries: (query?: StudioInquiryListParams): Promise<StudioInquiryPage> =>
+    execute<StudioInquiryPage>("/studio/inquiries", { query }),
+  updateInquiry: (
+    id: string,
+    input: StudioInquiryUpdateInput,
+  ): Promise<{ inquiry: StudioInquiry }> =>
+    execute<{ inquiry: StudioInquiry }>(
+      `/studio/inquiries/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: input },
+    ),
+  chatRooms: (query?: StudioChatRoomListParams): Promise<StudioChatRoomList> =>
+    execute<StudioChatRoomList>("/studio/chat/rooms", { query }),
+  createRoom: (
+    input: StudioRoomCreateInput,
+  ): Promise<{ room: StudioChatRoom }> =>
+    execute<{ room: StudioChatRoom }>("/studio/chat/rooms", {
+      method: "POST",
+      body: input,
+    }),
+  updateRoom: (
+    id: string,
+    input: StudioRoomUpdateInput,
+  ): Promise<{ room: StudioChatRoom }> =>
+    execute<{ room: StudioChatRoom }>(
+      `/studio/chat/rooms/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: input },
+    ),
+  archiveRoom: (id: string): Promise<{ room: StudioChatRoom }> =>
+    execute<{ room: StudioChatRoom }>(
+      `/studio/chat/rooms/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
+  messages: (
+    roomId: string,
+    query?: StudioMessageListParams,
+  ): Promise<StudioMessageList> =>
+    execute<StudioMessageList>(
+      `/studio/chat/rooms/${encodeURIComponent(roomId)}/messages`,
+      { query },
+    ),
+  sendMessage: (
+    roomId: string,
+    input: StudioMessageCreateInput,
+  ): Promise<{ message: StudioMessage }> =>
+    execute<{ message: StudioMessage }>(
+      `/studio/chat/rooms/${encodeURIComponent(roomId)}/messages`,
+      { method: "POST", body: input },
+    ),
+  billing: (query?: StudioBillingParams): Promise<StudioBillingPage> =>
+    execute<StudioBillingPage>("/studio/billing", { query }),
+  demos: (): Promise<StudioDemoList> =>
+    execute<StudioDemoList>("/studio/demos"),
+  settings: (): Promise<StudioSettings> =>
+    execute<StudioSettings>("/studio/settings"),
+};
+
+/* -------------------------------------------------------------------------- */
 /* Activities / insights                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -1342,6 +1491,7 @@ export const api = {
   team,
   activities,
   insights,
+  studio,
 };
 
 export type Api = typeof api;
@@ -1409,7 +1559,39 @@ export type {
   Stage,
   StageHistoryEntry,
   StageKind,
+  StudioAccount,
+  StudioAccountAccess,
+  StudioAccountPage,
+  StudioAccountRole,
+  StudioAccountUpdateInput,
+  StudioBillingItem,
+  StudioBillingPage,
+  StudioBillingSummary,
+  StudioChatRoom,
+  StudioChatRoomList,
+  StudioDemo,
+  StudioDemoKey,
+  StudioDemoList,
+  StudioInquiry,
+  StudioInquiryFilter,
+  StudioInquiryPage,
+  StudioInquiryStatus,
+  StudioInquiryUpdateInput,
+  StudioMessage,
+  StudioMessageCreateInput,
+  StudioMessageList,
+  StudioOverview,
+  StudioPlan,
+  StudioRoomCreateInput,
+  StudioRoomUpdateInput,
+  StudioSettings,
+  StudioSettingsIntegration,
+  StudioSettingsLink,
+  StudioSubscription,
+  StudioSubscriptionStatus,
   TeamPerformance,
   TeamWorkload,
+  WebsiteHandoffInput,
+  WebsiteHandoffPreview,
   WorkspaceSummary,
 };

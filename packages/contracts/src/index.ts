@@ -17,6 +17,7 @@ export * from "./route.js";
 export * from "./drafts.js";
 export * from "./scoring.js";
 export * from "./website.js";
+export * from "./studio.js";
 
 export interface HealthResponse {
   status: "ok" | "degraded";

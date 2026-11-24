@@ -1,10 +1,13 @@
 # Website integration
 
-The CRM exposes two server-to-server bridges for the marketing site
-([meridian-website](https://github.com/StinkyCat0/meridian-website)): lead intake and staff SSO.
-The website-side setup is documented in that repository's
+The CRM exposes three server-to-server bridges for the marketing site
+([meridian-website](https://github.com/StinkyCat0/meridian-website)): lead intake, staff SSO, and the
+Studio admin BFF plus one-time login handoff. The website-side setup is documented in that
+repository's
 [`docs/INTEGRATION.md`](https://github.com/StinkyCat0/meridian-website/blob/main/docs/INTEGRATION.md).
-Live chat is owned by the website repository and is not part of this API.
+The authoritative service contract and shapes are in
+[`docs/STUDIO_INTEGRATION.md`](./STUDIO_INTEGRATION.md). Website data (accounts, inquiries, live
+chat, subscriptions, demos) stays in the website database; the CRM only proxies it.
 
 Base URL: `http://localhost:4000/api/v1` in development, `https://<your-host>/api/v1` in production.
 All bodies are JSON. Errors use `{ "error": { "code": "…", "message": "…" } }`.
@@ -169,15 +172,56 @@ session. A successful exchange is audited as `auth.website_sso` with the website
 
 Rate limit: 10 requests per minute per client.
 
+## One-time login handoff
+
+Preferred over the JWT exchange for browser logins because it avoids cross-site refresh-cookie
+limits. Requires `WEBSITE_STUDIO_URL` and `WEBSITE_STUDIO_TOKEN` (same value as the website's
+`STUDIO_API_TOKEN`) on the CRM; `WEBSITE_PUBLIC_URL` supplies the public origin used for
+"open website" links.
+
+1. The website verifies a signed-in user with `access.canAccessCrm`, creates a random 32-byte code,
+   stores only its SHA-256 hash with a 60-second expiry, and returns
+   `<CRM_URL>/login/website?code=<code>`.
+2. `POST /api/v1/auth/website/handoff/preview` with `{ "code": "…" }` calls the website
+   `/api/studio/sso/inspect` and returns
+   `{ websiteUserId, email, name, isVerified, crmAccess, expiresAt }` without consuming the code.
+3. `POST /api/v1/auth/website/handoff` with the same body calls `/api/studio/sso/consume`, which
+   atomically marks the code used, then resolves `email` to the earliest CRM `User` + `Membership`
+   and issues a normal CRM session plus refresh cookie.
+
+The code is single-use and expires in 60 seconds. Website role/workspace claims are never trusted.
+Unknown emails and users without a membership return the same `401`. A successful exchange is
+audited as `auth.website_handoff` with the website user id only. Rate limit: 10 requests/minute.
+
+| Status | Code                  | When                                                                   |
+| ------ | --------------------- | ---------------------------------------------------------------------- |
+| `400`  | `VALIDATION_ERROR`    | `code` is missing, shorter than 20 characters, or longer than 500.     |
+| `401`  | `UNAUTHORIZED`        | Invalid, used, or unknown code; no linked CRM user/membership.         |
+| `403`  | `FORBIDDEN`           | The website account is unverified or has lost `canAccessCrm`.          |
+| `410`  | `NOT_FOUND`           | The code expired.                                                      |
+| `502`  | `BAD_GATEWAY`         | The website handoff service timed out, failed, or returned 5xx.        |
+| `503`  | `SERVICE_UNAVAILABLE` | `WEBSITE_STUDIO_URL` / `WEBSITE_STUDIO_TOKEN` is missing or too short. |
+
+## Studio BFF
+
+`/api/v1/studio/*` proxies the website's service-token API for CRM admins only (`ADMIN` or `OWNER`,
+re-checked on every request). The browser never receives the service token. Writes are audited with
+the `studio.*` actions listed in [`docs/API.md`](./API.md#website-studio). Unconfigured bridges return
+`503`; timeouts, network failures, and website 5xx return `502 BAD_GATEWAY`. Rate limit:
+120 requests/minute. The CRM web build uses `VITE_WEBSITE_URL` for "open website"/demo links and
+defaults to `https://meridianstudios.org`.
+
 ## Operational notes
 
 - Rotate shared secrets as pairs and deploy both sides together: `WEBSITE_JWT_SECRET` (CRM) with the
-  website's `JWT_SECRET`, and `WEBSITE_INTAKE_SECRET` (CRM) with the website's `CRM_INTAKE_SECRET`.
-  Rotating the JWT secret invalidates outstanding website SSO tokens (but not existing CRM sessions);
-  rotating the intake secret makes in-flight submissions with the old header fail with `401`.
+  website's `JWT_SECRET`, `WEBSITE_INTAKE_SECRET` (CRM) with the website's `CRM_INTAKE_SECRET`, and
+  `WEBSITE_STUDIO_TOKEN` (CRM) with the website's `STUDIO_API_TOKEN`. Rotating the JWT secret
+  invalidates outstanding website SSO tokens (but not existing CRM sessions); rotating the intake or
+  Studio token makes requests with the old header fail with `401`.
 - The website token is an identity assertion only. Tenant and role are always resolved from the CRM
   `Membership` table, and the website's `role` claim is deliberately not trusted.
-- Website chat remains in the website repository; only intake and SSO cross the boundary.
+- Website chat data remains in the website database. The CRM only proxies it through the Studio BFF
+  and never stores website passwords or service tokens in the browser.
 
 ### Session revocation
 

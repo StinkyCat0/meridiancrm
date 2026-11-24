@@ -107,17 +107,19 @@ Every non-2xx JSON response uses one envelope:
 
 ### Auth
 
-| Method | Path                  | Auth   | Purpose                                                                                                                       |
-| ------ | --------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register`      | no     | Create user + workspace, start session (201).                                                                                 |
-| POST   | `/auth/login`         | no     | Start session (200). Rate limited to 10/minute per client.                                                                    |
-| POST   | `/auth/refresh`       | cookie | Rotate refresh token, return new access token.                                                                                |
-| POST   | `/auth/logout`        | cookie | Revoke refresh token, clear cookie (204).                                                                                     |
-| GET    | `/auth/me`            | yes    | Current user, workspace, role, and member count.                                                                              |
-| PATCH  | `/auth/me`            | yes    | Update `name` and/or `avatarUrl`.                                                                                             |
-| POST   | `/auth/password`      | yes    | Change password; revokes active refresh tokens (204).                                                                         |
-| GET    | `/auth/invite/:token` | no     | Inspect an invite: email, workspace, role, inviter.                                                                           |
-| POST   | `/auth/accept-invite` | no     | Accept invite with token, name, password; start session (201). Password min 10 chars; email must not already have an account. |
+| Method | Path                            | Auth   | Purpose                                                                                                                       |
+| ------ | ------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/register`                | no     | Create user + workspace, start session (201).                                                                                 |
+| POST   | `/auth/login`                   | no     | Start session (200). Rate limited to 10/minute per client.                                                                    |
+| POST   | `/auth/refresh`                 | cookie | Rotate refresh token, return new access token.                                                                                |
+| POST   | `/auth/logout`                  | cookie | Revoke refresh token, clear cookie (204).                                                                                     |
+| GET    | `/auth/me`                      | yes    | Current user, workspace, role, and member count.                                                                              |
+| PATCH  | `/auth/me`                      | yes    | Update `name` and/or `avatarUrl`.                                                                                             |
+| POST   | `/auth/password`                | yes    | Change password; revokes active refresh tokens (204).                                                                         |
+| GET    | `/auth/invite/:token`           | no     | Inspect an invite: email, workspace, role, inviter.                                                                           |
+| POST   | `/auth/accept-invite`           | no     | Accept invite with token, name, password; start session (201). Password min 10 chars; email must not already have an account. |
+| POST   | `/auth/website/handoff/preview` | no     | Inspect a website handoff `code` without consuming it. Rate limited to 10/minute.                                             |
+| POST   | `/auth/website/handoff`         | no     | Consume a website handoff `code` and start a CRM session (200). Rate limited to 10/minute.                                    |
 
 ### Workspace, members, invites, audit
 
@@ -461,6 +463,35 @@ units and ISO timestamps. User-controlled cells beginning with a spreadsheet for
 prefixed with `'` to prevent CSV injection. Every response also carries an `x-request-id` header
 that is echoed from a valid inbound id or generated per request.
 
+### Website Studio
+
+The Studio BFF proxies the Meridian website's service-token API. It requires a CRM bearer token and
+the `ADMIN` role; the website token never reaches the browser. Configure `WEBSITE_STUDIO_URL` and
+`WEBSITE_STUDIO_TOKEN` (same value as the website's `STUDIO_API_TOKEN`) on the CRM server. Both
+surface as `503 SERVICE_UNAVAILABLE` when unconfigured; website timeouts, network errors and 5xx map
+to `502 BAD_GATEWAY`. Rate limit: 120 requests/minute per client.
+
+| Method | Path                              | Purpose                                                         |
+| ------ | --------------------------------- | --------------------------------------------------------------- |
+| GET    | `/studio/overview`                | Account, subscription, inquiry, chat and demo counts.           |
+| GET    | `/studio/accounts`                | Paginated accounts. `search`, `page`, `pageSize`.               |
+| PATCH  | `/studio/accounts/:id`            | Update `canAccessCrm`, `canAccessChat`, and/or `isActive`.      |
+| GET    | `/studio/inquiries`               | Paginated inquiries. `status=all\|new\|read\|archived`.         |
+| PATCH  | `/studio/inquiries/:id`           | Update `status`.                                                |
+| GET    | `/studio/chat/rooms`              | Rooms; `includeArchived=true` includes archived rooms.          |
+| POST   | `/studio/chat/rooms`              | Create a room (`name`, optional `description`, `isReadOnly`).   |
+| PATCH  | `/studio/chat/rooms/:id`          | Update a room.                                                  |
+| DELETE | `/studio/chat/rooms/:id`          | Archive a room.                                                 |
+| GET    | `/studio/chat/rooms/:id/messages` | Messages. `limit` (1-100), `before`.                            |
+| POST   | `/studio/chat/rooms/:id/messages` | Post a message; the CRM injects the signed-in user's email.     |
+| GET    | `/studio/billing`                 | Read-only subscription summary and paginated subscription rows. |
+| GET    | `/studio/demos`                   | Demo traffic counts.                                            |
+| GET    | `/studio/settings`                | Website integration status and public links.                    |
+
+Writes are audited as `studio.account_updated`, `studio.inquiry_updated`,
+`studio.chat_room_created`, `studio.chat_room_updated`, `studio.chat_room_archived`, and
+`studio.chat_message_posted`.
+
 ## Tenancy and RBAC
 
 The access token carries the workspace id. Every request re-reads the caller's membership, so role
@@ -480,8 +511,8 @@ account.
 
 ## Rate limits
 
-Global: 600 requests/minute per client, plus stricter per-route limits on auth endpoints (login is
-10/minute). Responses include `x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`;
+Global: 600 requests/minute per client, plus stricter per-route limits: login and both website
+handoff endpoints are 10/minute, and the Studio BFF is 120/minute. Responses include `x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`;
 excess requests return 429 with `RATE_LIMITED`. The limiter is in-process, so it resets on restart.
 Client identity uses forwarded headers only when `TRUST_PROXY` is configured.
 

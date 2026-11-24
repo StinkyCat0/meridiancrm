@@ -105,4 +105,19 @@ export const config = {
   websiteIntakeSecret: resolveIntakeSecret(),
   websiteIntakeWorkspaceSlug:
     process.env.WEBSITE_INTAKE_WORKSPACE_SLUG ?? "meridian-studio",
+  /** Website origin used by the Studio BFF and login handoff; empty disables both. */
+  websiteStudioUrl: (process.env.WEBSITE_STUDIO_URL ?? "")
+    .trim()
+    .replace(/\/+$/, ""),
+  /** Service token shared with the website; shorter values are treated as unconfigured. */
+  websiteStudioToken: (() => {
+    const candidate = (process.env.WEBSITE_STUDIO_TOKEN ?? "").trim();
+    return candidate.length >= 32 ? candidate : "";
+  })(),
+  /** Public website origin used for "open website" links. */
+  websitePublicUrl: (
+    process.env.WEBSITE_PUBLIC_URL ?? "https://meridianstudios.org"
+  )
+    .trim()
+    .replace(/\/+$/, ""),
 } as const;
